@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
+	"os"
 
 	"math"
 
@@ -115,6 +116,14 @@ type logMetric struct {
 	Metric map[string]map[string]string `json:"metric,omitempty"`
 }
 
+func isJSON(s string) bool {
+	var j map[string]interface{}
+	if err := json.Unmarshal([]byte(s), &j); err != nil {
+		return false
+	}
+	return true
+}
+
 func check(err error) {
 	if err != nil {
 		panic(err)
@@ -223,6 +232,7 @@ func getTimeVariables(baselineTime string, canaryTime string, endTime string, li
 	}
 	return canaryStartTime, baselineStartTime, lifetimeMinutes, nil
 }
+
 func getAnalysisTemplateData(template string, Namespace string, kubeclientset kubernetes.Interface) (OPSMXMetric, error) {
 	analysisTemplateData, err := kubeclientset.CoreV1().ConfigMaps(Namespace).Get(context.TODO(), template, metav1.GetOptions{})
 	if err != nil {
@@ -234,29 +244,52 @@ func getAnalysisTemplateData(template string, Namespace string, kubeclientset ku
 		return OPSMXMetric{}, err
 	}
 
-	lifetimeMinutes, err := strconv.Atoi(analysisTemplateData.Data["lifetimeMinutes"])
-	if err != nil {
-		return OPSMXMetric{}, err
+	var lifetimeMinutes int
+	if analysisTemplateData.Data["lifetimeMinutes"] != "" {
+		lifetimeMinutes, err = strconv.Atoi(analysisTemplateData.Data["lifetimeMinutes"])
+		if err != nil {
+			return OPSMXMetric{}, err
+		}
 	}
-	intervalTime, err := strconv.Atoi(analysisTemplateData.Data["intervalTime"])
-	if err != nil {
-		return OPSMXMetric{}, err
+
+	var intervalTime int
+	if analysisTemplateData.Data["intervalTime"] != "" {
+		intervalTime, err = strconv.Atoi(analysisTemplateData.Data["intervalTime"])
+		if err != nil {
+			return OPSMXMetric{}, err
+		}
 	}
-	delay, err := strconv.Atoi(analysisTemplateData.Data["delay"])
-	if err != nil {
-		return OPSMXMetric{}, err
+
+	var delay int
+	if analysisTemplateData.Data["delay"] != "" {
+		delay, err = strconv.Atoi(analysisTemplateData.Data["delay"])
+		if err != nil {
+			return OPSMXMetric{}, err
+		}
 	}
-	gitops, err := strconv.ParseBool(analysisTemplateData.Data["gitops"])
-	if err != nil {
-		return OPSMXMetric{}, err
+
+	var gitops bool
+	if analysisTemplateData.Data["gitops"] != "" {
+		gitops, err = strconv.ParseBool(analysisTemplateData.Data["gitops"])
+		if err != nil {
+			return OPSMXMetric{}, err
+		}
 	}
-	pass, err := strconv.Atoi(analysisTemplateData.Data["pass"])
-	if err != nil {
-		return OPSMXMetric{}, err
+
+	var pass int
+	if analysisTemplateData.Data["pass"] != "" {
+		pass, err = strconv.Atoi(analysisTemplateData.Data["pass"])
+		if err != nil {
+			return OPSMXMetric{}, err
+		}
 	}
-	marginal, err := strconv.Atoi(analysisTemplateData.Data["marginal"])
-	if err != nil {
-		return OPSMXMetric{}, err
+
+	var marginal int
+	if analysisTemplateData.Data["marginal"] != "" {
+		marginal, err = strconv.Atoi(analysisTemplateData.Data["marginal"])
+		if err != nil {
+			return OPSMXMetric{}, err
+		}
 	}
 
 	metric := OPSMXMetric{
@@ -270,6 +303,7 @@ func getAnalysisTemplateData(template string, Namespace string, kubeclientset ku
 		IntervalTime:         intervalTime,
 		Delay:                delay,
 		GitOPS:               gitops,
+		LookBackType:         analysisTemplateData.Data["lookBackType"],
 		GlobalLogTemplate:    analysisTemplateData.Data["globalLogTemplate"],
 		GlobalMetricTemplate: analysisTemplateData.Data["globalMetricTemplate"],
 		Profile:              analysisTemplateData.Data["profile"],
@@ -277,6 +311,31 @@ func getAnalysisTemplateData(template string, Namespace string, kubeclientset ku
 			Pass:     pass,
 			Marginal: marginal,
 		},
+		Services: []OPSMXService{},
+	}
+
+	if analysisTemplateData.Data["services"] != "" {
+		services := strings.Split(analysisTemplateData.Data["services"], "|")
+		for i, item := range services {
+			if !isJSON(item) {
+				err = errors.New("invalid json provided in services")
+				return OPSMXMetric{}, err
+			}
+			metric.Services[i].LogTemplateName = gjson.Get(item, "logTemplateName").String()
+			metric.Services[i].LogTemplateVersion = gjson.Get(item, "logTemplateVersion").String()
+			metric.Services[i].MetricTemplateName = gjson.Get(item, "metricTemplateName").String()
+			metric.Services[i].MetricTemplateVersion = gjson.Get(item, "metricTemplateVersion").String()
+			metric.Services[i].LogScopeVariables = gjson.Get(item, "logScopeVariables").String()
+			metric.Services[i].BaselineLogScope = gjson.Get(item, "baselineLogScope").String()
+			metric.Services[i].CanaryLogScope = gjson.Get(item, "canaryLogScope").String()
+			metric.Services[i].MetricScopeVariables = gjson.Get(item, "metricScopeVariables").String()
+			metric.Services[i].BaselineMetricScope = gjson.Get(item, "baselineMetricScope").String()
+			metric.Services[i].CanaryMetricScope = gjson.Get(item, "canaryMetricScope").String()
+			metric.Services[i].ServiceName = gjson.Get(item, "serviceName").String()
+		}
+	} else {
+		err = errors.New("services not found in analysis template")
+		return OPSMXMetric{}, err
 	}
 
 	return metric, nil
@@ -310,12 +369,12 @@ func getTemplateData(Namespace string, kubeclientset kubernetes.Interface, clien
 				return nil, err
 			}
 			valid = true
-			sha1Code := encryptString(templates.Items[i].Data["Json"])
-			templateName := gjson.Get(templates.Items[i].Data["Json"], "templateName")
-			if templateName.String() == "" {
+			if !isJSON(templates.Items[i].Data["Json"]) {
 				err = errors.New("invalid template json provided")
 				return nil, err
 			}
+			sha1Code := encryptString(templates.Items[i].Data["Json"])
+			templateName := gjson.Get(templates.Items[i].Data["Json"], "templateName")
 			templateType := templates.Items[i].Data["TemplateType"]
 			tempLink := fmt.Sprintf(templateApi, sha1Code, templateType, templateName)
 			s := []string{secretData["gateUrl"], tempLink}
@@ -333,6 +392,11 @@ func getTemplateData(Namespace string, kubeclientset kubernetes.Interface, clien
 					return nil, err
 				}
 				json.Unmarshal(data, &templateCheckSave)
+				if templateCheckSave.Error != "" && templateCheckSave.Message != "" {
+					errorss := fmt.Sprintf("%v", templateCheckSave.Message)
+					err = errors.New(errorss)
+					return nil, err
+				}
 			}
 		}
 	}
@@ -340,12 +404,10 @@ func getTemplateData(Namespace string, kubeclientset kubernetes.Interface, clien
 		err = errors.New("no templates found")
 		return nil, err
 	}
-
 	return templateData, nil
 }
 
 func (metric *OPSMXMetric) getDataSecret(Namespace string, kubeclientset kubernetes.Interface, isRun bool) (map[string]string, error) {
-	//TODO - Refactor
 	secretData := map[string]string{}
 	secretName := defaultSecretName
 	if metric.Profile != "" {
@@ -381,7 +443,6 @@ func (metric *OPSMXMetric) getDataSecret(Namespace string, kubeclientset kuberne
 		return secretData, nil
 	}
 
-	//TODO - Check for yaml bool types
 	var cdIntegration string
 	secretCdIntegration, ok := secret.Data["cd-integration"]
 	if !ok {
@@ -441,11 +502,10 @@ func (metric *OPSMXMetric) processResume(data []byte) (string, error) {
 	} else {
 		canaryScore = fmt.Sprintf("%v", finalScore["overallScore"])
 	}
-
 	score, _ := strconv.Atoi(canaryScore)
 	Phase := evaluateResult(score, int(metric.Threshold.Pass), int(metric.Threshold.Marginal))
 	if Phase == "Failed" && metric.LookBackType != "" {
-		return "Interval Analysis Failed at intervalNo.", nil
+		return fmt.Sprintf("Interval Analysis Failed at intervalNo. %s", finalScore["intervalNo"]), nil
 	}
 	return Phase, nil
 }
@@ -454,18 +514,16 @@ func main() {
 	p := Provider{}
 	metric, err := getAnalysisTemplateData("a", "argocd", p.kubeclientset)
 	check(err)
-	metric.basicChecks()
+	err = metric.basicChecks()
+	check(err)
 	secretData, err := metric.getDataSecret("argocd", p.kubeclientset, true)
 	check(err)
 	canaryurl, err := url.JoinPath(secretData["gateUrl"], v5configIdLookupURLFormat)
 	check(err)
-	//Run basicChecks
-	err = metric.basicChecks()
-	check(err)
-
 	//Get the epochs for Time variables and the lifetimeMinutes
 	canaryStartTime, baselineStartTime, lifetimeMinutes, err := getTimeVariables(metric.BaselineStartTime, metric.CanaryStartTime, metric.EndTime, metric.LifetimeMinutes)
 	check(err)
+
 	var intervalTime string
 	if metric.IntervalTime != 0 {
 		intervalTime = fmt.Sprintf("%d", metric.IntervalTime)
@@ -479,6 +537,7 @@ func main() {
 	} else {
 		opsmxdelay = ""
 	}
+
 	var templateData map[string]string
 	if metric.GitOPS {
 		templateData, err = getTemplateData("argocd", p.kubeclientset, p.client, secretData)
@@ -565,7 +624,7 @@ func main() {
 				deployment.Baseline.Log[serviceName]["template"] = tempName
 				deployment.Canary.Log[serviceName]["template"] = tempName
 
-				if metric.GitOPS && templateData[tempName] != "" {
+				if metric.GitOPS && templateData[tempName] != "" && item.LogTemplateVersion == "" {
 					deployment.Baseline.Log[serviceName]["templateSha1"] = templateData[tempName]
 					deployment.Canary.Log[serviceName]["templateSha1"] = templateData[tempName]
 				}
@@ -617,7 +676,7 @@ func main() {
 				//Add templateName
 				deployment.Baseline.Metric[serviceName]["template"] = tempName
 				deployment.Canary.Metric[serviceName]["template"] = tempName
-				if metric.GitOPS && templateData[tempName] != "" {
+				if metric.GitOPS && templateData[tempName] != "" && item.MetricTemplateVersion == "" {
 					deployment.Baseline.Metric[serviceName]["templateSha1"] = templateData[tempName]
 					deployment.Canary.Metric[serviceName]["templateSha1"] = templateData[tempName]
 				}
@@ -666,24 +725,30 @@ func main() {
 
 	data, err = makeRequest(p.client, "GET", scoreURL, "", secretData["user"])
 	check(err)
-	var status map[string]interface{}
-	json.Unmarshal(data, &status)
-	a, _ := json.MarshalIndent(status["status"], "", "   ")
-	json.Unmarshal(a, &status)
 
+	var status map[string]interface{}
 	var reportUrlJson map[string]interface{}
+
+	json.Unmarshal(data, &status)
 	jsonBytes, _ := json.MarshalIndent(status["canaryResult"], "", "   ")
 	json.Unmarshal(jsonBytes, &reportUrlJson)
 	reportUrl := reportUrlJson["canaryReportURL"]
 	fmt.Printf("%v", reportUrl)
 
-	if metric.LookBackType != "" {
-		fmt.Printf("%v", reportUrlJson["intervalNo"])
-	}
+	process := "RUNNING"
+	//if the status is Running, pool again after delay
+	for process == "RUNNING" {
+		json.Unmarshal(data, &status)
+		a, _ := json.MarshalIndent(status["status"], "", "   ")
+		json.Unmarshal(a, &status)
 
-	//if the status is Running, resume analysis after delay
-	if status["status"] == "RUNNING" {
-		time.Sleep(resumeAfter)
+		if status["status"] != "RUNNING" {
+			process = "COMPLETED"
+		} else {
+			time.Sleep(resumeAfter)
+			data, err = makeRequest(p.client, "GET", scoreURL, "", secretData["user"])
+			check(err)
+		}
 	}
 	//if run is cancelled mid-run
 	if status["status"] == "CANCELLED" {
@@ -694,5 +759,5 @@ func main() {
 		check(err)
 		fmt.Println(measurement)
 	}
-
+	os.Exit(0)
 }
