@@ -348,12 +348,13 @@ func encryptString(s string) string {
 	return sha1_hash
 }
 
-func getTemplateData(Namespace string, kubeclientset kubernetes.Interface, client http.Client, secretData map[string]string) (map[string]string, error) {
-	templateData := map[string]string{}
-	templates, err := kubeclientset.CoreV1().ConfigMaps(Namespace).List(context.TODO(), metav1.ListOptions{})
+func getTemplateData(Namespace string, kubeclientset kubernetes.Interface, client http.Client, secretData map[string]string, template string) (string, error) {
+	var templateData string
+	templates, err := kubeclientset.CoreV1().ConfigMaps(Namespace).Get(context.TODO(), template, metav1.GetOptions{})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
+
 	type templateResponse struct {
 		Status  string `json:"status,omitempty"`
 		Message string `json:"message,omitempty"`
@@ -361,48 +362,47 @@ func getTemplateData(Namespace string, kubeclientset kubernetes.Interface, clien
 		Error   string `json:"error,omitempty"`
 	}
 	var templateCheckSave templateResponse
-	var valid bool
-	for i := range templates.Items {
-		if templates.Items[i].Data["Template"] == "ISDTemplate" {
-			if templates.Items[i].Data["TemplateType"] == "" || templates.Items[i].Data["Json"] == "" {
-				err = errors.New("config map file has missing paramters")
-				return nil, err
-			}
-			valid = true
-			if !isJSON(templates.Items[i].Data["Json"]) {
-				err = errors.New("invalid template json provided")
-				return nil, err
-			}
-			sha1Code := encryptString(templates.Items[i].Data["Json"])
-			templateName := gjson.Get(templates.Items[i].Data["Json"], "templateName")
-			templateType := templates.Items[i].Data["TemplateType"]
-			tempLink := fmt.Sprintf(templateApi, sha1Code, templateType, templateName)
-			s := []string{secretData["gateUrl"], tempLink}
-			templateUrl := strings.Join(s, "")
-			data, err := makeRequest(client, "GET", templateUrl, "", secretData["user"])
+
+	if templates.Data["Template"] == "ISDTemplate" {
+		if templates.Data["TemplateType"] == "" || templates.Data["Json"] == "" {
+			err = errors.New("config map file has missing paramters")
+			return "", err
+		}
+
+		if !isJSON(templates.Data["Json"]) {
+			err = errors.New("invalid template json provided")
+			return "", err
+		}
+
+		sha1Code := encryptString(templates.Data["Json"])
+		templateType := templates.Data["TemplateType"]
+		tempLink := fmt.Sprintf(templateApi, sha1Code, templateType, template)
+		s := []string{secretData["gateUrl"], tempLink}
+		templateUrl := strings.Join(s, "")
+
+		data, err := makeRequest(client, "GET", templateUrl, "", secretData["user"])
+		if err != nil {
+			return "", err
+		}
+		var templateVerification bool
+		json.Unmarshal(data, &templateVerification)
+		templateData = sha1Code
+
+		if !templateVerification {
+			data, err = makeRequest(client, "POST", templateUrl, templates.Data["Json"], secretData["user"])
 			if err != nil {
-				return nil, err
+				return "", err
 			}
-			var templateVerification bool
-			json.Unmarshal(data, &templateVerification)
-			templateData[templateName.String()] = sha1Code
-			if !templateVerification {
-				data, err = makeRequest(client, "POST", templateUrl, templates.Items[i].Data["Json"], secretData["user"])
-				if err != nil {
-					return nil, err
-				}
-				json.Unmarshal(data, &templateCheckSave)
-				if templateCheckSave.Error != "" && templateCheckSave.Message != "" {
-					errorss := fmt.Sprintf("%v", templateCheckSave.Message)
-					err = errors.New(errorss)
-					return nil, err
-				}
+			json.Unmarshal(data, &templateCheckSave)
+			if templateCheckSave.Error != "" && templateCheckSave.Message != "" {
+				errorss := fmt.Sprintf("%v", templateCheckSave.Message)
+				err = errors.New(errorss)
+				return "", err
 			}
 		}
-	}
-	if !valid {
+	} else {
 		err = errors.New("no templates found")
-		return nil, err
+		return "", err
 	}
 	return templateData, nil
 }
@@ -538,12 +538,6 @@ func main() {
 		opsmxdelay = ""
 	}
 
-	var templateData map[string]string
-	if metric.GitOPS {
-		templateData, err = getTemplateData("argocd", p.kubeclientset, p.client, secretData)
-		check(err)
-	}
-
 	//Generate the payload
 	payload := jobPayload{
 		Application: metric.Application,
@@ -624,9 +618,15 @@ func main() {
 				deployment.Baseline.Log[serviceName]["template"] = tempName
 				deployment.Canary.Log[serviceName]["template"] = tempName
 
-				if metric.GitOPS && templateData[tempName] != "" && item.LogTemplateVersion == "" {
-					deployment.Baseline.Log[serviceName]["templateSha1"] = templateData[tempName]
-					deployment.Canary.Log[serviceName]["templateSha1"] = templateData[tempName]
+				var templateData string
+				if metric.GitOPS && item.LogTemplateVersion == "" {
+					templateData, err = getTemplateData("argocd", p.kubeclientset, p.client, secretData, tempName)
+					check(err)
+				}
+
+				if metric.GitOPS && templateData != "" && item.LogTemplateVersion == "" {
+					deployment.Baseline.Log[serviceName]["templateSha1"] = templateData
+					deployment.Canary.Log[serviceName]["templateSha1"] = templateData
 				}
 				//Add non-mandatory field of Templateversion if provided
 				if item.LogTemplateVersion != "" {
@@ -676,9 +676,16 @@ func main() {
 				//Add templateName
 				deployment.Baseline.Metric[serviceName]["template"] = tempName
 				deployment.Canary.Metric[serviceName]["template"] = tempName
-				if metric.GitOPS && templateData[tempName] != "" && item.MetricTemplateVersion == "" {
-					deployment.Baseline.Metric[serviceName]["templateSha1"] = templateData[tempName]
-					deployment.Canary.Metric[serviceName]["templateSha1"] = templateData[tempName]
+
+				var templateData string
+				if metric.GitOPS && item.MetricTemplateVersion == "" {
+					templateData, err = getTemplateData("argocd", p.kubeclientset, p.client, secretData, tempName)
+					check(err)
+				}
+
+				if metric.GitOPS && templateData != "" && item.MetricTemplateVersion == "" {
+					deployment.Baseline.Metric[serviceName]["templateSha1"] = templateData
+					deployment.Canary.Metric[serviceName]["templateSha1"] = templateData
 				}
 
 				//Add non-mandatory field of Template Version if provided
