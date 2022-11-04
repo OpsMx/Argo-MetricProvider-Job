@@ -1,0 +1,555 @@
+// package main
+
+// import (
+// 	"context"
+// 	"encoding/json"
+
+// 	"math"
+// 	"path"
+
+// 	"net/http"
+// 	"net/url"
+
+// 	"fmt"
+// 	"io/ioutil"
+// 	"strings"
+
+// 	"time"
+
+// 	"errors"
+
+// 	"github.com/argoproj/argo-rollouts/pkg/apis/rollouts/v1alpha1"
+// 	"github.com/argoproj/argo-rollouts/utils/defaults"
+// 	log "github.com/sirupsen/logrus"
+// 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+// 	"k8s.io/client-go/kubernetes"
+// )
+
+// const (
+// 	ProviderType                            = "opsmx"
+// 	v5configIdLookupURLFormat               = `/autopilot/api/v5/registerCanary`
+// 	resumeAfter                             = 3 * time.Second
+// 	httpConnectionTimeout     time.Duration = 15 * time.Second
+// 	defaultSecretName                       = "opsmx-profile"
+// 	cdIntegrationArgoRollouts               = "argorollouts"
+// 	cdIntegrationArgoCD                     = "argocd"
+// )
+
+// var scoreUrl string
+
+// type OPSMXMetric struct {
+// 	User                 string         `json:"user,omitempty" protobuf:"bytes,1,opt,name=user"`
+// 	GateUrl              string         `json:"gateUrl,omitempty" protobuf:"bytes,2,opt,name=gateUrl"`
+// 	Application          string         `json:"application" protobuf:"bytes,3,opt,name=application"`
+// 	BaselineStartTime    string         `json:"baselineStartTime,omitempty" protobuf:"bytes,4,opt,name=baselineStartTime"`
+// 	CanaryStartTime      string         `json:"canaryStartTime,omitempty" protobuf:"bytes,5,opt,name=canaryStartTime"`
+// 	LifetimeMinutes      int64          `json:"lifetimeMinutes,omitempty" protobuf:"bytes,6,opt,name=lifetimeMinutes"`
+// 	EndTime              string         `json:"endTime,omitempty" protobuf:"bytes,7,opt,name=endTime"`
+// 	GlobalLogTemplate    string         `json:"globalLogTemplate,omitempty" protobuf:"bytes,8,opt,name=globalLogTemplate"`
+// 	GlobalMetricTemplate string         `json:"globalMetricTemplate,omitempty" protobuf:"bytes,9,opt,name=globalMetricTemplate"`
+// 	Threshold            OPSMXThreshold `json:"threshold" protobuf:"bytes,10,opt,name=threshold"`
+// 	Services             []OPSMXService `json:"services,omitempty" protobuf:"bytes,11,rep,name=services"`
+// 	Profile              string         `json:"profile,omitempty" protobuf:"bytes,12,opt,name=profile"`
+// 	IntervalTime         int64          `json:"intervalTime,omitempty" protobuf:"bytes,13,opt,name=intervalTime"`
+// 	LookBackType         string         `json:"lookBackType,omitempty" protobuf:"bytes,14,opt,name=lookBackType"`
+// 	Delay                int64          `json:"delay,omitempty" protobuf:"bytes,15,opt,name=delay"`
+// }
+
+// type OPSMXService struct {
+// 	LogTemplateName       string `json:"logTemplateName,omitempty" protobuf:"varint,1,opt,name=logTemplateName"`
+// 	LogTemplateVersion    string `json:"logTemplateVersion,omitempty" protobuf:"varint,2,opt,name=logTemplateVersion"`
+// 	MetricTemplateName    string `json:"metricTemplateName,omitempty" protobuf:"varint,3,opt,name=metricTemplateName"`
+// 	MetricTemplateVersion string `json:"metricTemplateVersion,omitempty" protobuf:"varint,4,opt,name=metricTemplateVersion"`
+// 	LogScopeVariables     string `json:"logScopeVariables,omitempty" protobuf:"bytes,5,opt,name=logScopeVariables"`
+// 	BaselineLogScope      string `json:"baselineLogScope,omitempty" protobuf:"bytes,6,opt,name=BaselineLogScope"`
+// 	CanaryLogScope        string `json:"canaryLogScope,omitempty" protobuf:"bytes,7,opt,name=CanaryLogScope"`
+// 	MetricScopeVariables  string `json:"metricScopeVariables,omitempty" protobuf:"bytes,8,opt,name=MetricScopeVariables"`
+// 	BaselineMetricScope   string `json:"baselineMetricScope,omitempty" protobuf:"bytes,9,opt,name=BaselineMetricScope"`
+// 	CanaryMetricScope     string `json:"canaryMetricScope,omitempty" protobuf:"bytes,10,opt,name=CanaryMetricScope"`
+// 	ServiceName           string `json:"serviceName,omitempty" protobuf:"bytes,11,opt,name=serviceName"`
+// }
+
+// type OPSMXThreshold struct {
+// 	Pass     int64 `json:"pass" protobuf:"varint,1,opt,name=pass"`
+// 	Marginal int64 `json:"marginal" protobuf:"varint,2,opt,name=marginal"`
+// }
+
+
+// type Provider struct {
+// 	logCtx        log.Entry
+// 	kubeclientset kubernetes.Interface
+// 	client        http.Client
+// }
+
+// type jobPayload struct {
+// 	Application       string              `json:"application"`
+// 	SourceName        string              `json:"sourceName"`
+// 	SourceType        string              `json:"sourceType"`
+// 	CanaryConfig      canaryConfig        `json:"canaryConfig"`
+// 	CanaryDeployments []canaryDeployments `json:"canaryDeployments"`
+// }
+
+// type canaryConfig struct {
+// 	LifetimeMinutes          string                   `json:"lifetimeMinutes"`
+// 	LookBackType             string                   `json:"lookBackType,omitempty"`
+// 	IntervalTime             string                   `json:"interval,omitempty"`
+// 	Delays                   string                   `json:"delay,omitempty"`
+// 	CanaryHealthCheckHandler canaryHealthCheckHandler `json:"canaryHealthCheckHandler"`
+// 	CanarySuccessCriteria    canarySuccessCriteria    `json:"canarySuccessCriteria"`
+// }
+
+// type canaryHealthCheckHandler struct {
+// 	MinimumCanaryResultScore string `json:"minimumCanaryResultScore"`
+// }
+
+// type canarySuccessCriteria struct {
+// 	CanaryResultScore string `json:"canaryResultScore"`
+// }
+
+// type canaryDeployments struct {
+// 	CanaryStartTimeMs   string     `json:"canaryStartTimeMs"`
+// 	BaselineStartTimeMs string     `json:"baselineStartTimeMs"`
+// 	Canary              *logMetric `json:"canary,omitempty"`
+// 	Baseline            *logMetric `json:"baseline,omitempty"`
+// }
+// type logMetric struct {
+// 	Log    map[string]map[string]string `json:"log,omitempty"`
+// 	Metric map[string]map[string]string `json:"metric,omitempty"`
+// }
+
+// // Type indicates provider is a OPSMX provider
+// func (*Provider) Type() string {
+// 	return ProviderType
+// }
+
+// // GetMetadata returns any additional metadata which needs to be stored & displayed as part of the metrics result.
+// func (*Provider) GetMetadata(metric v1alpha1.Metric) map[string]string {
+// 	return nil
+// }
+
+// func roundFloat(val float64, precision uint) float64 {
+// 	ratio := math.Pow(10, float64(precision))
+// 	return math.Round(val*ratio) / ratio
+// }
+
+// func urlJoiner(gateUrl string, paths ...string) (string, error) {
+// 	u, err := url.Parse(gateUrl)
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	for _, p := range paths {
+// 		u.Path = path.Join(u.Path, p)
+
+// 	}
+// 	return u.String(), nil
+// }
+
+// // Return epoch values of the specific time provided along with lifetimeMinutes for the Run
+// func getTimeVariables(baselineTime string, canaryTime string, endTime string, lifetimeMinutes int64) (string, string, int64, error) {
+
+// 	var canaryStartTime string
+// 	var baselineStartTime string
+// 	tm := time.Now()
+
+// 	if canaryTime == "" {
+// 		canaryStartTime = fmt.Sprintf("%d", tm.UnixNano()/int64(time.Millisecond))
+// 	} else {
+// 		tsStart, err := time.Parse(time.RFC3339, canaryTime)
+// 		if err != nil {
+// 			return "", "", 0, err
+// 		}
+// 		canaryStartTime = fmt.Sprintf("%d", tsStart.UnixNano()/int64(time.Millisecond))
+// 	}
+
+// 	if baselineTime == "" {
+// 		baselineStartTime = fmt.Sprintf("%d", tm.UnixNano()/int64(time.Millisecond))
+// 	} else {
+// 		tsStart, err := time.Parse(time.RFC3339, baselineTime)
+// 		if err != nil {
+// 			return "", "", 0, err
+// 		}
+// 		baselineStartTime = fmt.Sprintf("%d", tsStart.UnixNano()/int64(time.Millisecond))
+// 	}
+
+// 	//If lifetimeMinutes not given calculate using endTime
+// 	if lifetimeMinutes == 0 {
+// 		tsEnd, err := time.Parse(time.RFC3339, endTime)
+// 		if err != nil {
+// 			return "", "", 0, err
+// 		}
+// 		if canaryTime != "" && canaryTime > endTime {
+// 			err := errors.New("start time cannot be greater than end time")
+// 			return "", "", 0, err
+// 		}
+// 		tsStart := tm
+// 		if canaryTime != "" {
+// 			tsStart, _ = time.Parse(time.RFC3339, canaryTime)
+// 		}
+// 		tsDifference := tsEnd.Sub(tsStart)
+// 		min, _ := time.ParseDuration(tsDifference.String())
+// 		lifetimeMinutes = int64(roundFloat(min.Minutes(), 0))
+// 	}
+// 	return canaryStartTime, baselineStartTime, lifetimeMinutes, nil
+// }
+
+
+// func makeRequest(client http.Client, requestType string, url string, body string, user string) ([]byte, string, error) {
+// 	reqBody := strings.NewReader(body)
+// 	req, _ := http.NewRequest(
+// 		requestType,
+// 		url,
+// 		reqBody,
+// 	)
+
+// 	req.Header.Set("x-spinnaker-user", user)
+// 	req.Header.Set("Content-Type", "application/json")
+
+// 	res, err := client.Do(req)
+// 	if err != nil {
+// 		return []byte{}, "", err
+// 	}
+// 	defer res.Body.Close()
+
+// 	data, err := ioutil.ReadAll(res.Body)
+// 	if err != nil {
+// 		return []byte{}, "", err
+// 	}
+// 	var urlScore string
+// 	if requestType == "POST" {
+// 		urlScore = res.Header.Get("Location")
+// 	}
+// 	return data, urlScore, err
+// }
+
+
+// // Run queries opsmx for the metric
+// func runAnalysisDuplicate(c *Clients, r ResourceNames) error{
+// 	sampleMetric := OPSMXMetric{
+// 			GateUrl:           "https://isd-dev.argo-dev.opsmx.net",
+// 			Profile:           "opsmx-profile-v5",
+// 			User:              "admin",
+// 			Application:       "final-test-ta",
+// 			LifetimeMinutes:   12,
+// 			IntervalTime:      4,
+// 			Delay:             1,
+// 			LookBackType:      "growing",
+// 			Threshold: OPSMXThreshold{
+// 				Pass:     80,
+// 				Marginal: 65,
+// 			},
+// 			Services: []OPSMXService{
+// 				{
+// 					LogScopeVariables: "kubernetes.pod_name",
+// 					LogTemplateName:  "logtemp",
+// 					CanaryLogScope: "can",
+// 					BaselineLogScope: "base",
+// 				},
+// 			},
+// 	}
+
+// 	// 
+
+// 	ctx:=context.TODO()
+
+// 	//develop Canary Register Url
+// 	canaryurl, err := urlJoiner(sampleMetric.GateUrl, v5configIdLookupURLFormat)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	//Run basicChecks
+// 	// if err := basicChecks(metric); err != nil {
+// 	// 	return metricutil.MarkMeasurementError(newMeasurement, err)
+// 	// }
+
+// 	//Get the epochs for Time variables and the lifetimeMinutes
+// 	canaryStartTime, baselineStartTime, lifetimeMinutes, err := getTimeVariables(sampleMetric.BaselineStartTime, sampleMetric.CanaryStartTime, sampleMetric.EndTime, sampleMetric.LifetimeMinutes)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	var intervalTime string
+// 	if sampleMetric.IntervalTime != 0 {
+// 		intervalTime = fmt.Sprintf("%d", sampleMetric.IntervalTime)
+// 	} else {
+// 		intervalTime = ""
+// 	}
+
+// 	var opsmxdelay string
+// 	if sampleMetric.Delay != 0 {
+// 		opsmxdelay = fmt.Sprintf("%d", sampleMetric.Delay)
+// 	} else {
+// 		opsmxdelay = ""
+// 	}
+
+// 	//Generate the payload
+// 	payload := jobPayload{
+// 		Application: sampleMetric.Application,
+// 		SourceName:  "argocd6",
+// 		SourceType:  "argocd",
+// 		CanaryConfig: canaryConfig{
+// 			LifetimeMinutes: fmt.Sprintf("%d", lifetimeMinutes),
+// 			LookBackType:    sampleMetric.LookBackType,
+// 			IntervalTime:    intervalTime,
+// 			Delays:          opsmxdelay,
+// 			CanaryHealthCheckHandler: canaryHealthCheckHandler{
+// 				MinimumCanaryResultScore: fmt.Sprintf("%d", sampleMetric.Threshold.Marginal),
+// 			},
+// 			CanarySuccessCriteria: canarySuccessCriteria{
+// 				CanaryResultScore: fmt.Sprintf("%d", sampleMetric.Threshold.Pass),
+// 			},
+// 		},
+// 		CanaryDeployments: []canaryDeployments{},
+// 	}
+
+// 	if sampleMetric.Services != nil || len(sampleMetric.Services) != 0 {
+// 		deployment := canaryDeployments{
+// 			BaselineStartTimeMs: baselineStartTime,
+// 			CanaryStartTimeMs:   canaryStartTime,
+// 			Baseline: &logMetric{
+// 				Log:    map[string]map[string]string{},
+// 				Metric: map[string]map[string]string{},
+// 			},
+// 			Canary: &logMetric{
+// 				Log:    map[string]map[string]string{},
+// 				Metric: map[string]map[string]string{},
+// 			},
+// 		}
+// 		for i, item := range sampleMetric.Services {
+// 			valid := false
+// 			serviceName := fmt.Sprintf("service%d", i+1)
+// 			if item.ServiceName != "" {
+// 				serviceName = item.ServiceName
+// 			}
+// 			gateName := fmt.Sprintf("gate%d", i+1)
+// 			if item.LogScopeVariables == "" && item.BaselineLogScope != "" || item.LogScopeVariables == "" && item.CanaryLogScope != "" {
+// 				err := errors.New("missing log Scope placeholder for the provided baseline/canary")
+// 				return err
+// 			}
+// 			//For Log Analysis is to be added in analysis-run
+// 			if item.LogScopeVariables != "" {
+// 				//Check if no baseline or canary
+// 				if item.BaselineLogScope != "" && item.CanaryLogScope == "" {
+// 					err := errors.New("missing canary for log analysis")
+// 					return err
+// 				}
+// 				//Check if the number of placeholders provided dont match
+// 				if len(strings.Split(item.LogScopeVariables, ",")) != len(strings.Split(item.BaselineLogScope, ",")) || len(strings.Split(item.LogScopeVariables, ",")) != len(strings.Split(item.CanaryLogScope, ",")) {
+// 					err := errors.New("mismatch in number of log scope variables and baseline/canary log scope")
+// 					return err
+// 				}
+// 				if item.LogTemplateName == "" && sampleMetric.GlobalLogTemplate == "" {
+// 					err := errors.New("provide either a service specific log template or global log template")
+// 					return err
+// 				}
+// 				//Add mandatory field for baseline
+// 				deployment.Baseline.Log[serviceName] = map[string]string{
+// 					item.LogScopeVariables: item.BaselineLogScope,
+// 					"serviceGate":          gateName,
+// 				}
+// 				//Add mandatory field for canary
+// 				deployment.Canary.Log[serviceName] = map[string]string{
+// 					item.LogScopeVariables: item.CanaryLogScope,
+// 					"serviceGate":          gateName,
+// 				}
+
+// 				//Add service specific templateName
+// 				if item.LogTemplateName != "" {
+// 					deployment.Baseline.Log[serviceName]["template"] = item.LogTemplateName
+// 					deployment.Canary.Log[serviceName]["template"] = item.LogTemplateName
+// 				} else {
+// 					deployment.Baseline.Log[serviceName]["template"] = sampleMetric.GlobalLogTemplate
+// 					deployment.Canary.Log[serviceName]["template"] = sampleMetric.GlobalLogTemplate
+// 				}
+
+// 				//Add non-mandatory field of Templateversion if provided
+// 				if item.LogTemplateVersion != "" {
+// 					deployment.Baseline.Log[serviceName]["templateVersion"] = item.LogTemplateVersion
+// 					deployment.Canary.Log[serviceName]["templateVersion"] = item.LogTemplateVersion
+// 				}
+// 				valid = true
+// 			}
+
+// 			if item.MetricScopeVariables == "" && item.BaselineMetricScope != "" || item.MetricScopeVariables == "" && item.CanaryMetricScope != "" {
+// 				err := errors.New("missing metric Scope placeholder for the provided baseline/canary")
+// 				return err
+// 			}
+// 			//For metric analysis is to be added in analysis-run
+// 			if item.MetricScopeVariables != "" {
+// 				//Check if no baseline or canary
+// 				if item.BaselineMetricScope == "" || item.CanaryMetricScope == "" {
+// 					err := errors.New("missing baseline/canary for metric analysis")
+// 					return err
+// 				}
+// 				//Check if the number of placeholders provided dont match
+// 				if len(strings.Split(item.MetricScopeVariables, ",")) != len(strings.Split(item.BaselineMetricScope, ",")) || len(strings.Split(item.MetricScopeVariables, ",")) != len(strings.Split(item.CanaryMetricScope, ",")) {
+// 					err := errors.New("mismatch in number of metric scope variables and baseline/canary metric scope")
+// 					return err
+// 				}
+// 				if item.MetricTemplateName == "" && sampleMetric.GlobalMetricTemplate == "" {
+// 					err := errors.New("provide either a service specific metric template or global metric template")
+// 					return err
+// 				}
+// 				//Add mandatory field for baseline
+// 				deployment.Baseline.Metric[serviceName] = map[string]string{
+// 					item.MetricScopeVariables: item.BaselineMetricScope,
+// 					"serviceGate":             gateName,
+// 				}
+// 				//Add mandatory field for canary
+// 				deployment.Canary.Metric[serviceName] = map[string]string{
+// 					item.MetricScopeVariables: item.CanaryMetricScope,
+// 					"serviceGate":             gateName,
+// 				}
+// 				//Add templateName
+// 				if item.MetricTemplateName != "" {
+// 					deployment.Baseline.Metric[serviceName]["template"] = item.MetricTemplateName
+// 					deployment.Canary.Metric[serviceName]["template"] = item.MetricTemplateName
+// 				} else {
+// 					deployment.Baseline.Metric[serviceName]["template"] = sampleMetric.GlobalMetricTemplate
+// 					deployment.Canary.Metric[serviceName]["template"] = sampleMetric.GlobalMetricTemplate
+// 				}
+
+// 				//Add non-mandatory field of Template Version if provided
+// 				if item.MetricTemplateVersion != "" {
+// 					deployment.Baseline.Metric[serviceName]["templateVersion"] = item.MetricTemplateVersion
+// 					deployment.Canary.Metric[serviceName]["templateVersion"] = item.MetricTemplateVersion
+// 				}
+// 				valid = true
+
+// 			}
+// 			//Check if no logs or metrics were provided
+// 			if !valid {
+// 				err := errors.New("at least one of log or metric context must be included")
+// 				return err
+// 			}
+// 		}
+// 		payload.CanaryDeployments = append(payload.CanaryDeployments, deployment)
+// 	} else {
+// 		//Check if no services were provided
+// 		err = errors.New("no services provided")
+// 		return err
+// 	}
+
+// 	buffer, err := json.Marshal(payload)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	fmt.Println(string(buffer))
+// 	data, urlScore, err := makeRequest(*http.DefaultClient, "POST", canaryurl, string(buffer), sampleMetric.User)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	scoreUrl = urlScore
+// 	//Struct to record canary Response
+// 	type canaryResponse struct {
+// 		Error    string      `json:"error,omitempty"`
+// 		Message  string      `json:"message,omitempty"`
+// 		CanaryId json.Number `json:"canaryId,omitempty"`
+// 	}
+// 	var canary canaryResponse
+
+// 	json.Unmarshal(data, &canary)
+
+// 	if canary.Error != "" {
+// 		errMessage := fmt.Sprintf("Error: %s\nMessage: %s", canary.Error, canary.Message)
+// 		err := errors.New(errMessage)
+// 		return err
+// 	}
+
+// 	// //Develop the Report URL
+// 	// config, err := rest.InClusterConfig()
+// 	// if err != nil {
+// 	// 	return err
+// 	// }
+// 	// fmt.Println("The config")
+// 	// fmt.Printf("%v",config)
+// 	// // creates the clientset
+
+// 	ns := defaults.Namespace()
+
+// 	stringifiedCanaryId := string(canary.CanaryId)
+
+
+// 	ar,err := c.argoclientset.ArgoprojV1alpha1().AnalysisRuns(ns).Get(ctx,r.analysisRunName,metav1.GetOptions{})
+// 	if err != nil{
+// 		fmt.Println("Error in getting ar")
+// 	}
+	
+// 	time.Sleep(10 * time.Second)
+// 	fmt.Printf("\nThe name of the metric is %s",ar.Spec.Metrics[0].Name)
+
+// 	dtscore, _, err := makeRequest(*http.DefaultClient, "GET", scoreUrl, "", sampleMetric.User )
+// 	if err != nil {
+// 		return err
+// 	}
+// 	var status map[string]interface{}
+// 	json.Unmarshal(dtscore, &status)
+// 	a, _ := json.MarshalIndent(status["status"], "", "   ")
+// 	json.Unmarshal(a, &status)
+
+// 	var reportUrlJson map[string]interface{}
+// 	jsonBytes, _ := json.MarshalIndent(status["canaryResult"], "", "   ")
+// 	json.Unmarshal(jsonBytes, &reportUrlJson)
+// 	reportUrl := reportUrlJson["canaryReportURL"]
+
+// 	cd := CanaryDetails{
+// 		jobName: r.jobName,
+// 		metricName: ar.Spec.Metrics[0].Name,
+// 		canaryId: stringifiedCanaryId,
+// 		gateUrl: "Gate URL goes here",
+// 		reportUrl: fmt.Sprintf("%s", reportUrl),
+// 		phase: "Running",
+// 	}
+// 	patchCanaryDetails(c,ctx,r.analysisRunName,cd)
+
+// 	/// Polling the score API
+// 	time.Sleep(60 * time.Second)
+
+
+// 	phase := "Failed"
+// 	if phase ==  AnalysisPhaseSuccessful{
+
+// 	fs := CanaryDetails{
+// 		jobName: r.jobName,
+// 		metricName: ar.Spec.Metrics[0].Name,
+// 		canaryId: stringifiedCanaryId,
+// 		gateUrl: "Gate URL goes here",
+// 		reportUrl: fmt.Sprintf("%s", reportUrl),
+// 		phase: "Running",
+// 		value: "96",
+// 	}
+// 	patchFinalStatus(c,ctx,r.analysisRunName,fs)
+// 	}
+	
+// 	if phase ==  AnalysisPhaseFailed{
+
+// 	fs := CanaryDetails{
+// 		jobName: r.jobName,
+// 		metricName: ar.Spec.Metrics[0].Name,
+// 		canaryId: stringifiedCanaryId,
+// 		gateUrl: "Gate URL goes here",
+// 		reportUrl: fmt.Sprintf("%s", reportUrl),
+// 		phase: "Running",
+// 		value: "40",
+// 	}
+// 	patchFailedInconclusive(c,ctx,r.analysisRunName,phase,fs)
+
+
+
+// 	}
+
+// if phase == AnalysisPhaseInconclusive{	
+	
+// 	fs := CanaryDetails{
+// 		jobName: r.jobName,
+// 		metricName: ar.Spec.Metrics[0].Name,
+// 		canaryId: stringifiedCanaryId,
+// 		gateUrl: "Gate URL goes here",
+// 		reportUrl: fmt.Sprintf("%s", reportUrl),
+// 		phase: "Running",
+// 		value: "70",
+// 	}
+// 	patchFailedInconclusive(c,ctx,r.analysisRunName,phase,fs)
+// }
+
+// 	return nil
+// }

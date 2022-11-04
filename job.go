@@ -496,7 +496,7 @@ func (metric *OPSMXMetric) processResume(data []byte) (string, error) {
 	return Phase, nil
 }
 
-func main() {
+func runAnalysis(c *Clients, r ResourceNames) error{
 	p := Provider{}
 	metric, err := getAnalysisTemplateData("a", "argocd", p.kubeclientset)
 	check(err)
@@ -754,3 +754,71 @@ func main() {
 	}
 	os.Exit(0)
 }
+
+
+// var reportUrlJson map[string]interface{}
+// jsonBytes, _ := json.MarshalIndent(status["canaryResult"], "", "   ")
+// json.Unmarshal(jsonBytes, &reportUrlJson)
+// reportUrl := reportUrlJson["canaryReportURL"]
+
+// cd := CanaryDetails{
+// 	jobName: r.jobName,
+// 	metricName: ar.Spec.Metrics[0].Name,
+// 	canaryId: stringifiedCanaryId,
+// 	gateUrl: "Gate URL goes here",
+// 	reportUrl: fmt.Sprintf("%s", reportUrl),
+// 	phase: "Running",
+// }
+// patchCanaryDetails(c,ctx,r.analysisRunName,cd)
+
+// /// Polling the score API
+// time.Sleep(60 * time.Second)
+
+
+// phase := "Failed"
+// if phase ==  AnalysisPhaseSuccessful{
+
+// fs := CanaryDetails{
+// 	jobName: r.jobName,
+// 	metricName: ar.Spec.Metrics[0].Name,
+// 	canaryId: stringifiedCanaryId,
+// 	gateUrl: "Gate URL goes here",
+// 	reportUrl: fmt.Sprintf("%s", reportUrl),
+// 	phase: "Running",
+// 	value: "96",
+// }
+// patchFinalStatus(c,ctx,r.analysisRunName,fs)
+// }
+
+// if phase ==  AnalysisPhaseFailed{
+
+// fs := CanaryDetails{
+// 	jobName: r.jobName,
+// 	metricName: ar.Spec.Metrics[0].Name,
+// 	canaryId: stringifiedCanaryId,
+// 	gateUrl: "Gate URL goes here",
+// 	reportUrl: fmt.Sprintf("%s", reportUrl),
+// 	phase: "Running",
+// 	value: "40",
+// }
+// patchFailedInconclusive(c,ctx,r.analysisRunName,phase,fs)
+
+
+
+// }
+
+// if phase == AnalysisPhaseInconclusive{	
+
+// fs := CanaryDetails{
+// 	jobName: r.jobName,
+// 	metricName: ar.Spec.Metrics[0].Name,
+// 	canaryId: stringifiedCanaryId,
+// 	gateUrl: "Gate URL goes here",
+// 	reportUrl: fmt.Sprintf("%s", reportUrl),
+// 	phase: "Running",
+// 	value: "70",
+// }
+// patchFailedInconclusive(c,ctx,r.analysisRunName,phase,fs)
+// }
+
+// return nil
