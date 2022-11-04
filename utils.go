@@ -210,24 +210,24 @@ func getAnalysisTemplateData(template string, Namespace string, kubeclientset ku
 	}
 
 	var pass int
-	if analysisTemplateData.Data["pass"] != "" {
-		pass, err = strconv.Atoi(analysisTemplateData.Data["pass"])
+	if analysisTemplateData.Data["passScore"] != "" {
+		pass, err = strconv.Atoi(analysisTemplateData.Data["passScore"])
 		if err != nil {
 			return OPSMXMetric{}, err
 		}
 	}
 
 	var marginal int
-	if analysisTemplateData.Data["marginal"] != "" {
-		marginal, err = strconv.Atoi(analysisTemplateData.Data["marginal"])
+	if analysisTemplateData.Data["marginalScore"] != "" {
+		marginal, err = strconv.Atoi(analysisTemplateData.Data["marginalScore"])
 		if err != nil {
 			return OPSMXMetric{}, err
 		}
 	}
 
 	var services OPSMXMetric
-	if analysisTemplateData.Data["services"] != "" {
-		if err := yaml.Unmarshal([]byte(analysisTemplateData.Data["services"]), &services); err != nil {
+	if analysisTemplateData.Data["serviceList"] != "" {
+		if err := yaml.Unmarshal([]byte(analysisTemplateData.Data["serviceList"]), &services); err != nil {
 			return OPSMXMetric{}, err
 		}
 	} else {

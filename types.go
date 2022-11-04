@@ -60,7 +60,7 @@ type OPSMXMetric struct {
 	GlobalLogTemplate    string         `yaml:"globalLogTemplate,omitempty"`
 	GlobalMetricTemplate string         `yaml:"globalMetricTemplate,omitempty"`
 	Threshold            OPSMXThreshold `yaml:"threshold"`
-	Services             []OPSMXService `yaml:"services,omitempty"`
+	Services             []OPSMXService `yaml:"serviceList,omitempty"`
 	Profile              string         `yaml:"profile,omitempty"`
 	IntervalTime         int            `yaml:"intervalTime,omitempty"`
 	LookBackType         string         `yaml:"lookBackType,omitempty"`
@@ -83,8 +83,8 @@ type OPSMXService struct {
 }
 
 type OPSMXThreshold struct {
-	Pass     int `yaml:"pass"`
-	Marginal int `yaml:"marginal"`
+	Pass     int `yaml:"passScore"`
+	Marginal int `yaml:"marginalScore"`
 }
 
 type jobPayload struct {
