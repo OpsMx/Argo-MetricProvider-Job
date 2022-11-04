@@ -41,7 +41,7 @@ type Status struct {
 	MetricResults []MetricResults `json:"metricResults"`
 }
 
-//Patches the report url, gate url etc for the first time around
+// Patches the report url, gate url etc for the first time around
 func patchCanaryDetails(p *Clients, ctx context.Context, analysisRunName string, cd CanaryDetails) {
 	//TODO - Introduce more checks, remove prints and check what should be passed as pointers
 	ns := defaults.Namespace()
@@ -78,7 +78,7 @@ func patchCanaryDetails(p *Clients, ctx context.Context, analysisRunName string,
 
 }
 
-//Patches the final status in case the result is a success ie pass score > required score
+// Patches the final status in case the result is a success ie pass score > required score
 func patchFinalStatus(p *Clients, ctx context.Context, analysisRunName string, cd CanaryDetails) {
 	//TODO -Merge with the patchCanaryDetails function
 	ns := defaults.Namespace()
@@ -116,7 +116,7 @@ func patchFinalStatus(p *Clients, ctx context.Context, analysisRunName string, c
 	fmt.Printf("%v", arPatch)
 }
 
-//Used outside of RunAnalysis for patching errors thrown by RunAnalysis
+// Used outside of RunAnalysis for patching errors thrown by RunAnalysis
 func patchError(p *Clients, ctx context.Context, analysisRunName string, fs FinalStatus) error {
 	//Pass in an Error custom message to the AR and exit the pod with non 0 status code
 	ns := defaults.Namespace()
@@ -141,7 +141,7 @@ func patchError(p *Clients, ctx context.Context, analysisRunName string, fs Fina
 	if err != nil {
 		return err
 	}
-	log.Infof("The json data for patch is %s",string(jsonData))
+	log.Infof("The json data for patch is %s", string(jsonData))
 
 	arPatch, err := p.argoclientset.ArgoprojV1alpha1().AnalysisRuns(ns).Patch(ctx, analysisRunName, types.MergePatchType, jsonData, metav1.PatchOptions{})
 	if err != nil {
@@ -152,7 +152,7 @@ func patchError(p *Clients, ctx context.Context, analysisRunName string, fs Fina
 	return nil
 }
 
-//Patches the final status in case the result is a failure/inconclusive result , needs an extra arg reason which is the phase(Failed/Inconclusive)
+// Patches the final status in case the result is a failure/inconclusive result , needs an extra arg reason which is the phase(Failed/Inconclusive)
 func patchFailedInconclusive(p *Clients, ctx context.Context, analysisRunName string, reason string, cd CanaryDetails) {
 	//TODO -Merge with the patchCanaryDetails function
 	// TODO -change the reason arg to be more confined
@@ -164,7 +164,7 @@ func patchFailedInconclusive(p *Clients, ctx context.Context, analysisRunName st
 				Name:  cd.metricName,
 				Phase: cd.phase,
 				Measurements: []Measurements{{
-					Phase: cd.phase,
+					Phase:   cd.phase,
 					Message: fmt.Sprintf("The final score doesn't meet the scoring criterion, the analysis was %s", reason),
 					Metadata: Metadata{
 						JobName:   cd.jobName,
@@ -191,11 +191,11 @@ func patchFailedInconclusive(p *Clients, ctx context.Context, analysisRunName st
 	}
 	fmt.Printf("%v", arPatch)
 
-	patchJobFailureInconclusive(p,ctx,cd.jobName, reason)
+	patchJobFailureInconclusive(p, ctx, cd.jobName, reason)
 	os.Exit(1)
 }
 
-//Patching the status of the job to fail in case the result is a Failure or is Inconclusive
+// Patching the status of the job to fail in case the result is a Failure or is Inconclusive
 func patchJobFailureInconclusive(p *Clients, ctx context.Context, jobName, reason string) {
 
 	//TODO -Move the structs out of the func
@@ -217,10 +217,10 @@ func patchJobFailureInconclusive(p *Clients, ctx context.Context, jobName, reaso
 		Status: Status{
 			Conditions: []Conditions{{
 				Message: fmt.Sprintf("The analysis was %s", reason),
-				Type: "Failed",
-				Status: "True",
+				Type:    "Failed",
+				Status:  "True",
 			},
-		},
+			},
 		},
 	}
 	jsonData, err := json.Marshal(jobStatus)
@@ -228,13 +228,13 @@ func patchJobFailureInconclusive(p *Clients, ctx context.Context, jobName, reaso
 		fmt.Printf("could not marshal json: %s\n", err)
 	}
 
-	jobPatch,err := p.kubeclientset.BatchV1().Jobs(defaults.Namespace()).Patch(ctx,jobName, types.StrategicMergePatchType,jsonData,metav1.PatchOptions{},"status")
+	jobPatch, err := p.kubeclientset.BatchV1().Jobs(defaults.Namespace()).Patch(ctx, jobName, types.StrategicMergePatchType, jsonData, metav1.PatchOptions{}, "status")
 	if err != nil {
-		fmt.Printf("%s",err)
-	
-	fmt.Printf("json data: %s\n", jobPatch)
-	os.Exit(1)
-}
+		fmt.Printf("%s", err)
+
+		fmt.Printf("json data: %s\n", jobPatch)
+		os.Exit(1)
+	}
 }
 
 func getPrevStateOfResource() {
