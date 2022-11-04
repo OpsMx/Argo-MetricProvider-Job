@@ -21,7 +21,6 @@ import (
 
 	"errors"
 
-	"github.com/tidwall/gjson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -292,6 +291,13 @@ func getAnalysisTemplateData(template string, Namespace string, kubeclientset ku
 		}
 	}
 
+	var services OPSMXMetric
+	if analysisTemplateData.Data["services"] != "" {
+		json.Unmarshal([]byte(analysisTemplateData.Data["services"]), &services)
+	} else {
+		err = errors.New("services not found in analysis template")
+		return OPSMXMetric{}, err
+	}
 	metric := OPSMXMetric{
 		User:                 analysisTemplateData.Data["user"],
 		GateUrl:              analysisTemplateData.Data["gateUrl"],
@@ -311,31 +317,7 @@ func getAnalysisTemplateData(template string, Namespace string, kubeclientset ku
 			Pass:     pass,
 			Marginal: marginal,
 		},
-		Services: []OPSMXService{},
-	}
-
-	if analysisTemplateData.Data["services"] != "" {
-		services := strings.Split(analysisTemplateData.Data["services"], "|")
-		for i, item := range services {
-			if !isJSON(item) {
-				err = errors.New("invalid json provided in services")
-				return OPSMXMetric{}, err
-			}
-			metric.Services[i].LogTemplateName = gjson.Get(item, "logTemplateName").String()
-			metric.Services[i].LogTemplateVersion = gjson.Get(item, "logTemplateVersion").String()
-			metric.Services[i].MetricTemplateName = gjson.Get(item, "metricTemplateName").String()
-			metric.Services[i].MetricTemplateVersion = gjson.Get(item, "metricTemplateVersion").String()
-			metric.Services[i].LogScopeVariables = gjson.Get(item, "logScopeVariables").String()
-			metric.Services[i].BaselineLogScope = gjson.Get(item, "baselineLogScope").String()
-			metric.Services[i].CanaryLogScope = gjson.Get(item, "canaryLogScope").String()
-			metric.Services[i].MetricScopeVariables = gjson.Get(item, "metricScopeVariables").String()
-			metric.Services[i].BaselineMetricScope = gjson.Get(item, "baselineMetricScope").String()
-			metric.Services[i].CanaryMetricScope = gjson.Get(item, "canaryMetricScope").String()
-			metric.Services[i].ServiceName = gjson.Get(item, "serviceName").String()
-		}
-	} else {
-		err = errors.New("services not found in analysis template")
-		return OPSMXMetric{}, err
+		Services: services.Services,
 	}
 
 	return metric, nil
