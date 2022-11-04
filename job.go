@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"os"
 
+	"gopkg.in/yaml.v2"
+
 	"math"
 
 	"net/http"
@@ -42,41 +44,41 @@ type Provider struct {
 }
 
 type OPSMXMetric struct {
-	User                 string         `json:"user,omitempty"`
-	GateUrl              string         `json:"gateUrl,omitempty"`
-	Application          string         `json:"application"`
-	BaselineStartTime    string         `json:"baselineStartTime,omitempty"`
-	CanaryStartTime      string         `json:"canaryStartTime,omitempty"`
-	LifetimeMinutes      int            `json:"lifetimeMinutes,omitempty"`
-	EndTime              string         `json:"endTime,omitempty"`
-	GlobalLogTemplate    string         `json:"globalLogTemplate,omitempty"`
-	GlobalMetricTemplate string         `json:"globalMetricTemplate,omitempty"`
-	Threshold            OPSMXThreshold `json:"threshold"`
-	Services             []OPSMXService `json:"services,omitempty"`
-	Profile              string         `json:"profile,omitempty"`
-	IntervalTime         int            `json:"intervalTime,omitempty"`
-	LookBackType         string         `json:"lookBackType,omitempty"`
-	Delay                int            `json:"delay,omitempty"`
-	GitOPS               bool           `json:"gitops,omitempty"`
+	User                 string         `yaml:"user,omitempty"`
+	GateUrl              string         `yaml:"gateUrl,omitempty"`
+	Application          string         `yaml:"application"`
+	BaselineStartTime    string         `yaml:"baselineStartTime,omitempty"`
+	CanaryStartTime      string         `yaml:"canaryStartTime,omitempty"`
+	LifetimeMinutes      int            `yaml:"lifetimeMinutes,omitempty"`
+	EndTime              string         `yaml:"endTime,omitempty"`
+	GlobalLogTemplate    string         `yaml:"globalLogTemplate,omitempty"`
+	GlobalMetricTemplate string         `yaml:"globalMetricTemplate,omitempty"`
+	Threshold            OPSMXThreshold `yaml:"threshold"`
+	Services             []OPSMXService `yaml:"services,omitempty"`
+	Profile              string         `yaml:"profile,omitempty"`
+	IntervalTime         int            `yaml:"intervalTime,omitempty"`
+	LookBackType         string         `yaml:"lookBackType,omitempty"`
+	Delay                int            `yaml:"delay,omitempty"`
+	GitOPS               bool           `yaml:"gitops,omitempty"`
 }
 
 type OPSMXService struct {
-	LogTemplateName       string `json:"logTemplateName,omitempty"`
-	LogTemplateVersion    string `json:"logTemplateVersion,omitempty"`
-	MetricTemplateName    string `json:"metricTemplateName,omitempty"`
-	MetricTemplateVersion string `json:"metricTemplateVersion,omitempty"`
-	LogScopeVariables     string `json:"logScopeVariables,omitempty"`
-	BaselineLogScope      string `json:"baselineLogScope,omitempty"`
-	CanaryLogScope        string `json:"canaryLogScope,omitempty"`
-	MetricScopeVariables  string `json:"metricScopeVariables,omitempty"`
-	BaselineMetricScope   string `json:"baselineMetricScope,omitempty"`
-	CanaryMetricScope     string `json:"canaryMetricScope,omitempty"`
-	ServiceName           string `json:"serviceName,omitempty"`
+	LogTemplateName       string `yaml:"logTemplateName,omitempty"`
+	LogTemplateVersion    string `yaml:"logTemplateVersion,omitempty"`
+	MetricTemplateName    string `yaml:"metricTemplateName,omitempty"`
+	MetricTemplateVersion string `yaml:"metricTemplateVersion,omitempty"`
+	LogScopeVariables     string `yaml:"logScopeVariables,omitempty"`
+	BaselineLogScope      string `yaml:"baselineLogScope,omitempty"`
+	CanaryLogScope        string `yaml:"canaryLogScope,omitempty"`
+	MetricScopeVariables  string `yaml:"metricScopeVariables,omitempty"`
+	BaselineMetricScope   string `yaml:"baselineMetricScope,omitempty"`
+	CanaryMetricScope     string `yaml:"canaryMetricScope,omitempty"`
+	ServiceName           string `yaml:"serviceName,omitempty"`
 }
 
 type OPSMXThreshold struct {
-	Pass     int `json:"pass"`
-	Marginal int `json:"marginal"`
+	Pass     int `yaml:"pass"`
+	Marginal int `yaml:"marginal"`
 }
 
 type jobPayload struct {
@@ -293,7 +295,9 @@ func getAnalysisTemplateData(template string, Namespace string, kubeclientset ku
 
 	var services OPSMXMetric
 	if analysisTemplateData.Data["services"] != "" {
-		json.Unmarshal([]byte(analysisTemplateData.Data["services"]), &services)
+		if err := yaml.Unmarshal([]byte(analysisTemplateData.Data["services"]), &services); err != nil {
+			return OPSMXMetric{}, err
+		}
 	} else {
 		err = errors.New("services not found in analysis template")
 		return OPSMXMetric{}, err
