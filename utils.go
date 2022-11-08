@@ -172,11 +172,6 @@ func getAnalysisTemplateData(template string, Namespace string, kubeclientset ku
 		return OPSMXMetric{}, err
 	}
 
-	if analysisTemplateData == nil || analysisTemplateData.Data["Template"] != "ISDAnalysisTemplate" {
-		err = errors.New("analysis template not found")
-		return OPSMXMetric{}, err
-	}
-
 	var opsmx OPSMXMetric
 	if analysisTemplateData.Data["providerConfig"] == "" {
 		err = errors.New("providerConfig field not found")
@@ -290,46 +285,41 @@ func getTemplateData(Namespace string, kubeclientset kubernetes.Interface, clien
 	}
 	var templateCheckSave templateResponse
 
-	if templates.Data["Template"] == "ISDTemplate" {
-		if templates.Data["TemplateType"] == "" || templates.Data["Json"] == "" {
-			err = errors.New("config map file has missing paramters")
-			return "", err
-		}
+	if templates.Data["Json"] == "" {
+		err = errors.New("config map file requires json field")
+		return "", err
+	}
 
-		if !isJSON(templates.Data["Json"]) {
-			err = errors.New("invalid template json provided")
-			return "", err
-		}
+	if !isJSON(templates.Data["Json"]) {
+		err = errors.New("invalid template json provided")
+		return "", err
+	}
 
-		sha1Code := encryptString(templates.Data["Json"])
-		templateType := isdTemplateType
-		tempLink := fmt.Sprintf(templateApi, sha1Code, templateType, template)
-		s := []string{secretData["gateUrl"], tempLink}
-		templateUrl := strings.Join(s, "")
+	sha1Code := encryptString(templates.Data["Json"])
+	templateType := isdTemplateType
+	tempLink := fmt.Sprintf(templateApi, sha1Code, templateType, template)
+	s := []string{secretData["gateUrl"], tempLink}
+	templateUrl := strings.Join(s, "")
 
-		data, err := makeRequest(client, "GET", templateUrl, "", secretData["user"])
+	data, err := makeRequest(client, "GET", templateUrl, "", secretData["user"])
+	if err != nil {
+		return "", err
+	}
+	var templateVerification bool
+	json.Unmarshal(data, &templateVerification)
+	templateData = sha1Code
+
+	if !templateVerification {
+		data, err = makeRequest(client, "POST", templateUrl, templates.Data["Json"], secretData["user"])
 		if err != nil {
 			return "", err
 		}
-		var templateVerification bool
-		json.Unmarshal(data, &templateVerification)
-		templateData = sha1Code
-
-		if !templateVerification {
-			data, err = makeRequest(client, "POST", templateUrl, templates.Data["Json"], secretData["user"])
-			if err != nil {
-				return "", err
-			}
-			json.Unmarshal(data, &templateCheckSave)
-			if templateCheckSave.Error != "" && templateCheckSave.Message != "" {
-				errorss := fmt.Sprintf("%v", templateCheckSave.Message)
-				err = errors.New(errorss)
-				return "", err
-			}
+		json.Unmarshal(data, &templateCheckSave)
+		if templateCheckSave.Error != "" && templateCheckSave.Message != "" {
+			errorss := fmt.Sprintf("%v", templateCheckSave.Message)
+			err = errors.New(errorss)
+			return "", err
 		}
-	} else {
-		err = errors.New("no templates found")
-		return "", err
 	}
 	return templateData, nil
 }

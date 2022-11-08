@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"os"
 
 	"net/url"
 
@@ -30,7 +31,8 @@ const (
 
 func runAnalysis(c *Clients, r ResourceNames) error {
 	ns := defaults.Namespace()
-	metric, err := getAnalysisTemplateData("a", ns, c.kubeclientset)
+	templateName := os.Getenv("templateName")
+	metric, err := getAnalysisTemplateData(templateName, ns, c.kubeclientset)
 	if err != nil {
 		return err
 	}
