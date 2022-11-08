@@ -1,4 +1,4 @@
-FROM golang:1.19-alpine
+FROM golang:1.19-alpine AS build
 
 WORKDIR /app
 
@@ -8,5 +8,15 @@ RUN go mod download
 
 COPY *.go ./
 
-RUN go build -o /code-job
-ENTRYPOINT ["/code-job"]
+RUN CGO_ENABLED=0 go build -o /Argo-MetricProvider-Job
+
+##
+## Deploy
+##
+
+FROM gcr.io/distroless/base-debian10:debug
+
+WORKDIR /
+COPY --from=build /Argo-MetricProvider-Job /Argo-MetricProvider-Job
+
+ENTRYPOINT ["/Argo-MetricProvider-Job"]
