@@ -14,7 +14,6 @@ import (
 
 	"errors"
 
-	"github.com/argoproj/argo-rollouts/utils/defaults"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -30,9 +29,8 @@ const (
 )
 
 func runAnalysis(c *Clients, r ResourceNames) error {
-	ns := defaults.Namespace()
-	templateName := os.Getenv("templateName")
-	metric, err := getAnalysisTemplateData(templateName, ns, c.kubeclientset)
+	templateName := os.Getenv("PROVIDER_CONFIG")
+	metric, err := getAnalysisTemplateData(templateName)
 	if err != nil {
 		return err
 	}
@@ -40,7 +38,7 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 	if err != nil {
 		return err
 	}
-	secretData, err := metric.getDataSecret(ns, c.kubeclientset, true)
+	secretData, err := metric.getDataSecret()
 	if err != nil {
 		return err
 	}
@@ -162,7 +160,7 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 
 				var templateData string
 				if metric.GitOPS && item.LogTemplateVersion == "" {
-					templateData, err = getTemplateData(ns, c.kubeclientset, c.client, secretData, tempName, "LOG")
+					templateData, err = getTemplateData(c.client, secretData, tempName, "LOG")
 					if err != nil {
 						return err
 					}
@@ -236,7 +234,7 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 
 				var templateData string
 				if metric.GitOPS && item.MetricTemplateVersion == "" {
-					templateData, err = getTemplateData("ns", c.kubeclientset, c.client, secretData, tempName, "METRIC")
+					templateData, err = getTemplateData(c.client, secretData, tempName, "METRIC")
 					if err != nil {
 						return err
 					}

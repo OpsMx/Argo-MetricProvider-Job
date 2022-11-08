@@ -236,7 +236,3 @@ func patchJobFailureInconclusive(p *Clients, ctx context.Context, jobName, reaso
 		os.Exit(1)
 	}
 }
-
-func getPrevStateOfResource() {
-	//TODO -Implement
-}

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
 	"net/http"
 	"os"
@@ -19,7 +20,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 func logErrorExit1(err error) {
@@ -166,100 +166,17 @@ func getTimeVariables(baselineTime string, canaryTime string, endTime string, li
 	return canaryStartTime, baselineStartTime, lifetimeMinutes, nil
 }
 
-func getAnalysisTemplateData(template string, Namespace string, kubeclientset kubernetes.Interface) (OPSMXMetric, error) {
-	analysisTemplateData, err := kubeclientset.CoreV1().ConfigMaps(Namespace).Get(context.TODO(), template, metav1.GetOptions{})
+func getAnalysisTemplateData(template string) (OPSMXMetric, error) {
+	path := fmt.Sprintf("/etc/config/provider/%s", template)
+	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return OPSMXMetric{}, err
 	}
 
 	var opsmx OPSMXMetric
-	if analysisTemplateData.Data["providerConfig"] == "" {
-		err = errors.New("providerConfig field not found")
+	if err := yaml.Unmarshal(data, &opsmx); err != nil {
 		return OPSMXMetric{}, err
 	}
-	if err := yaml.Unmarshal([]byte(analysisTemplateData.Data["providerConfig"]), &opsmx); err != nil {
-		return OPSMXMetric{}, err
-	}
-	/*
-		var lifetimeMinutes int
-		if analysisTemplateData.Data["lifetimeMinutes"] != "" {
-			lifetimeMinutes, err = strconv.Atoi(analysisTemplateData.Data["lifetimeMinutes"])
-			if err != nil {
-				return OPSMXMetric{}, err
-			}
-		}
-
-		var intervalTime int
-		if analysisTemplateData.Data["intervalTime"] != "" {
-			intervalTime, err = strconv.Atoi(analysisTemplateData.Data["intervalTime"])
-			if err != nil {
-				return OPSMXMetric{}, err
-			}
-		}
-
-		var delay int
-		if analysisTemplateData.Data["delay"] != "" {
-			delay, err = strconv.Atoi(analysisTemplateData.Data["delay"])
-			if err != nil {
-				return OPSMXMetric{}, err
-			}
-		}
-
-		var gitops bool
-		if analysisTemplateData.Data["gitops"] != "" {
-			gitops, err = strconv.ParseBool(analysisTemplateData.Data["gitops"])
-			if err != nil {
-				return OPSMXMetric{}, err
-			}
-		}
-
-		var pass int
-		if analysisTemplateData.Data["passScore"] != "" {
-			pass, err = strconv.Atoi(analysisTemplateData.Data["passScore"])
-			if err != nil {
-				return OPSMXMetric{}, err
-			}
-		}
-
-		var marginal int
-		if analysisTemplateData.Data["marginalScore"] != "" {
-			marginal, err = strconv.Atoi(analysisTemplateData.Data["marginalScore"])
-			if err != nil {
-				return OPSMXMetric{}, err
-			}
-		}
-
-		var services OPSMXMetric
-		if analysisTemplateData.Data["serviceList"] != "" {
-			if err := yaml.Unmarshal([]byte(analysisTemplateData.Data["serviceList"]), &services); err != nil {
-				return OPSMXMetric{}, err
-			}
-		} else {
-			err = errors.New("services not found in analysis template")
-			return OPSMXMetric{}, err
-		}
-		metric := OPSMXMetric{
-			User:                 analysisTemplateData.Data["user"],
-			GateUrl:              analysisTemplateData.Data["gateUrl"],
-			Application:          analysisTemplateData.Data["application"],
-			BaselineStartTime:    analysisTemplateData.Data["baselineStartTime"],
-			CanaryStartTime:      analysisTemplateData.Data["canaryStartTime"],
-			LifetimeMinutes:      lifetimeMinutes,
-			EndTime:              analysisTemplateData.Data["endTime"],
-			IntervalTime:         intervalTime,
-			Delay:                delay,
-			GitOPS:               gitops,
-			LookBackType:         analysisTemplateData.Data["lookBackType"],
-			GlobalLogTemplate:    analysisTemplateData.Data["globalLogTemplate"],
-			GlobalMetricTemplate: analysisTemplateData.Data["globalMetricTemplate"],
-			Profile:              analysisTemplateData.Data["profile"],
-			Threshold: OPSMXThreshold{
-				Pass:     pass,
-				Marginal: marginal,
-			},
-			Services: services.Services,
-		}
-	*/
 	return opsmx, nil
 }
 
@@ -270,9 +187,10 @@ func encryptString(s string) string {
 	return sha1_hash
 }
 
-func getTemplateData(Namespace string, kubeclientset kubernetes.Interface, client http.Client, secretData map[string]string, template string, isdTemplateType string) (string, error) {
+func getTemplateData(client http.Client, secretData map[string]string, template string, templateType string) (string, error) {
 	var templateData string
-	templates, err := kubeclientset.CoreV1().ConfigMaps(Namespace).Get(context.TODO(), template, metav1.GetOptions{})
+	path := fmt.Sprintf("/etc/config/templates/%s", template)
+	templateFileData, err := ioutil.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
@@ -285,18 +203,12 @@ func getTemplateData(Namespace string, kubeclientset kubernetes.Interface, clien
 	}
 	var templateCheckSave templateResponse
 
-	if templates.Data["Json"] == "" {
-		err = errors.New("config map file requires json field")
-		return "", err
-	}
-
-	if !isJSON(templates.Data["Json"]) {
+	if !isJSON(string(templateFileData)) {
 		err = errors.New("invalid template json provided")
 		return "", err
 	}
 
-	sha1Code := encryptString(templates.Data["Json"])
-	templateType := isdTemplateType
+	sha1Code := encryptString(string(templateFileData))
 	tempLink := fmt.Sprintf(templateApi, sha1Code, templateType, template)
 	s := []string{secretData["gateUrl"], tempLink}
 	templateUrl := strings.Join(s, "")
@@ -310,7 +222,7 @@ func getTemplateData(Namespace string, kubeclientset kubernetes.Interface, clien
 	templateData = sha1Code
 
 	if !templateVerification {
-		data, err = makeRequest(client, "POST", templateUrl, templates.Data["Json"], secretData["user"])
+		data, err = makeRequest(client, "POST", templateUrl, string(templateFileData), secretData["user"])
 		if err != nil {
 			return "", err
 		}
@@ -324,65 +236,57 @@ func getTemplateData(Namespace string, kubeclientset kubernetes.Interface, clien
 	return templateData, nil
 }
 
-func (metric *OPSMXMetric) getDataSecret(Namespace string, kubeclientset kubernetes.Interface, isRun bool) (map[string]string, error) {
+func (metric *OPSMXMetric) getDataSecret() (map[string]string, error) {
 	secretData := map[string]string{}
-	secretName := defaultSecretName
-	if metric.Profile != "" {
-		secretName = metric.Profile
-	}
-	secret, err := kubeclientset.CoreV1().Secrets(Namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	userPath := "/etc/config/secrets/data/user"
+	gateUrlPath := "/etc/config/secrets/data/gate-url"
+	sourceNamePath := "/etc/config/secrets/data/source-name"
+	cdIntegrationPath := "/etc/config/secrets/data/cd-integration"
+
+	secretUser, err := ioutil.ReadFile(userPath)
 	if err != nil {
 		return nil, err
 	}
+
+	secretGateUrl, err := ioutil.ReadFile(gateUrlPath)
+	if err != nil {
+		return nil, err
+	}
+
+	secretsourcename, err := ioutil.ReadFile(sourceNamePath)
+	if err != nil {
+		return nil, err
+	}
+
+	secretcdintegration, err := ioutil.ReadFile(cdIntegrationPath)
+	if err != nil {
+		return nil, err
+	}
+
 	gateUrl := metric.GateUrl
 	if gateUrl == "" {
-		secretGateurl, ok := secret.Data["gate-url"]
-		if !ok {
-			err := errors.New("the gate-url is not specified both in the template and in the secret")
-			return nil, err
-		}
-		gateUrl = string(secretGateurl)
+		gateUrl = string(secretGateUrl)
 	}
 	secretData["gateUrl"] = gateUrl
 
 	user := metric.User
 	if user == "" {
-		secretUser, ok := secret.Data["user"]
-		if !ok {
-			err := errors.New("the user is not specified both in the template and in the secret")
-			return nil, err
-		}
 		user = string(secretUser)
 	}
 	secretData["user"] = user
 
-	if !isRun {
-		return secretData, nil
-	}
-
 	var cdIntegration string
-	secretCdIntegration, ok := secret.Data["cd-integration"]
-	if !ok {
-		err := errors.New("cd-integration is not specified in the secret")
-		return nil, err
+	if string(secretcdintegration) == "true" {
+		cdIntegration = cdIntegrationArgoCD
+	} else if string(secretcdintegration) == "false" {
+		cdIntegration = cdIntegrationArgoRollouts
 	} else {
-		if string(secretCdIntegration) == "true" {
-			cdIntegration = cdIntegrationArgoCD
-		} else if string(secretCdIntegration) == "false" {
-			cdIntegration = cdIntegrationArgoRollouts
-		} else {
-			err := errors.New("cd-integration should be either true or false")
-			return nil, err
-		}
+		err := errors.New("cd-integration should be either true or false")
+		return nil, err
 	}
 	secretData["cdIntegration"] = cdIntegration
 
-	secretSourceName, ok := secret.Data["source-name"]
-	if !ok {
-		err := errors.New("source-name is not specified in the secret")
-		return nil, err
-	}
-	secretData["sourceName"] = string(secretSourceName)
+	secretData["sourceName"] = string(secretsourcename)
 
 	return secretData, nil
 }

@@ -62,7 +62,6 @@ type OPSMXMetric struct {
 	Pass                 int            `yaml:"passScore"`
 	Marginal             int            `yaml:"marginalScore"`
 	Services             []OPSMXService `yaml:"serviceList,omitempty"`
-	Profile              string         `yaml:"profile,omitempty"`
 	IntervalTime         int            `yaml:"intervalTime,omitempty"`
 	LookBackType         string         `yaml:"lookBackType,omitempty"`
 	Delay                int            `yaml:"delay,omitempty"`
