@@ -59,7 +59,8 @@ type OPSMXMetric struct {
 	EndTime              string         `yaml:"endTime,omitempty"`
 	GlobalLogTemplate    string         `yaml:"globalLogTemplate,omitempty"`
 	GlobalMetricTemplate string         `yaml:"globalMetricTemplate,omitempty"`
-	Threshold            OPSMXThreshold `yaml:"threshold"`
+	Pass                 int            `yaml:"passScore"`
+	Marginal             int            `yaml:"marginalScore"`
 	Services             []OPSMXService `yaml:"serviceList,omitempty"`
 	Profile              string         `yaml:"profile,omitempty"`
 	IntervalTime         int            `yaml:"intervalTime,omitempty"`
@@ -80,11 +81,6 @@ type OPSMXService struct {
 	BaselineMetricScope   string `yaml:"baselineMetricScope,omitempty"`
 	CanaryMetricScope     string `yaml:"canaryMetricScope,omitempty"`
 	ServiceName           string `yaml:"serviceName,omitempty"`
-}
-
-type OPSMXThreshold struct {
-	Pass     int `yaml:"passScore"`
-	Marginal int `yaml:"marginalScore"`
 }
 
 type jobPayload struct {

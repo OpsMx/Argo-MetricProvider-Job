@@ -77,10 +77,10 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 			IntervalTime:    intervalTime,
 			Delays:          opsmxdelay,
 			CanaryHealthCheckHandler: canaryHealthCheckHandler{
-				MinimumCanaryResultScore: fmt.Sprintf("%d", metric.Threshold.Marginal),
+				MinimumCanaryResultScore: fmt.Sprintf("%d", metric.Marginal),
 			},
 			CanarySuccessCriteria: canarySuccessCriteria{
-				CanaryResultScore: fmt.Sprintf("%d", metric.Threshold.Pass),
+				CanaryResultScore: fmt.Sprintf("%d", metric.Pass),
 			},
 		},
 		CanaryDeployments: []canaryDeployments{},
@@ -133,14 +133,18 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 						return err
 					}
 				}
+
+				baslineLogScope := getScopeValues(item.BaselineLogScope)
 				//Add mandatory field for baseline
 				deployment.Baseline.Log[serviceName] = map[string]string{
-					item.LogScopeVariables: item.BaselineLogScope,
+					item.LogScopeVariables: baslineLogScope,
 					"serviceGate":          gateName,
 				}
+
+				canaryLogScope := getScopeValues(item.CanaryLogScope)
 				//Add mandatory field for canary
 				deployment.Canary.Log[serviceName] = map[string]string{
-					item.LogScopeVariables: item.CanaryLogScope,
+					item.LogScopeVariables: canaryLogScope,
 					"serviceGate":          gateName,
 				}
 
@@ -156,7 +160,7 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 
 				var templateData string
 				if metric.GitOPS && item.LogTemplateVersion == "" {
-					templateData, err = getTemplateData(ns, c.kubeclientset, c.client, secretData, tempName)
+					templateData, err = getTemplateData(ns, c.kubeclientset, c.client, secretData, tempName, "LOG")
 					if err != nil {
 						return err
 					}
@@ -202,16 +206,21 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 						return err
 					}
 				}
+
+				baselineMetricScope := getScopeValues(item.BaselineMetricScope)
 				//Add mandatory field for baseline
 				deployment.Baseline.Metric[serviceName] = map[string]string{
-					item.MetricScopeVariables: item.BaselineMetricScope,
+					item.MetricScopeVariables: baselineMetricScope,
 					"serviceGate":             gateName,
 				}
+
+				canaryMetricScope := getScopeValues(item.CanaryMetricScope)
 				//Add mandatory field for canary
 				deployment.Canary.Metric[serviceName] = map[string]string{
-					item.MetricScopeVariables: item.CanaryMetricScope,
+					item.MetricScopeVariables: canaryMetricScope,
 					"serviceGate":             gateName,
 				}
+
 				var tempName string
 				if item.MetricTemplateName != "" {
 					tempName = item.MetricTemplateName
@@ -225,7 +234,7 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 
 				var templateData string
 				if metric.GitOPS && item.MetricTemplateVersion == "" {
-					templateData, err = getTemplateData("ns", c.kubeclientset, c.client, secretData, tempName)
+					templateData, err = getTemplateData("ns", c.kubeclientset, c.client, secretData, tempName, "METRIC")
 					if err != nil {
 						return err
 					}
@@ -264,7 +273,7 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 	if err != nil {
 		return err
 	}
-
+	fmt.Println(string(buffer))
 	data, err := makeRequest(c.client, "POST", canaryurl, string(buffer), secretData["user"])
 	if err != nil {
 		return err

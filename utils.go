@@ -94,7 +94,7 @@ func makeRequest(client http.Client, requestType string, url string, body string
 
 // Check few conditions pre-analysis
 func (metric *OPSMXMetric) basicChecks() error {
-	if metric.Threshold.Pass <= metric.Threshold.Marginal {
+	if metric.Pass <= metric.Marginal {
 		return errors.New("pass score cannot be less than marginal score")
 	}
 	if metric.LifetimeMinutes == 0 && metric.EndTime == "" {
@@ -177,86 +177,95 @@ func getAnalysisTemplateData(template string, Namespace string, kubeclientset ku
 		return OPSMXMetric{}, err
 	}
 
-	var lifetimeMinutes int
-	if analysisTemplateData.Data["lifetimeMinutes"] != "" {
-		lifetimeMinutes, err = strconv.Atoi(analysisTemplateData.Data["lifetimeMinutes"])
-		if err != nil {
-			return OPSMXMetric{}, err
-		}
-	}
-
-	var intervalTime int
-	if analysisTemplateData.Data["intervalTime"] != "" {
-		intervalTime, err = strconv.Atoi(analysisTemplateData.Data["intervalTime"])
-		if err != nil {
-			return OPSMXMetric{}, err
-		}
-	}
-
-	var delay int
-	if analysisTemplateData.Data["delay"] != "" {
-		delay, err = strconv.Atoi(analysisTemplateData.Data["delay"])
-		if err != nil {
-			return OPSMXMetric{}, err
-		}
-	}
-
-	var gitops bool
-	if analysisTemplateData.Data["gitops"] != "" {
-		gitops, err = strconv.ParseBool(analysisTemplateData.Data["gitops"])
-		if err != nil {
-			return OPSMXMetric{}, err
-		}
-	}
-
-	var pass int
-	if analysisTemplateData.Data["passScore"] != "" {
-		pass, err = strconv.Atoi(analysisTemplateData.Data["passScore"])
-		if err != nil {
-			return OPSMXMetric{}, err
-		}
-	}
-
-	var marginal int
-	if analysisTemplateData.Data["marginalScore"] != "" {
-		marginal, err = strconv.Atoi(analysisTemplateData.Data["marginalScore"])
-		if err != nil {
-			return OPSMXMetric{}, err
-		}
-	}
-
-	var services OPSMXMetric
-	if analysisTemplateData.Data["serviceList"] != "" {
-		if err := yaml.Unmarshal([]byte(analysisTemplateData.Data["serviceList"]), &services); err != nil {
-			return OPSMXMetric{}, err
-		}
-	} else {
-		err = errors.New("services not found in analysis template")
+	var opsmx OPSMXMetric
+	if analysisTemplateData.Data["providerConfig"] == "" {
+		err = errors.New("providerConfig field not found")
 		return OPSMXMetric{}, err
 	}
-	metric := OPSMXMetric{
-		User:                 analysisTemplateData.Data["user"],
-		GateUrl:              analysisTemplateData.Data["gateUrl"],
-		Application:          analysisTemplateData.Data["application"],
-		BaselineStartTime:    analysisTemplateData.Data["baselineStartTime"],
-		CanaryStartTime:      analysisTemplateData.Data["canaryStartTime"],
-		LifetimeMinutes:      lifetimeMinutes,
-		EndTime:              analysisTemplateData.Data["endTime"],
-		IntervalTime:         intervalTime,
-		Delay:                delay,
-		GitOPS:               gitops,
-		LookBackType:         analysisTemplateData.Data["lookBackType"],
-		GlobalLogTemplate:    analysisTemplateData.Data["globalLogTemplate"],
-		GlobalMetricTemplate: analysisTemplateData.Data["globalMetricTemplate"],
-		Profile:              analysisTemplateData.Data["profile"],
-		Threshold: OPSMXThreshold{
-			Pass:     pass,
-			Marginal: marginal,
-		},
-		Services: services.Services,
+	if err := yaml.Unmarshal([]byte(analysisTemplateData.Data["providerConfig"]), &opsmx); err != nil {
+		return OPSMXMetric{}, err
 	}
+	/*
+		var lifetimeMinutes int
+		if analysisTemplateData.Data["lifetimeMinutes"] != "" {
+			lifetimeMinutes, err = strconv.Atoi(analysisTemplateData.Data["lifetimeMinutes"])
+			if err != nil {
+				return OPSMXMetric{}, err
+			}
+		}
 
-	return metric, nil
+		var intervalTime int
+		if analysisTemplateData.Data["intervalTime"] != "" {
+			intervalTime, err = strconv.Atoi(analysisTemplateData.Data["intervalTime"])
+			if err != nil {
+				return OPSMXMetric{}, err
+			}
+		}
+
+		var delay int
+		if analysisTemplateData.Data["delay"] != "" {
+			delay, err = strconv.Atoi(analysisTemplateData.Data["delay"])
+			if err != nil {
+				return OPSMXMetric{}, err
+			}
+		}
+
+		var gitops bool
+		if analysisTemplateData.Data["gitops"] != "" {
+			gitops, err = strconv.ParseBool(analysisTemplateData.Data["gitops"])
+			if err != nil {
+				return OPSMXMetric{}, err
+			}
+		}
+
+		var pass int
+		if analysisTemplateData.Data["passScore"] != "" {
+			pass, err = strconv.Atoi(analysisTemplateData.Data["passScore"])
+			if err != nil {
+				return OPSMXMetric{}, err
+			}
+		}
+
+		var marginal int
+		if analysisTemplateData.Data["marginalScore"] != "" {
+			marginal, err = strconv.Atoi(analysisTemplateData.Data["marginalScore"])
+			if err != nil {
+				return OPSMXMetric{}, err
+			}
+		}
+
+		var services OPSMXMetric
+		if analysisTemplateData.Data["serviceList"] != "" {
+			if err := yaml.Unmarshal([]byte(analysisTemplateData.Data["serviceList"]), &services); err != nil {
+				return OPSMXMetric{}, err
+			}
+		} else {
+			err = errors.New("services not found in analysis template")
+			return OPSMXMetric{}, err
+		}
+		metric := OPSMXMetric{
+			User:                 analysisTemplateData.Data["user"],
+			GateUrl:              analysisTemplateData.Data["gateUrl"],
+			Application:          analysisTemplateData.Data["application"],
+			BaselineStartTime:    analysisTemplateData.Data["baselineStartTime"],
+			CanaryStartTime:      analysisTemplateData.Data["canaryStartTime"],
+			LifetimeMinutes:      lifetimeMinutes,
+			EndTime:              analysisTemplateData.Data["endTime"],
+			IntervalTime:         intervalTime,
+			Delay:                delay,
+			GitOPS:               gitops,
+			LookBackType:         analysisTemplateData.Data["lookBackType"],
+			GlobalLogTemplate:    analysisTemplateData.Data["globalLogTemplate"],
+			GlobalMetricTemplate: analysisTemplateData.Data["globalMetricTemplate"],
+			Profile:              analysisTemplateData.Data["profile"],
+			Threshold: OPSMXThreshold{
+				Pass:     pass,
+				Marginal: marginal,
+			},
+			Services: services.Services,
+		}
+	*/
+	return opsmx, nil
 }
 
 func encryptString(s string) string {
@@ -266,7 +275,7 @@ func encryptString(s string) string {
 	return sha1_hash
 }
 
-func getTemplateData(Namespace string, kubeclientset kubernetes.Interface, client http.Client, secretData map[string]string, template string) (string, error) {
+func getTemplateData(Namespace string, kubeclientset kubernetes.Interface, client http.Client, secretData map[string]string, template string, isdTemplateType string) (string, error) {
 	var templateData string
 	templates, err := kubeclientset.CoreV1().ConfigMaps(Namespace).Get(context.TODO(), template, metav1.GetOptions{})
 	if err != nil {
@@ -293,7 +302,7 @@ func getTemplateData(Namespace string, kubeclientset kubernetes.Interface, clien
 		}
 
 		sha1Code := encryptString(templates.Data["Json"])
-		templateType := templates.Data["TemplateType"]
+		templateType := isdTemplateType
 		tempLink := fmt.Sprintf(templateApi, sha1Code, templateType, template)
 		s := []string{secretData["gateUrl"], tempLink}
 		templateUrl := strings.Join(s, "")
@@ -388,6 +397,22 @@ func (metric *OPSMXMetric) getDataSecret(Namespace string, kubeclientset kuberne
 	return secretData, nil
 }
 
+func getScopeValues(scope string) string {
+	splitScope := strings.Split(scope, ",")
+	for i, items := range splitScope {
+		if strings.Contains(items, "{{env.") {
+			extrctVal := strings.Split(items, "{{env.")
+			extractkey := strings.Split(extrctVal[1], "}}")
+			podName := os.Getenv(extractkey[0])
+			old := fmt.Sprintf("{{env.%s}}", extractkey[0])
+			testresult := strings.Replace(items, old, podName, 1)
+			splitScope[i] = testresult
+		}
+	}
+	scopeValue := strings.Join(splitScope, ",")
+	return scopeValue
+}
+
 // Evaluate canaryScore and accordingly set the AnalysisPhase
 func evaluateResult(score int, pass int, marginal int) string {
 	if score >= pass {
@@ -421,6 +446,6 @@ func (metric *OPSMXMetric) processResume(data []byte) (string, string, error) {
 		canaryScore = fmt.Sprintf("%v", finalScore["overallScore"])
 	}
 	score, _ := strconv.Atoi(canaryScore)
-	Phase := evaluateResult(score, int(metric.Threshold.Pass), int(metric.Threshold.Marginal))
+	Phase := evaluateResult(score, int(metric.Pass), int(metric.Marginal))
 	return Phase, canaryScore, nil
 }
