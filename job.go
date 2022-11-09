@@ -13,8 +13,6 @@ import (
 	"time"
 
 	"errors"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -311,20 +309,20 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 	reportUrl := reportUrlJson["canaryReportURL"]
 
 	ctx := context.TODO()
-	ar, err := c.argoclientset.ArgoprojV1alpha1().AnalysisRuns("ns").Get(ctx, r.analysisRunName, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
+	// ar, err := c.argoclientset.ArgoprojV1alpha1().AnalysisRuns("ns").Get(ctx, r.analysisRunName, metav1.GetOptions{})
+	// if err != nil {
+	// 	return err
+	// }
 
 	cd := CanaryDetails{
 		jobName:    r.jobName,
-		metricName: ar.Spec.Metrics[0].Name,
 		canaryId:   canary.CanaryId.String(),
 		gateUrl:    metric.GateUrl,
 		reportUrl:  fmt.Sprintf("%s", reportUrl),
 		phase:      "Running",
 	}
-	patchCanaryDetails(c, ctx, r.analysisRunName, cd)
+	// patchCanaryDetails(c, ctx, r.analysisRunName, cd)
+	patchJobCanaryDetails(c,ctx,r.jobName,cd)
 
 	process := "RUNNING"
 	//if the status is Running, pool again after delay
@@ -356,40 +354,37 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 
 			fs := CanaryDetails{
 				jobName:    r.jobName,
-				metricName: ar.Spec.Metrics[0].Name,
 				canaryId:   canary.CanaryId.String(),
 				gateUrl:    metric.GateUrl,
 				reportUrl:  fmt.Sprintf("%s", reportUrl),
 				phase:      "Running",
 				value:      Score,
 			}
-			patchFinalStatus(c, ctx, r.analysisRunName, fs)
+			patchJobSuccessful(c,ctx,r.jobName,fs)
 		}
 		if Phase == AnalysisPhaseFailed {
 
 			fs := CanaryDetails{
 				jobName:    r.jobName,
-				metricName: ar.Spec.Metrics[0].Name,
 				canaryId:   canary.CanaryId.String(),
 				gateUrl:    metric.GateUrl,
 				reportUrl:  fmt.Sprintf("%s", reportUrl),
 				phase:      "Running",
 				value:      Score,
 			}
-			patchFailedInconclusive(c, ctx, r.analysisRunName, Phase, fs)
+			patchJobFailedOthers(c,ctx,r.jobName,Phase,fs,2)
 		}
 		if Phase == AnalysisPhaseInconclusive {
 
 			fs := CanaryDetails{
 				jobName:    r.jobName,
-				metricName: ar.Spec.Metrics[0].Name,
 				canaryId:   canary.CanaryId.String(),
 				gateUrl:    metric.GateUrl,
 				reportUrl:  fmt.Sprintf("%s", reportUrl),
 				phase:      "Running",
 				value:      Score,
 			}
-			patchFailedInconclusive(c, ctx, r.analysisRunName, Phase, fs)
+			patchJobFailedOthers(c,ctx,r.jobName,Phase,fs,3)
 		}
 	}
 	return nil

@@ -22,31 +22,22 @@ type Clients struct {
 	client        http.Client
 }
 
-// TODO- Change to export maybe?
-type ResourceNames struct {
-	podName         string
-	jobName         string
-	analysisRunName string
+//TODO- Change to export maybe?
+type ResourceNames struct{
+	podName string
+	jobName string
+	// analysisRunName string	
+
 }
 
-// TODO- Change to export maybe?
+//TODO- Change to export maybe?
 type CanaryDetails struct {
-	jobName    string
-	metricName string
-	canaryId   string
-	gateUrl    string
-	reportUrl  string
-	phase      string
-	value      string
-}
-
-// Check the feasibilty of merging this struct with the CanaryDetails one
-// TODO- Change to export maybe?
-type FinalStatus struct {
-	jobName    string
-	metricName string
-	phase      string
-	message    string
+	jobName string
+	canaryId string
+	gateUrl string
+	reportUrl string
+	phase string
+	value string
 }
 
 type OPSMXMetric struct {
