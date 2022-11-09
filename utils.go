@@ -51,7 +51,7 @@ func getAnalysisRunNameFromPod(p *Clients, ctx context.Context, podName string) 
 
 func getJobNameFromPod(podName string) string {
 	// TODO- Retrieve data from the last hyphen and use error if required
-	return podName[:len(podName)-6]
+	return podName[:len(podName)-5]
 
 }
 
