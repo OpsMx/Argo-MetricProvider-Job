@@ -281,7 +281,7 @@ func patchJobSuccessful(p *Clients, ctx context.Context, jobName string, cd Cana
 	jobStatus := JobStatus{
 		Status: Status{
 			Conditions: &[]Conditions{{
-				Message:       fmt.Sprintf("Canary ID: %s\nReport URL: %s\nGate URL: %s Score: %s", cd.canaryId, cd.reportUrl, cd.gateUrl, cd.value),
+				Message:       fmt.Sprintf("Canary ID: %s\nReport URL: %s\nGate URL: %s\nScore: %s", cd.canaryId, cd.reportUrl, cd.gateUrl, cd.value),
 				Type:          "OpsmxAnalysis",
 				LastProbeTime: metav1.NewTime(time.Now()),
 				Status:        "True",
