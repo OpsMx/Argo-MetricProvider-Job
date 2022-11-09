@@ -235,9 +235,9 @@ func patchJobFailureInconclusive(p *Clients, ctx context.Context, jobName, reaso
 }
 */
 type Conditions struct {
-	Message string `json:"message,omitempty"`
-	Type    string `json:"type,omitempty"`
-	Status  string `json:"status,omitempty"`
+	Message       string      `json:"message,omitempty"`
+	Type          string      `json:"type,omitempty"`
+	Status        string      `json:"status,omitempty"`
 	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty"`
 }
 
@@ -255,12 +255,12 @@ func patchJobCanaryDetails(p *Clients, ctx context.Context, jobName string, cd C
 	jobStatus := JobStatus{
 		Status: Status{
 			Conditions: &[]Conditions{{
-				Message: fmt.Sprintf("Canary ID: %s\nReport URL: %s\nGate URL: %s",cd.canaryId,cd.reportUrl,cd.gateUrl),
-				Type : "OpsmxAnalysis",
+				Message:       fmt.Sprintf("Canary ID: %s\nReport URL: %s\nGate URL: %s", cd.canaryId, cd.reportUrl, cd.gateUrl),
+				Type:          "OpsmxAnalysis",
 				LastProbeTime: metav1.NewTime(time.Now()),
-				Status: "True",
+				Status:        "True",
 			},
-		},
+			},
 		},
 	}
 	jsonData, err := json.Marshal(jobStatus)
@@ -268,25 +268,25 @@ func patchJobCanaryDetails(p *Clients, ctx context.Context, jobName string, cd C
 		log.Errorf("could not marshal json: %s\n", err)
 	}
 
-	jobPatch,err := p.kubeclientset.BatchV1().Jobs(defaults.Namespace()).Patch(ctx,jobName, types.StrategicMergePatchType,jsonData,metav1.PatchOptions{},"status")
+	jobPatch, err := p.kubeclientset.BatchV1().Jobs(defaults.Namespace()).Patch(ctx, jobName, types.StrategicMergePatchType, jsonData, metav1.PatchOptions{}, "status")
 	if err != nil {
-		log.Errorf("%s",err)
+		log.Errorf("%s", err)
 	}
 	log.Infof("json data: %s\n", jobPatch)
 }
 
-func  patchJobSuccessful(p *Clients, ctx context.Context, jobName string, cd CanaryDetails) {
+func patchJobSuccessful(p *Clients, ctx context.Context, jobName string, cd CanaryDetails) {
 
 	//TODO- check the meaning of the status of the Job
 	jobStatus := JobStatus{
 		Status: Status{
 			Conditions: &[]Conditions{{
-				Message: fmt.Sprintf("Canary ID: %s\nReport URL: %s\nGate URL: %s\nScore: %s",cd.canaryId,cd.reportUrl,cd.gateUrl,cd.value),
-				Type : "OpsmxAnalysis",
+				Message:       fmt.Sprintf("Canary ID: %s\nReport URL: %s\nGate URL: %s Score: %s", cd.canaryId, cd.reportUrl, cd.gateUrl, cd.value),
+				Type:          "OpsmxAnalysis",
 				LastProbeTime: metav1.NewTime(time.Now()),
-				Status: "True",
+				Status:        "True",
 			},
-		},
+			},
 		},
 	}
 	jsonData, err := json.Marshal(jobStatus)
@@ -294,25 +294,24 @@ func  patchJobSuccessful(p *Clients, ctx context.Context, jobName string, cd Can
 		log.Errorf("could not marshal json: %s\n", err)
 	}
 
-	jobPatch,err := p.kubeclientset.BatchV1().Jobs(defaults.Namespace()).Patch(ctx,jobName, types.StrategicMergePatchType,jsonData,metav1.PatchOptions{},"status")
+	jobPatch, err := p.kubeclientset.BatchV1().Jobs(defaults.Namespace()).Patch(ctx, jobName, types.StrategicMergePatchType, jsonData, metav1.PatchOptions{}, "status")
 	if err != nil {
-		log.Errorf("%s",err)
+		log.Errorf("%s", err)
 	}
 	log.Infof("json data: %s\n", jobPatch)
 }
 
-
-func patchJobFailedOthers(p *Clients, ctx context.Context, jobName, reason string, cd CanaryDetails,errCode int) {
+func patchJobFailedOthers(p *Clients, ctx context.Context, jobName, reason string, cd CanaryDetails, errCode int) {
 	//TODO- check the meaning of the status of the Job
 	jobStatus := JobStatus{
 		Status: Status{
 			Conditions: &[]Conditions{{
-				Message: fmt.Sprintf("Canary ID: %s\nReport URL: %s\nGate URL: %s\nScore: %s",cd.canaryId,cd.reportUrl,cd.gateUrl,cd.value),
-				Type : "OpsmxAnalysis",
+				Message:       fmt.Sprintf("Canary ID: %s\nReport URL: %s\nGate URL: %s\nScore: %s", cd.canaryId, cd.reportUrl, cd.gateUrl, cd.value),
+				Type:          "OpsmxAnalysis",
 				LastProbeTime: metav1.NewTime(time.Now()),
-				Status: "True",
+				Status:        "True",
 			},
-		},
+			},
 		},
 	}
 	jsonData, err := json.Marshal(jobStatus)
@@ -320,27 +319,26 @@ func patchJobFailedOthers(p *Clients, ctx context.Context, jobName, reason strin
 		log.Errorf("could not marshal json: %s\n", err)
 	}
 
-	jobPatch,err := p.kubeclientset.BatchV1().Jobs(defaults.Namespace()).Patch(ctx,jobName, types.StrategicMergePatchType,jsonData,metav1.PatchOptions{},"status")
+	jobPatch, err := p.kubeclientset.BatchV1().Jobs(defaults.Namespace()).Patch(ctx, jobName, types.StrategicMergePatchType, jsonData, metav1.PatchOptions{}, "status")
 	if err != nil {
-		log.Errorf("%s",err)
+		log.Errorf("%s", err)
 	}
 	log.Infof("json data: %s\n", jobPatch)
-	patchForcefulFail(p,ctx,jobName,reason)
+	patchForcefulFail(p, ctx, jobName, reason)
 	os.Exit(errCode)
 }
-
 
 func patchJobError(p *Clients, ctx context.Context, jobName string, errMsg string) error {
 	//TODO- check the meaning of the status of the Job
 	jobStatus := JobStatus{
 		Status: Status{
 			Conditions: &[]Conditions{{
-				Message: errMsg,
-				Type : "OpsmxAnalysis",
+				Message:       errMsg,
+				Type:          "OpsmxAnalysis",
 				LastProbeTime: metav1.NewTime(time.Now()),
-				Status: "True",
+				Status:        "True",
 			},
-		},
+			},
 		},
 	}
 	jsonData, err := json.Marshal(jobStatus)
@@ -348,9 +346,9 @@ func patchJobError(p *Clients, ctx context.Context, jobName string, errMsg strin
 		log.Errorf("could not marshal json: %s\n", err)
 	}
 
-	jobPatch,err := p.kubeclientset.BatchV1().Jobs(defaults.Namespace()).Patch(ctx,jobName, types.StrategicMergePatchType,jsonData,metav1.PatchOptions{},"status")
+	jobPatch, err := p.kubeclientset.BatchV1().Jobs(defaults.Namespace()).Patch(ctx, jobName, types.StrategicMergePatchType, jsonData, metav1.PatchOptions{}, "status")
 	if err != nil {
-		log.Errorf("%s",err)
+		log.Errorf("%s", err)
 	}
 	log.Infof("json data: %s\n", jobPatch)
 	os.Exit(1)
@@ -363,12 +361,12 @@ func patchForcefulFail(p *Clients, ctx context.Context, jobName, reason string) 
 	jobStatus := JobStatus{
 		Status: Status{
 			Conditions: &[]Conditions{{
-				Message: fmt.Sprintf("The analysis was %s",reason),
-				Type: "Failed",
+				Message:       fmt.Sprintf("The analysis was %s", reason),
+				Type:          "Failed",
 				LastProbeTime: metav1.NewTime(time.Now()),
-				Status: "True",
+				Status:        "True",
 			},
-		},
+			},
 		},
 	}
 	jsonData, err := json.Marshal(jobStatus)
@@ -376,9 +374,9 @@ func patchForcefulFail(p *Clients, ctx context.Context, jobName, reason string) 
 		log.Errorf("could not marshal json: %s\n", err)
 	}
 
-	jobPatch,err := p.kubeclientset.BatchV1().Jobs(defaults.Namespace()).Patch(ctx,jobName, types.StrategicMergePatchType,jsonData,metav1.PatchOptions{},"status")
+	jobPatch, err := p.kubeclientset.BatchV1().Jobs(defaults.Namespace()).Patch(ctx, jobName, types.StrategicMergePatchType, jsonData, metav1.PatchOptions{}, "status")
 	if err != nil {
-		log.Errorf("%s",err)
+		log.Errorf("%s", err)
 	}
 	log.Infof("json data: %s\n", jobPatch)
 }

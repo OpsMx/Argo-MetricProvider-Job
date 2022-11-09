@@ -269,7 +269,6 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(buffer))
 	data, err := makeRequest(c.client, "POST", canaryurl, string(buffer), secretData["user"])
 	if err != nil {
 		return err
