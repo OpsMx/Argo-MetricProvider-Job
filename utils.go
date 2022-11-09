@@ -347,7 +347,22 @@ func (metric *OPSMXMetric) processResume(data []byte) (string, string, error) {
 	} else {
 		canaryScore = fmt.Sprintf("%v", finalScore["overallScore"])
 	}
-	score, _ := strconv.Atoi(canaryScore)
+
+	var score int
+	var err error
+	if strings.Contains(canaryScore, ".") {
+		floatScore, err := strconv.ParseFloat(canaryScore, 64)
+		score = int(roundFloat(floatScore, 0))
+		if err != nil {
+			return "", "", err
+		}
+	} else {
+		score, err = strconv.Atoi(canaryScore)
+		if err != nil {
+			return "", "", err
+		}
+	}
+
 	Phase := evaluateResult(score, int(metric.Pass), int(metric.Marginal))
 	return Phase, canaryScore, nil
 }
