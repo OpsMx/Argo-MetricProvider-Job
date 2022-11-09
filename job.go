@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"os"
 
 	"net/url"
 
@@ -27,8 +26,9 @@ const (
 )
 
 func runAnalysis(c *Clients, r ResourceNames) error {
-	templateName := os.Getenv("PROVIDER_CONFIG")
-	metric, err := getAnalysisTemplateData(templateName)
+	fmt.Printf("Waiting for 2 mins")
+	time.Sleep(2 * time.Minute)
+	metric, err := getAnalysisTemplateData()
 	if err != nil {
 		return err
 	}
@@ -315,14 +315,14 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 	// }
 
 	cd := CanaryDetails{
-		jobName:    r.jobName,
-		canaryId:   canary.CanaryId.String(),
-		gateUrl:    metric.GateUrl,
-		reportUrl:  fmt.Sprintf("%s", reportUrl),
-		phase:      "Running",
+		jobName:   r.jobName,
+		canaryId:  canary.CanaryId.String(),
+		gateUrl:   metric.GateUrl,
+		reportUrl: fmt.Sprintf("%s", reportUrl),
+		phase:     "Running",
 	}
 	// patchCanaryDetails(c, ctx, r.analysisRunName, cd)
-	patchJobCanaryDetails(c,ctx,r.jobName,cd)
+	patchJobCanaryDetails(c, ctx, r.jobName, cd)
 
 	process := "RUNNING"
 	//if the status is Running, pool again after delay
@@ -353,38 +353,38 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 		if Phase == AnalysisPhaseSuccessful {
 
 			fs := CanaryDetails{
-				jobName:    r.jobName,
-				canaryId:   canary.CanaryId.String(),
-				gateUrl:    metric.GateUrl,
-				reportUrl:  fmt.Sprintf("%s", reportUrl),
-				phase:      "Running",
-				value:      Score,
+				jobName:   r.jobName,
+				canaryId:  canary.CanaryId.String(),
+				gateUrl:   metric.GateUrl,
+				reportUrl: fmt.Sprintf("%s", reportUrl),
+				phase:     "Running",
+				value:     Score,
 			}
-			patchJobSuccessful(c,ctx,r.jobName,fs)
+			patchJobSuccessful(c, ctx, r.jobName, fs)
 		}
 		if Phase == AnalysisPhaseFailed {
 
 			fs := CanaryDetails{
-				jobName:    r.jobName,
-				canaryId:   canary.CanaryId.String(),
-				gateUrl:    metric.GateUrl,
-				reportUrl:  fmt.Sprintf("%s", reportUrl),
-				phase:      "Running",
-				value:      Score,
+				jobName:   r.jobName,
+				canaryId:  canary.CanaryId.String(),
+				gateUrl:   metric.GateUrl,
+				reportUrl: fmt.Sprintf("%s", reportUrl),
+				phase:     "Running",
+				value:     Score,
 			}
-			patchJobFailedOthers(c,ctx,r.jobName,Phase,fs,2)
+			patchJobFailedOthers(c, ctx, r.jobName, Phase, fs, 2)
 		}
 		if Phase == AnalysisPhaseInconclusive {
 
 			fs := CanaryDetails{
-				jobName:    r.jobName,
-				canaryId:   canary.CanaryId.String(),
-				gateUrl:    metric.GateUrl,
-				reportUrl:  fmt.Sprintf("%s", reportUrl),
-				phase:      "Running",
-				value:      Score,
+				jobName:   r.jobName,
+				canaryId:  canary.CanaryId.String(),
+				gateUrl:   metric.GateUrl,
+				reportUrl: fmt.Sprintf("%s", reportUrl),
+				phase:     "Running",
+				value:     Score,
 			}
-			patchJobFailedOthers(c,ctx,r.jobName,Phase,fs,3)
+			patchJobFailedOthers(c, ctx, r.jobName, Phase, fs, 3)
 		}
 	}
 	return nil

@@ -14,9 +14,9 @@ import (
 	rest "k8s.io/client-go/rest"
 )
 
-//TODO - Check the feasibilty/correctness of passing the metric name in the ResourceNames struct
-//TODO- Remove prints and add log lines everywhere
-func init(){
+// TODO - Check the feasibilty/correctness of passing the metric name in the ResourceNames struct
+// TODO- Remove prints and add log lines everywhere
+func init() {
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp: true,
 	})
@@ -24,49 +24,48 @@ func init(){
 	log.SetLevel(log.InfoLevel)
 }
 
-func newClients(kubeclientset kubernetes.Interface, argoclient argoclientset.Interface ) *Clients {
+func newClients(kubeclientset kubernetes.Interface, argoclient argoclientset.Interface) *Clients {
 	return &Clients{
 		kubeclientset: kubeclientset,
 		argoclientset: argoclient,
 	}
 }
 
-func checkPatchabilityReturnResources(c *Clients)(ResourceNames,error){
+func checkPatchabilityReturnResources(c *Clients) (ResourceNames, error) {
 
 	podName, ok := os.LookupEnv("MY_POD_NAME")
-	if !ok{
-		return *new(ResourceNames), errors.New("Environment variable MY_POD_NAME not set")
+	if !ok {
+		return *new(ResourceNames), errors.New("environment variable my_pod_name not set")
 	}
 
-	jobName,err:= getJobNameFromPod(c,podName)
-	if err!=nil{
+	jobName, err := getJobNameFromPod(c, podName)
+	if err != nil {
 		return *new(ResourceNames), err
 	}
 
-	_,err = c.kubeclientset.BatchV1().Jobs(defaults.Namespace()).Patch(context.TODO(),jobName, types.StrategicMergePatchType,[]byte(`{}`),metav1.PatchOptions{},"status")
+	_, err = c.kubeclientset.BatchV1().Jobs(defaults.Namespace()).Patch(context.TODO(), jobName, types.StrategicMergePatchType, []byte(`{}`), metav1.PatchOptions{}, "status")
 	if err != nil {
-		log.Errorf("%s",err)
+		log.Errorf("%s", err)
 		log.Errorln("Cannot patch to Job, check the service account has the right permissions and the pod Name is correct")
-		return  *new(ResourceNames), err
+		return *new(ResourceNames), err
 	}
 	resourceNames := ResourceNames{
 		podName: podName,
 		jobName: jobName,
 	}
-	return resourceNames,nil
+	return resourceNames, nil
 }
 
-
-func runner(c *Clients) error{
+func runner(c *Clients) error {
 	//TODO - Use errors
-	resourceNames,err:= checkPatchabilityReturnResources(c)
-	if err != nil{
+	resourceNames, err := checkPatchabilityReturnResources(c)
+	if err != nil {
 		return err
 	}
 
-	if errrun := runAnalysis(c,resourceNames); errrun != nil {
-		err:= patchJobError(c,context.TODO(),resourceNames.jobName,errrun.Error())
-		if err!= nil {
+	if errrun := runAnalysis(c, resourceNames); errrun != nil {
+		err := patchJobError(c, context.TODO(), resourceNames.jobName, errrun.Error())
+		if err != nil {
 			log.Error("--")
 			log.Error("An error occurred while patching the error from runAnalysis")
 			return err
@@ -75,7 +74,6 @@ func runner(c *Clients) error{
 	return nil
 
 }
-
 
 func main() {
 	config, err := rest.InClusterConfig()
@@ -87,7 +85,7 @@ func main() {
 	argoclient, err := argoclientset.NewForConfig(config)
 	logErrorExit1(err)
 
-	clients := newClients(clientset,argoclient)
+	clients := newClients(clientset, argoclient)
 
 	err = runner(clients)
 	logErrorExit1(err)

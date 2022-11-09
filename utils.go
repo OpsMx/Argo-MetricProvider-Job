@@ -49,18 +49,17 @@ func logErrorExit1(err error) {
 	}
 }
 
-
 func getJobNameFromPod(p *Clients, podName string) (string, error) {
 	// TODO- Retrieve data from the last hyphen and use error if required
 	ns := defaults.Namespace()
-	ctx:= context.TODO()
-	pod, err := p.kubeclientset.CoreV1().Pods(ns).Get(ctx,podName,metav1.GetOptions{})
-	if err!=nil{
-		return "",err
+	ctx := context.TODO()
+	pod, err := p.kubeclientset.CoreV1().Pods(ns).Get(ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
 	}
-	podOwner:=pod.OwnerReferences[0]
-	if podOwner.Kind !="Job"{
-		return "",errors.New("The owner of the running Pod is not a Job")
+	podOwner := pod.OwnerReferences[0]
+	if podOwner.Kind != "Job" {
+		return "", errors.New("the owner of the running pod is not a job")
 	}
 	return podOwner.Name, nil
 }
@@ -175,8 +174,8 @@ func getTimeVariables(baselineTime string, canaryTime string, endTime string, li
 	return canaryStartTime, baselineStartTime, lifetimeMinutes, nil
 }
 
-func getAnalysisTemplateData(template string) (OPSMXMetric, error) {
-	path := fmt.Sprintf("/etc/config/provider/%s", template)
+func getAnalysisTemplateData() (OPSMXMetric, error) {
+	path := "/etc/config/provider/providerConfig"
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return OPSMXMetric{}, err
@@ -247,10 +246,10 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 
 func (metric *OPSMXMetric) getDataSecret() (map[string]string, error) {
 	secretData := map[string]string{}
-	userPath := "/etc/config/secrets/data/user"
-	gateUrlPath := "/etc/config/secrets/data/gate-url"
-	sourceNamePath := "/etc/config/secrets/data/source-name"
-	cdIntegrationPath := "/etc/config/secrets/data/cd-integration"
+	userPath := "/etc/config/secrets/user"
+	gateUrlPath := "/etc/config/secrets/gate-url"
+	sourceNamePath := "/etc/config/secrets/source-name"
+	cdIntegrationPath := "/etc/config/secrets/cd-integration"
 
 	secretUser, err := ioutil.ReadFile(userPath)
 	if err != nil {
