@@ -26,8 +26,6 @@ const (
 )
 
 func runAnalysis(c *Clients, r ResourceNames) error {
-	fmt.Printf("Waiting for 2 mins")
-	time.Sleep(2 * time.Minute)
 	metric, err := getAnalysisTemplateData()
 	if err != nil {
 		return err
