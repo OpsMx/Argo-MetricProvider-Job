@@ -269,7 +269,7 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 	if err != nil {
 		return err
 	}
-	data, err := makeRequest(c.client, "POST", canaryurl, string(buffer), secretData["user"])
+	data, scoreURL, err := makeRequest(c.client, "POST", canaryurl, string(buffer), secretData["user"])
 	if err != nil {
 		return err
 	}
@@ -290,9 +290,8 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 			return err
 		}
 	}
-	scoreURL, _ := url.JoinPath(secretData["gateUrl"], scoreUrlFormat, canary.CanaryId.String())
 
-	data, err = makeRequest(c.client, "GET", scoreURL, "", secretData["user"])
+	data, _, err = makeRequest(c.client, "GET", scoreURL, "", secretData["user"])
 	if err != nil {
 		return err
 	}
@@ -320,7 +319,7 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 	}
 	// patchCanaryDetails(c, ctx, r.analysisRunName, cd)
 	patchJobCanaryDetails(c, ctx, r.jobName, cd)
-
+	retryScorePool := 5
 	process := "RUNNING"
 	//if the status is Running, pool again after delay
 	for process == "RUNNING" {
@@ -332,15 +331,25 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 			process = "COMPLETED"
 		} else {
 			time.Sleep(resumeAfter)
-			data, err = makeRequest(c.client, "GET", scoreURL, "", secretData["user"])
-			if err != nil {
+			data, _, err = makeRequest(c.client, "GET", scoreURL, "", secretData["user"])
+			if err != nil && retryScorePool == 0 {
 				return err
+			} else {
+				retryScorePool -= 1
 			}
 		}
 	}
 	//if run is cancelled mid-run
 	if status["status"] == "CANCELLED" {
-		fmt.Printf("Analysis Cancelled")
+		fs := CanaryDetails{
+			jobName:   r.jobName,
+			canaryId:  canary.CanaryId.String(),
+			gateUrl:   metric.GateUrl,
+			reportUrl: fmt.Sprintf("%s", reportUrl),
+			phase:     "Running",
+			value:     "-",
+		}
+		patchJobFailedOthers(c, ctx, r.jobName, "Cancelled", fs, 4)
 	} else {
 		//POST-Run process
 		Phase, Score, err := metric.processResume(data)
