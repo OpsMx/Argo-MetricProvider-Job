@@ -58,6 +58,7 @@ func checkPatchabilityReturnResources(c *Clients) (ResourceNames, error) {
 
 func runner(c *Clients) error {
 	//TODO - Use errors
+	podName, _ := os.LookupEnv("MY_POD_NAME")
 	resourceNames, err := checkPatchabilityReturnResources(c)
 	if err != nil {
 		return err
@@ -70,6 +71,10 @@ func runner(c *Clients) error {
 			log.Error("An error occurred while patching the error from runAnalysis")
 			return err
 		}
+	}
+	err = c.kubeclientset.CoreV1().Pods(defaults.Namespace()).Delete(context.TODO(), podName, metav1.DeleteOptions{})
+	if err != nil {
+		log.Fatal(err)
 	}
 	return nil
 
