@@ -305,20 +305,20 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 	reportUrl := reportUrlJson["canaryReportURL"]
 
 	ctx := context.TODO()
-	// ar, err := c.argoclientset.ArgoprojV1alpha1().AnalysisRuns("ns").Get(ctx, r.analysisRunName, metav1.GetOptions{})
-	// if err != nil {
-	// 	return err
-	// }
 
 	cd := CanaryDetails{
 		jobName:   r.jobName,
 		canaryId:  canary.CanaryId.String(),
 		gateUrl:   metric.GateUrl,
 		reportUrl: fmt.Sprintf("%s", reportUrl),
-		phase:     "Running",
 	}
-	// patchCanaryDetails(c, ctx, r.analysisRunName, cd)
-	patchJobCanaryDetails(c, ctx, r.jobName, cd)
+
+	err = patchJobCanaryDetails(c.kubeclientset, ctx, cd)
+	if err != nil {
+		return err
+	}
+
+
 	retryScorePool := 5
 	process := "RUNNING"
 	//if the status is Running, pool again after delay
@@ -341,15 +341,10 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 	}
 	//if run is cancelled mid-run
 	if status["status"] == "CANCELLED" {
-		fs := CanaryDetails{
-			jobName:   r.jobName,
-			canaryId:  canary.CanaryId.String(),
-			gateUrl:   metric.GateUrl,
-			reportUrl: fmt.Sprintf("%s", reportUrl),
-			phase:     "Running",
-			value:     "-",
+		err = patchJobCancelled(c.kubeclientset, ctx,r.jobName, 4)
+		if err != nil {
+			return err
 		}
-		patchJobFailedOthers(c, ctx, r.jobName, "Cancelled", fs, 4)
 	} else {
 		//POST-Run process
 		Phase, Score, err := metric.processResume(data)
@@ -363,10 +358,12 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 				canaryId:  canary.CanaryId.String(),
 				gateUrl:   metric.GateUrl,
 				reportUrl: fmt.Sprintf("%s", reportUrl),
-				phase:     "Running",
 				value:     Score,
 			}
-			patchJobSuccessful(c, ctx, r.jobName, fs)
+			err = patchJobSuccessful(c.kubeclientset, ctx, fs)
+			if err != nil {
+				return err
+			}
 		}
 		if Phase == AnalysisPhaseFailed {
 
@@ -375,10 +372,12 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 				canaryId:  canary.CanaryId.String(),
 				gateUrl:   metric.GateUrl,
 				reportUrl: fmt.Sprintf("%s", reportUrl),
-				phase:     "Running",
 				value:     Score,
 			}
-			patchJobFailedOthers(c, ctx, r.jobName, Phase, fs, 2)
+			err = patchJobFailedInconclusive(c.kubeclientset, ctx, Phase, fs, 2)
+			if err != nil {
+				return err
+			}
 		}
 		if Phase == AnalysisPhaseInconclusive {
 
@@ -387,10 +386,12 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 				canaryId:  canary.CanaryId.String(),
 				gateUrl:   metric.GateUrl,
 				reportUrl: fmt.Sprintf("%s", reportUrl),
-				phase:     "Running",
 				value:     Score,
 			}
-			patchJobFailedOthers(c, ctx, r.jobName, Phase, fs, 3)
+			err = patchJobFailedInconclusive(c.kubeclientset, ctx, Phase, fs, 3)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil

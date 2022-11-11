@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	argoclientset "github.com/argoproj/argo-rollouts/pkg/client/clientset/versioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -18,19 +18,30 @@ const (
 
 type Clients struct {
 	kubeclientset kubernetes.Interface
-	argoclientset argoclientset.Interface
 	client        http.Client
 }
 
-// TODO- Change to export maybe?
+type Conditions struct {
+	Message       string      `json:"message,omitempty"`
+	Type          string      `json:"type,omitempty"`
+	Status        string      `json:"status,omitempty"`
+	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty"`
+}
+
+type Status struct {
+	Conditions *[]Conditions `json:"conditions,omitempty"`
+}
+
+type JobStatus struct {
+	Status Status `json:"status,omitempty"`
+}
+
+
 type ResourceNames struct {
 	podName string
 	jobName string
-	// analysisRunName string
-
 }
 
-// TODO- Change to export maybe?
 type CanaryDetails struct {
 	jobName   string
 	canaryId  string

@@ -20,37 +20,18 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
-// func getAnalysisRunNameFromPod(p *Clients, ctx context.Context, podName string) (string, error) {
-// 	//TODO - Introduce more checks, remove prints
-// 	ns := defaults.Namespace()
-// 	jobName, _ := getJobNameFromPod(podName)
-// 	log.Infof("The job name is %s", jobName)
-
-// 	job, err := p.kubeclientset.BatchV1().Jobs(ns).Get(ctx, jobName, metav1.GetOptions{})
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	parent := job.OwnerReferences[0]
-// 	var analysisRunName string
-// 	if parent.Kind == "AnalysisRun" {
-// 		analysisRunName = parent.Name
-// 	}
-// 	return analysisRunName, nil
-
-// }
 
 func logErrorExit1(err error) {
 	if err != nil {
-		log.Infof("Inside the exit 1 block")
 		log.Error(err)
 		os.Exit(1)
 	}
 }
 
 func getJobNameFromPod(p *Clients, podName string) (string, error) {
-	// TODO- Retrieve data from the last hyphen and use error if required
 	ns := defaults.Namespace()
 	ctx := context.TODO()
 	pod, err := p.kubeclientset.CoreV1().Pods(ns).Get(ctx, podName, metav1.GetOptions{})
@@ -59,10 +40,36 @@ func getJobNameFromPod(p *Clients, podName string) (string, error) {
 	}
 	podOwner := pod.OwnerReferences[0]
 	if podOwner.Kind != "Job" {
-		return "", errors.New("the owner of the running pod is not a job")
+		return "", errors.New("The owner of the Pod is not a Job")
 	}
 	return podOwner.Name, nil
 }
+
+func checkPatchabilityReturnResources(c *Clients) (ResourceNames, error) {
+
+	podName, ok := os.LookupEnv("MY_POD_NAME")
+	if !ok {
+		return *new(ResourceNames), errors.New("Environment variable MY_POD_NAME not set")
+	}
+
+	jobName, err := getJobNameFromPod(c, podName)
+	if err != nil {
+		return *new(ResourceNames), err
+	}
+
+	_, err = c.kubeclientset.BatchV1().Jobs(defaults.Namespace()).Patch(context.TODO(), jobName, types.StrategicMergePatchType, []byte(`{}`), metav1.PatchOptions{}, "status")
+	if err != nil {
+		log.Error("Cannot patch to Job")
+		return *new(ResourceNames), err
+	}
+	resourceNames := ResourceNames{
+		podName: podName,
+		jobName: jobName,
+	}
+	return resourceNames, nil
+}
+
+
 func isJSON(s string) bool {
 	var j map[string]interface{}
 	if err := json.Unmarshal([]byte(s), &j); err != nil {
