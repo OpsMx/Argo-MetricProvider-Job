@@ -627,9 +627,8 @@ func TestBasicChecks(t *testing.T) {
 		BaselineStartTime: "2022-08-02T13:15:00Z",
 		CanaryStartTime:   "2022-08-02T13:15:00Z",
 		LifetimeMinutes:   30,
-
-		Pass:     100,
-		Marginal: 80,
+		Pass:              100,
+		Marginal:          80,
 
 		Services: []OPSMXService{
 			{
