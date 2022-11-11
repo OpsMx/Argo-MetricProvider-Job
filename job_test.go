@@ -839,3 +839,37 @@ func TestSecret(t *testing.T) {
 	_, err = metric.getDataSecret("/home/user/Argo-MetricProvider-Job/secret/user", "/home/user/Argo-MetricProvider-Job/secret/gate-url", "/home/user/Argo-MetricProvider-Job/secret/source-name", "/home/user/Argo-MetricProvider-Job/secret/cd-Integration-Invalid")
 	assert.Equal(t, err.Error(), "cd-integration should be either true or false")
 }
+
+func TestPayload(t *testing.T) {
+	httpclient := NewHttpClient()
+	clients := newClients(nil, httpclient)
+	SecretData := map[string]string{
+		"cdIntegration": "argocd",
+		"sourceName":    "argocd06",
+		"gateUrl":       "www.opsmx.com",
+		"user":          "admins",
+	}
+	metric := OPSMXMetric{
+		GateUrl:           "https://opsmx.test.tst",
+		Application:       "testapp",
+		User:              "admin",
+		BaselineStartTime: "2022-08-02T13:15:00Z",
+		CanaryStartTime:   "2022-08-02T13:15:00Z",
+		EndTime:           "",
+		LifetimeMinutes:   30,
+		Pass:              100,
+		Marginal:          80,
+
+		Services: []OPSMXService{
+			{
+				MetricScopeVariables: "job_name",
+				BaselineMetricScope:  "oes-datascience-br",
+				CanaryMetricScope:    "oes-datascience-cr",
+				MetricTemplateName:   "metrictemplate",
+			},
+		},
+	}
+	canaryStartTime, baselineStartTime, lifetimeMinutes, err := getTimeVariables(metric.BaselineStartTime, metric.CanaryStartTime, metric.EndTime, metric.LifetimeMinutes)
+	assert.Equal(t, nil, err)
+	metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes)
+}
