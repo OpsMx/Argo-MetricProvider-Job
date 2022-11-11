@@ -203,9 +203,9 @@ func encryptString(s string) string {
 	return sha1_hash
 }
 
-func getTemplateData(client http.Client, secretData map[string]string, template string, templateType string) (string, error) {
+func getTemplateData(client http.Client, secretData map[string]string, template string, templateType string, templatePath string) (string, error) {
 	var templateData string
-	path := fmt.Sprintf("/etc/config/templates/%s", template)
+	path := fmt.Sprintf(templatePath, template)
 	templateFileData, err := ioutil.ReadFile(path)
 	if err != nil {
 		return "", err
@@ -319,7 +319,7 @@ func getScopeValues(scope string) string {
 	return scopeValue
 }
 
-func (metric *OPSMXMetric) getPayload(c *Clients, secretData map[string]string, canaryStartTime string, baselineStartTime string, lifetimeMinutes int) (string, error) {
+func (metric *OPSMXMetric) getPayload(c *Clients, secretData map[string]string, canaryStartTime string, baselineStartTime string, lifetimeMinutes int, templatePath string) (string, error) {
 	var intervalTime string
 	if metric.IntervalTime != 0 {
 		intervalTime = fmt.Sprintf("%d", metric.IntervalTime)
@@ -429,7 +429,7 @@ func (metric *OPSMXMetric) getPayload(c *Clients, secretData map[string]string, 
 				var templateData string
 				var err error
 				if metric.GitOPS && item.LogTemplateVersion == "" {
-					templateData, err = getTemplateData(c.client, secretData, tempName, "LOG")
+					templateData, err = getTemplateData(c.client, secretData, tempName, "LOG", templatePath)
 					if err != nil {
 						return "", err
 					}
@@ -504,7 +504,7 @@ func (metric *OPSMXMetric) getPayload(c *Clients, secretData map[string]string, 
 				var templateData string
 				var err error
 				if metric.GitOPS && item.MetricTemplateVersion == "" {
-					templateData, err = getTemplateData(c.client, secretData, tempName, "METRIC")
+					templateData, err = getTemplateData(c.client, secretData, tempName, "METRIC", templatePath)
 					if err != nil {
 						return "", err
 					}

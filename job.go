@@ -27,6 +27,7 @@ const (
 	gateUrlPath                             = "/etc/config/secrets/gate-url"
 	sourceNamePath                          = "/etc/config/secrets/source-name"
 	cdIntegrationPath                       = "/etc/config/secrets/cd-integration"
+	templatePath                            = "/etc/config/templates/%s"
 )
 
 func runAnalysis(c *Clients, r ResourceNames) error {
@@ -52,7 +53,7 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 		return err
 	}
 
-	payload, err := metric.getPayload(c, secretData, canaryStartTime, baselineStartTime, lifetimeMinutes)
+	payload, err := metric.getPayload(c, secretData, canaryStartTime, baselineStartTime, lifetimeMinutes, templatePath)
 	if err != nil {
 		return err
 	}

@@ -1,0 +1,22 @@
+{
+    "templateName": "loggytemp",
+    "monitoringProvider": "ELASTICSEARCH",
+    "accountName": "logEalastic1",
+    "index": "kubernetes*",
+    "filterKey": "kubernetes.pod_name",
+    "tags": [
+    {
+      "string": "outOfmemory",
+      "tag": "Customtag",
+      "id": ""
+    }
+      ],
+    "errorTopics": [
+    {
+      "string": "WARNING",
+      "topic": "WARN",
+      "type": "default"
+    }
+    ],
+    "responseKeywords": "log"
+    

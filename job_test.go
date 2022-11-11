@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -226,366 +225,6 @@ var basicChecks = []struct {
 		},
 		message: "lookbacktype is given and interval time is required to run interval analysis",
 	}, /*
-
-
-		//Test case for No log & Metric analysis
-		{
-			metric: OPSMXMetric{
-				GateUrl:           "https://opsmx.test.tst",
-				User:              "admin",
-				Application:       "multiservice",
-				BaselineStartTime: "2022-08-10T13:15:00Z",
-				CanaryStartTime:   "2022-08-10T13:15:00Z",
-				EndTime:           "2022-08-10T13:45:10Z",
-				Pass:              80,
-				Marginal:          65,
-			},
-			message: "no services provided",
-		},
-		//Test case for No log & Metric analysis
-		{
-			metric: OPSMXMetric{
-				GateUrl:           "https://opsmx.test.tst",
-				User:              "admin",
-				Application:       "multiservice",
-				BaselineStartTime: "2022-08-10T13:15:00Z",
-				CanaryStartTime:   "2022-08-10T13:15:00Z",
-				EndTime:           "2022-08-10T13:45:10Z",
-				Pass:              80,
-				Marginal:          65,
-				Services: []OPSMXService{
-					{
-						ServiceName: "service1",
-					},
-					{
-						ServiceName: "service2",
-					},
-				},
-			},
-			message: "at least one of log or metric context must be included",
-		},
-		//Test case for mismatch in log scope variables and baseline/canary log scope
-		{
-			metric: OPSMXMetric{
-				GateUrl:           "https://opsmx.test.tst",
-				User:              "admin",
-				Application:       "multiservice",
-				BaselineStartTime: "2022-08-10T13:15:00Z",
-				CanaryStartTime:   "2022-08-10T13:15:00Z",
-				EndTime:           "2022-08-10T13:45:10Z",
-				Pass:              80,
-				Marginal:          65,
-				Services: []OPSMXService{
-					{
-						MetricScopeVariables: "job_name",
-						BaselineMetricScope:  "oes-platform-br",
-						CanaryMetricScope:    "oes-platform-cr",
-						MetricTemplateName:   "metrictemplate",
-					},
-					{
-						MetricScopeVariables: "job_name",
-						BaselineMetricScope:  "oes-sapor-br",
-						CanaryMetricScope:    "oes-sapor-cr",
-						MetricTemplateName:   "metrictemplate",
-						LogScopeVariables:    "kubernetes.container_name,kubernetes.pod",
-						BaselineLogScope:     "oes-datascience-br",
-						CanaryLogScope:       "oes-datascience-cr",
-						LogTemplateName:      "logtemplate",
-					},
-				},
-			},
-			message: "mismatch in number of log scope variables and baseline/canary log scope",
-		},
-
-		//Test case for mismatch in metric scope variables and baseline/canary metric scope
-		{
-			metric: OPSMXMetric{
-				GateUrl:           "https://opsmx.test.tst",
-				User:              "admin",
-				Application:       "multiservice",
-				BaselineStartTime: "2022-08-10T13:15:00Z",
-				CanaryStartTime:   "2022-08-10T13:15:00Z",
-				EndTime:           "2022-08-10T13:45:10Z",
-				Pass:              80,
-				Marginal:          65,
-				Services: []OPSMXService{
-					{
-						MetricScopeVariables: "job_name,job123",
-						BaselineMetricScope:  "oes-platform-br",
-						CanaryMetricScope:    "oes-platform-cr",
-						MetricTemplateName:   "metrictemplate",
-					},
-					{
-						MetricScopeVariables: "job_name",
-						BaselineMetricScope:  "oes-sapor-br",
-						CanaryMetricScope:    "oes-sapor-cr",
-						MetricTemplateName:   "metrictemplate",
-						LogScopeVariables:    "kubernetes.container_name",
-						BaselineLogScope:     "oes-datascience-br",
-						CanaryLogScope:       "oes-datascience-cr",
-						LogTemplateName:      "logtemplate",
-					},
-				},
-			},
-			message: "mismatch in number of metric scope variables and baseline/canary metric scope",
-		},
-		//Test case when baseline or canary logplaceholder is missing
-		{
-			metric: OPSMXMetric{
-				GateUrl:           "https://opsmx.test.tst",
-				Application:       "testapp",
-				BaselineStartTime: "2022-08-02T14:15:00Z",
-				CanaryStartTime:   "2022-08-02T13:15:00Z",
-				LifetimeMinutes:   60,
-				IntervalTime:      3,
-				LookBackType:      "growing",
-				Pass:              80,
-				Marginal:          60,
-				Services: []OPSMXService{
-					{
-						MetricScopeVariables: "job_name",
-						BaselineMetricScope:  "oes-sapor-br",
-						CanaryMetricScope:    "oes-sapor-cr",
-						MetricTemplateName:   "metrictemplate",
-						LogScopeVariables:    "kubernetes.container_name",
-						BaselineLogScope:     "oes-datascience-cr",
-						LogTemplateName:      "logtemplate",
-					},
-				},
-			},
-			message: "missing canary for log analysis",
-		},
-
-		//Test case when baseline or canary metricplaceholder is missing
-		{
-			metric: OPSMXMetric{
-				GateUrl:           "https://opsmx.test.tst",
-				Application:       "testapp",
-				BaselineStartTime: "2022-08-02T14:15:00Z",
-				CanaryStartTime:   "2022-08-02T13:15:00Z",
-				LifetimeMinutes:   60,
-				IntervalTime:      3,
-				LookBackType:      "growing",
-				Pass:              80,
-				Marginal:          60,
-				Services: []OPSMXService{
-					{
-						MetricScopeVariables: "job_name",
-						CanaryMetricScope:    "oes-sapor-cr",
-						MetricTemplateName:   "metrictemplate",
-						LogScopeVariables:    "kubernetes.container_name",
-						BaselineLogScope:     "oes-datascienece-br",
-						CanaryLogScope:       "oes-datascience-cr",
-						LogTemplateName:      "logtemplate",
-					},
-				},
-			},
-			message: "missing baseline/canary for metric analysis",
-		},
-
-		//Test case when global and service specific template is missing
-		{
-			metric: OPSMXMetric{
-				GateUrl:           "https://opsmx.test.tst",
-				Application:       "testapp",
-				BaselineStartTime: "2022-08-02T14:15:00Z",
-				CanaryStartTime:   "2022-08-02T13:15:00Z",
-				LifetimeMinutes:   60,
-				IntervalTime:      3,
-				LookBackType:      "growing",
-				Pass:              80,
-				Marginal:          60,
-				Services: []OPSMXService{
-					{
-						MetricScopeVariables: "job_name",
-						CanaryMetricScope:    "oes-sapor-cr",
-						MetricTemplateName:   "metrictemplate",
-						LogScopeVariables:    "kubernetes.container_name",
-						BaselineLogScope:     "oes-datascienece-br",
-						CanaryLogScope:       "oes-datascience-cr",
-					},
-				},
-			},
-			message: "provide either a service specific log template or global log template",
-		},
-
-		//Test case when global and service specific template is missing
-		{
-			metric: OPSMXMetric{
-				GateUrl:           "https://opsmx.test.tst",
-				Application:       "testapp",
-				BaselineStartTime: "2022-08-02T14:15:00Z",
-				CanaryStartTime:   "2022-08-02T13:15:00Z",
-				LifetimeMinutes:   60,
-				IntervalTime:      3,
-				LookBackType:      "growing",
-				Pass:              80,
-				Marginal:          60,
-				Services: []OPSMXService{
-					{
-						MetricScopeVariables: "job_name",
-						BaselineMetricScope:  "oes-sapor-br",
-						CanaryMetricScope:    "oes-sapor-cr",
-						LogScopeVariables:    "kubernetes.container_name",
-						BaselineLogScope:     "oes-datascienece-br",
-						CanaryLogScope:       "oes-datascience-cr",
-						LogTemplateName:      "logtemp",
-					},
-				},
-			},
-			message: "provide either a service specific metric template or global metric template",
-		},
-
-		//Test case when global and service specific template is missing
-		{
-			metric: OPSMXMetric{
-				GateUrl:           "https://opsmx.test.tst",
-				Application:       "testapp",
-				BaselineStartTime: "2022-08-02T14:15:00Z",
-				CanaryStartTime:   "2022-08-02T13:15:00Z",
-				LifetimeMinutes:   60,
-				IntervalTime:      3,
-				LookBackType:      "growing",
-				Pass:              80,
-				Marginal:          60,
-				Services: []OPSMXService{
-					{
-						MetricScopeVariables: "job_name",
-						BaselineMetricScope:  "oes-sapor-br",
-						CanaryMetricScope:    "oes-sapor-cr",
-						BaselineLogScope:     "oes-datascienece-br",
-						CanaryLogScope:       "oes-datascience-cr",
-						LogTemplateName:      "logtemp",
-					},
-				},
-			},
-			message: "missing log Scope placeholder for the provided baseline/canary",
-		},
-
-		//Test case when global and service specific template is missing
-		{
-			metric: OPSMXMetric{
-				GateUrl:           "https://opsmx.test.tst",
-				Application:       "testapp",
-				BaselineStartTime: "2022-08-02T14:15:00Z",
-				CanaryStartTime:   "2022-08-02T13:15:00Z",
-				LifetimeMinutes:   60,
-				IntervalTime:      3,
-				LookBackType:      "growing",
-				Pass:              80,
-				Marginal:          60,
-				Services: []OPSMXService{
-					{
-						MetricScopeVariables: "job_name",
-						BaselineMetricScope:  "oes-sapor-br",
-						CanaryMetricScope:    "oes-sapor-cr",
-						CanaryLogScope:       "oes-datascience-cr",
-						LogTemplateName:      "logtemp",
-					},
-				},
-			},
-			message: "missing log Scope placeholder for the provided baseline/canary",
-		},
-
-		//Test case when global and service specific template is missing
-		{
-			metric: OPSMXMetric{
-				GateUrl:           "https://opsmx.test.tst",
-				Application:       "testapp",
-				BaselineStartTime: "2022-08-02T14:15:00Z",
-				CanaryStartTime:   "2022-08-02T13:15:00Z",
-				LifetimeMinutes:   60,
-				IntervalTime:      3,
-				LookBackType:      "growing",
-				Pass:              80,
-				Marginal:          60,
-				Services: []OPSMXService{
-					{
-						MetricScopeVariables: "job_name",
-						BaselineMetricScope:  "oes-sapor-br",
-						CanaryMetricScope:    "oes-sapor-cr",
-						BaselineLogScope:     "oes-datascienece-br",
-						LogTemplateName:      "logtemp",
-					},
-				},
-			},
-			message: "missing log Scope placeholder for the provided baseline/canary",
-		},
-
-		//Test case when global and service specific template is missing
-		{
-			metric: OPSMXMetric{
-				GateUrl:           "https://opsmx.test.tst",
-				Application:       "testapp",
-				BaselineStartTime: "2022-08-02T14:15:00Z",
-				CanaryStartTime:   "2022-08-02T13:15:00Z",
-				LifetimeMinutes:   60,
-				IntervalTime:      3,
-				LookBackType:      "growing",
-				Pass:              80,
-				Marginal:          60,
-				Services: []OPSMXService{
-					{
-						BaselineMetricScope: "oes-sapor-br",
-						CanaryMetricScope:   "oes-sapor-cr",
-						LogScopeVariables:   "kubernetes.container_name",
-						BaselineLogScope:    "oes-datascienece-br",
-						CanaryLogScope:      "oes-datascience-cr",
-						LogTemplateName:     "logtemp",
-					},
-				},
-			},
-			message: "missing metric Scope placeholder for the provided baseline/canary",
-		},
-
-		{
-			metric: OPSMXMetric{
-				GateUrl:           "https://opsmx.test.tst",
-				Application:       "testapp",
-				BaselineStartTime: "2022-08-02T14:15:00Z",
-				CanaryStartTime:   "2022-08-02T13:15:00Z",
-				LifetimeMinutes:   60,
-				IntervalTime:      3,
-				LookBackType:      "growing",
-				Pass:              80,
-				Marginal:          60,
-				Services: []OPSMXService{
-					{
-						CanaryMetricScope: "oes-sapor-cr",
-						LogScopeVariables: "kubernetes.container_name",
-						BaselineLogScope:  "oes-datascienece-br",
-						CanaryLogScope:    "oes-datascience-cr",
-						LogTemplateName:   "logtemp",
-					},
-				},
-			},
-			message: "missing metric Scope placeholder for the provided baseline/canary",
-		},
-
-		//Test case when global and service specific template is missing
-		{
-			metric: OPSMXMetric{
-				GateUrl:           "https://opsmx.test.tst",
-				Application:       "testapp",
-				BaselineStartTime: "2022-08-02T14:15:00Z",
-				CanaryStartTime:   "2022-08-02T13:15:00Z",
-				LifetimeMinutes:   60,
-				IntervalTime:      3,
-				LookBackType:      "growing",
-				Pass:              80,
-				Marginal:          60,
-				Services: []OPSMXService{
-					{
-						BaselineMetricScope: "oes-sapor-br",
-						LogScopeVariables:   "kubernetes.container_name",
-						BaselineLogScope:    "oes-datascienece-br",
-						CanaryLogScope:      "oes-datascience-cr",
-						LogTemplateName:     "logtemp",
-					},
-				},
-			},
-			message: "missing metric Scope placeholder for the provided baseline/canary",
-		},
 		//Test case when improper URL
 		{
 			metric: OPSMXMetric{
@@ -841,7 +480,7 @@ func TestSecret(t *testing.T) {
 	assert.Equal(t, err.Error(), "cd-integration should be either true or false")
 }
 
-var successfulTests = []struct {
+var successfulPayload = []struct {
 	metric                OPSMXMetric
 	payloadRegisterCanary string
 }{
@@ -890,10 +529,10 @@ var successfulTests = []struct {
 								"canaryStartTimeMs": "1660137300000",
 								"baselineStartTimeMs": "1660137300000",
 								"canary": {
-									"metric": {"service1":{"serviceGate":"gate1","job_name":"oes-datascience-cr","template":"metricTemplate","templateVersion":"1"}
+									"metric": {"service1":{"job_name":"oes-datascience-cr","serviceGate":"gate1","template":"metricTemplate","templateVersion":"1"}
 								  }},
 								"baseline": {
-									"metric": {"service1":{"serviceGate":"gate1","job_name":"oes-datascience-br","template":"metricTemplate","templateVersion":"1"}}
+									"metric": {"service1":{"job_name":"oes-datascience-br","serviceGate":"gate1","template":"metricTemplate","templateVersion":"1"}}
 								  }
 								}
 					  ]
@@ -938,10 +577,10 @@ var successfulTests = []struct {
 								"canaryStartTimeMs": "1660137300000",
 								"baselineStartTimeMs": "1660137300000",
 								"canary": {
-									"metric": {"service1":{"serviceGate":"gate1","job_name":"oes-datascience-cr","template":"metricTemplate","templateVersion":"1"}
+									"metric": {"service1":{"job_name":"oes-datascience-cr","serviceGate":"gate1","template":"metricTemplate","templateVersion":"1"}
 								  }},
 								"baseline": {
-									"metric": {"service1":{"serviceGate":"gate1","job_name":"oes-datascience-br","template":"metricTemplate","templateVersion":"1"}}
+									"metric": {"service1":{"job_name":"oes-datascience-br","serviceGate":"gate1","template":"metricTemplate","templateVersion":"1"}}
 								  }
 								}
 					  ]
@@ -986,10 +625,10 @@ var successfulTests = []struct {
 								"canaryStartTimeMs": "1660137300000",
 								"baselineStartTimeMs": "1660137300000",
 								"canary": {
-									"metric": {"service1":{"serviceGate":"gate1","job_name":"oes-datascience-cr","template":"metricTemplate","templateVersion":"1"}
+									"metric": {"service1":{"job_name":"oes-datascience-cr","serviceGate":"gate1","template":"metricTemplate","templateVersion":"1"}
 								  }},
 								"baseline": {
-									"metric": {"service1":{"serviceGate":"gate1","job_name":"oes-datascience-br","template":"metricTemplate","templateVersion":"1"}}
+									"metric": {"service1":{"job_name":"oes-datascience-br","serviceGate":"gate1","template":"metricTemplate","templateVersion":"1"}}
 								  }
 								}
 					  ]
@@ -1042,14 +681,14 @@ var successfulTests = []struct {
 						"canary": {
 						  "metric": {
 							"service1": {
-							  "serviceGate": "gate1",
 							  "job_name": "oes-sapor-cr",
+							  "serviceGate": "gate1",
 							  "template":"metricTemplate",
 							  "templateVersion":"1"
 							},
 							"service2": {
-							  "serviceGate": "gate2",
 							  "job_name": "oes-platform-cr",
+							  "serviceGate": "gate2",
 							  "template":"metricTemplate"
 							}
 						  }
@@ -1057,14 +696,14 @@ var successfulTests = []struct {
 						"baseline": {
 						  "metric": {
 							"service1": {
-							  "serviceGate": "gate1",
 							  "job_name": "oes-sapor-br",
+							  "serviceGate": "gate1",
 							  "template":"metricTemplate",
 							  "templateVersion":"1"
 							},
 							"service2": {
-							  "serviceGate": "gate2",
 							  "job_name": "oes-platform-br",
+							  "serviceGate": "gate2",
 							  "template":"metricTemplate"
 							}
 						  }
@@ -1127,22 +766,22 @@ var successfulTests = []struct {
 						"canary": {
 						  "log": {
 							"service2": {
-							  "serviceGate": "gate2",
 							  "kubernetes.container_name": "oes-datascience-cr",
+							  "serviceGate": "gate2",
 							  "template":"logTemplate",
 							  "templateVersion":"1"
 							}
 						  },
 						  "metric": {
 							"service1": {
-							  "serviceGate": "gate1",
 							  "job_name": "oes-platform-cr",
+							  "serviceGate": "gate1",
 							  "template":"metricTemplate",
 							  "templateVersion":"1"
 							},
 							"service2": {
-							  "serviceGate": "gate2",
 							  "job_name": "oes-sapor-cr",
+							  "serviceGate": "gate2",
 							  "template":"metricTemplate",
 							  "templateVersion":"1"
 							}
@@ -1151,22 +790,22 @@ var successfulTests = []struct {
 						"baseline": {
 						  "log": {
 							"service2": {
-							  "serviceGate": "gate2",
 							  "kubernetes.container_name": "oes-datascience-br",
+							  "serviceGate": "gate2",
 							  "template":"logTemplate",
 							  "templateVersion":"1"
 							}
 						  },
 						  "metric": {
 							"service1": {
-							  "serviceGate": "gate1",
 							  "job_name": "oes-platform-br",
+							  "serviceGate": "gate1",
 							  "template":"metricTemplate",
 							  "templateVersion":"1"
 							},
 							"service2": {
-							  "serviceGate": "gate2",
 							  "job_name": "oes-sapor-br",
+							  "serviceGate": "gate2",
 							  "template":"metricTemplate",
 							  "templateVersion":"1"
 							}
@@ -1226,20 +865,20 @@ var successfulTests = []struct {
 						"canary": {
 						  "log": {
 							"service2": {
-							  "serviceGate": "gate2",
 							  "kubernetes.container_name": "oes-datascience-cr",
+							  "serviceGate": "gate2",
 							  "template":"logTemplate"
 							}
 						  },
 						  "metric": {
 							"service1": {
-							  "serviceGate": "gate1",
 							  "job_name": "oes-platform-cr",
+							  "serviceGate": "gate1",
 							  "template":"metricTemplate"
 							},
 							"service2": {
-							  "serviceGate": "gate2",
 							  "job_name": "oes-sapor-cr",
+							  "serviceGate": "gate2",
 							  "template":"metricTemplate"
 							}
 						  }
@@ -1247,20 +886,20 @@ var successfulTests = []struct {
 						"baseline": {
 						  "log": {
 							"service2": {
-							  "serviceGate": "gate2",
 							  "kubernetes.container_name": "oes-datascience-br",
+							  "serviceGate": "gate2",
 							  "template":"logTemplate"
 							}
 						  },
 						  "metric": {
 							"service1": {
-							  "serviceGate": "gate1",
 							  "job_name": "oes-platform-br",
+							  "serviceGate": "gate1",
 							  "template":"metricTemplate"
 							},
 							"service2": {
-							  "serviceGate": "gate2",
 							  "job_name": "oes-sapor-br",
+							  "serviceGate": "gate2",
 							  "template":"metricTemplate"
 							}
 						  }
@@ -1320,20 +959,20 @@ var successfulTests = []struct {
 						"canary": {
 						  "log": {
 							"service2": {
-							  "serviceGate": "gate2",
 							  "kubernetes.container_name": "oes-datascience-cr",
+							  "serviceGate": "gate2",
 							  "template":"logTemplate"
 							}
 						  },
 						  "metric": {
 							"service1": {
-							  "serviceGate": "gate1",
 							  "job_name": "oes-platform-cr",
+							  "serviceGate": "gate1",
 							  "template":"metricTemplate"
 							},
 							"service2": {
-							  "serviceGate": "gate2",
 							  "job_name": "oes-sapor-cr",
+							  "serviceGate": "gate2",
 							  "template":"metricTemplate"
 							}
 						  }
@@ -1341,20 +980,20 @@ var successfulTests = []struct {
 						"baseline": {
 						  "log": {
 							"service2": {
-							  "serviceGate": "gate2",
 							  "kubernetes.container_name": "oes-datascience-br",
+							  "serviceGate": "gate2",
 							  "template":"logTemplate"
 							}
 						  },
 						  "metric": {
 							"service1": {
-							  "serviceGate": "gate1",
 							  "job_name": "oes-platform-br",
+							  "serviceGate": "gate1",
 							  "template":"metricTemplate"
 							},
 							"service2": {
-							  "serviceGate": "gate2",
 							  "job_name": "oes-sapor-br",
+							  "serviceGate": "gate2",
 							  "template":"metricTemplate"
 							}
 						  }
@@ -1414,20 +1053,20 @@ var successfulTests = []struct {
 						"canary": {
 						  "log": {
 							"service2": {
-							  "serviceGate": "gate2",
 							  "kubernetes.container_name": "oes-datascience-cr",
+							  "serviceGate": "gate2",
 							  "template":"logTemplate"
 							}
 						  },
 						  "metric": {
 							"service1": {
-							  "serviceGate": "gate1",
 							  "job_name": "oes-platform-cr",
+							  "serviceGate": "gate1",
 							  "template":"metricTemplate"
 							},
 							"service2": {
-							  "serviceGate": "gate2",
 							  "job_name": "oes-sapor-cr",
+							  "serviceGate": "gate2",
 							  "template":"metricTemplate"
 							}
 						  }
@@ -1435,20 +1074,21 @@ var successfulTests = []struct {
 						"baseline": {
 						  "log": {
 							"service2": {
-							  "serviceGate": "gate2",
 							  "kubernetes.container_name": "oes-datascience-br",
+							  "serviceGate": "gate2",
 							  "template":"logTemplate"
 							}
 						  },
 						  "metric": {
 							"service1": {
-							  "serviceGate": "gate1",
+							  
 							  "job_name": "oes-platform-br",
+							  "serviceGate": "gate1",
 							  "template":"metricTemplate"
 							},
 							"service2": {
-							  "serviceGate": "gate2",
 							  "job_name": "oes-sapor-br",
+							  "serviceGate": "gate2",
 							  "template":"metricTemplate"
 							}
 						  }
@@ -1508,20 +1148,20 @@ var successfulTests = []struct {
 						"canary": {
 						  "log": {
 							"service2": {
-							  "serviceGate": "gate2",
 							  "kubernetes.container_name": "oes-datascience-cr",
+							  "serviceGate": "gate2",
 							  "template":"logTemplate"
 							}
 						  },
 						  "metric": {
 							"service1": {
-							  "serviceGate": "gate1",
 							  "job_name": "oes-platform-cr",
+							  "serviceGate": "gate1",
 							  "template":"metricTemplate"
 							},
 							"service2": {
-							  "serviceGate": "gate2",
 							  "job_name": "oes-sapor-cr",
+							  "serviceGate": "gate2",
 							  "template":"metricTemplate"
 							}
 						  }
@@ -1529,20 +1169,20 @@ var successfulTests = []struct {
 						"baseline": {
 						  "log": {
 							"service2": {
-							  "serviceGate": "gate2",
 							  "kubernetes.container_name": "oes-datascience-br",
+							  "serviceGate": "gate2",
 							  "template":"logTemplate"
 							}
 						  },
 						  "metric": {
 							"service1": {
-							  "serviceGate": "gate1",
 							  "job_name": "oes-platform-br",
+							  "serviceGate": "gate1",
 							  "template":"metricTemplate"
 							},
 							"service2": {
-							  "serviceGate": "gate2",
 							  "job_name": "oes-sapor-br",
+							  "serviceGate": "gate2",
 							  "template":"metricTemplate"
 							}
 						  }
@@ -1552,52 +1192,562 @@ var successfulTests = []struct {
 				  }`,
 	},
 }
+var failPayload = []struct {
+	metric  OPSMXMetric
+	message string
+}{
+	//Test case for No log & Metric analysis
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			User:              "admin",
+			Application:       "multiservice",
+			BaselineStartTime: "2022-08-10T13:15:00Z",
+			CanaryStartTime:   "2022-08-10T13:15:00Z",
+			EndTime:           "2022-08-10T13:45:10Z",
+			Pass:              80,
+			Marginal:          65,
+		},
+		message: "no services provided",
+	},
+	//Test case for No log & Metric analysis
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			User:              "admin",
+			Application:       "multiservice",
+			BaselineStartTime: "2022-08-10T13:15:00Z",
+			CanaryStartTime:   "2022-08-10T13:15:00Z",
+			EndTime:           "2022-08-10T13:45:10Z",
+			Pass:              80,
+			Marginal:          65,
+			Services: []OPSMXService{
+				{
+					ServiceName: "service1",
+				},
+				{
+					ServiceName: "service2",
+				},
+			},
+		},
+		message: "at least one of log or metric context must be included",
+	},
+	//Test case for mismatch in log scope variables and baseline/canary log scope
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			User:              "admin",
+			Application:       "multiservice",
+			BaselineStartTime: "2022-08-10T13:15:00Z",
+			CanaryStartTime:   "2022-08-10T13:15:00Z",
+			EndTime:           "2022-08-10T13:45:10Z",
+			Pass:              80,
+			Marginal:          65,
+			Services: []OPSMXService{
+				{
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-platform-br",
+					CanaryMetricScope:    "oes-platform-cr",
+					MetricTemplateName:   "metrictemplate",
+				},
+				{
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-sapor-br",
+					CanaryMetricScope:    "oes-sapor-cr",
+					MetricTemplateName:   "metrictemplate",
+					LogScopeVariables:    "kubernetes.container_name,kubernetes.pod",
+					BaselineLogScope:     "oes-datascience-br",
+					CanaryLogScope:       "oes-datascience-cr",
+					LogTemplateName:      "logtemplate",
+				},
+			},
+		},
+		message: "mismatch in number of log scope variables and baseline/canary log scope",
+	},
+
+	//Test case for mismatch in metric scope variables and baseline/canary metric scope
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			User:              "admin",
+			Application:       "multiservice",
+			BaselineStartTime: "2022-08-10T13:15:00Z",
+			CanaryStartTime:   "2022-08-10T13:15:00Z",
+			EndTime:           "2022-08-10T13:45:10Z",
+			Pass:              80,
+			Marginal:          65,
+			Services: []OPSMXService{
+				{
+					MetricScopeVariables: "job_name,job123",
+					BaselineMetricScope:  "oes-platform-br",
+					CanaryMetricScope:    "oes-platform-cr",
+					MetricTemplateName:   "metrictemplate",
+				},
+				{
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-sapor-br",
+					CanaryMetricScope:    "oes-sapor-cr",
+					MetricTemplateName:   "metrictemplate",
+					LogScopeVariables:    "kubernetes.container_name",
+					BaselineLogScope:     "oes-datascience-br",
+					CanaryLogScope:       "oes-datascience-cr",
+					LogTemplateName:      "logtemplate",
+				},
+			},
+		},
+		message: "mismatch in number of metric scope variables and baseline/canary metric scope",
+	},
+	//Test case when baseline or canary logplaceholder is missing
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			Application:       "testapp",
+			BaselineStartTime: "2022-08-02T14:15:00Z",
+			CanaryStartTime:   "2022-08-02T13:15:00Z",
+			LifetimeMinutes:   60,
+			IntervalTime:      3,
+			LookBackType:      "growing",
+			Pass:              80,
+			Marginal:          60,
+			Services: []OPSMXService{
+				{
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-sapor-br",
+					CanaryMetricScope:    "oes-sapor-cr",
+					MetricTemplateName:   "metrictemplate",
+					LogScopeVariables:    "kubernetes.container_name",
+					BaselineLogScope:     "oes-datascience-cr",
+					LogTemplateName:      "logtemplate",
+				},
+			},
+		},
+		message: "missing canary for log analysis",
+	},
+
+	//Test case when baseline or canary metricplaceholder is missing
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			Application:       "testapp",
+			BaselineStartTime: "2022-08-02T14:15:00Z",
+			CanaryStartTime:   "2022-08-02T13:15:00Z",
+			LifetimeMinutes:   60,
+			IntervalTime:      3,
+			LookBackType:      "growing",
+			Pass:              80,
+			Marginal:          60,
+			Services: []OPSMXService{
+				{
+					MetricScopeVariables: "job_name",
+					CanaryMetricScope:    "oes-sapor-cr",
+					MetricTemplateName:   "metrictemplate",
+					LogScopeVariables:    "kubernetes.container_name",
+					BaselineLogScope:     "oes-datascienece-br",
+					CanaryLogScope:       "oes-datascience-cr",
+					LogTemplateName:      "logtemplate",
+				},
+			},
+		},
+		message: "missing baseline/canary for metric analysis",
+	},
+
+	//Test case when global and service specific template is missing
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			Application:       "testapp",
+			BaselineStartTime: "2022-08-02T14:15:00Z",
+			CanaryStartTime:   "2022-08-02T13:15:00Z",
+			LifetimeMinutes:   60,
+			IntervalTime:      3,
+			LookBackType:      "growing",
+			Pass:              80,
+			Marginal:          60,
+			Services: []OPSMXService{
+				{
+					MetricScopeVariables: "job_name",
+					CanaryMetricScope:    "oes-sapor-cr",
+					MetricTemplateName:   "metrictemplate",
+					LogScopeVariables:    "kubernetes.container_name",
+					BaselineLogScope:     "oes-datascienece-br",
+					CanaryLogScope:       "oes-datascience-cr",
+				},
+			},
+		},
+		message: "provide either a service specific log template or global log template",
+	},
+
+	//Test case when global and service specific template is missing
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			Application:       "testapp",
+			BaselineStartTime: "2022-08-02T14:15:00Z",
+			CanaryStartTime:   "2022-08-02T13:15:00Z",
+			LifetimeMinutes:   60,
+			IntervalTime:      3,
+			LookBackType:      "growing",
+			Pass:              80,
+			Marginal:          60,
+			Services: []OPSMXService{
+				{
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-sapor-br",
+					CanaryMetricScope:    "oes-sapor-cr",
+					LogScopeVariables:    "kubernetes.container_name",
+					BaselineLogScope:     "oes-datascienece-br",
+					CanaryLogScope:       "oes-datascience-cr",
+					LogTemplateName:      "logtemp",
+				},
+			},
+		},
+		message: "provide either a service specific metric template or global metric template",
+	},
+
+	//Test case when global and service specific template is missing
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			Application:       "testapp",
+			BaselineStartTime: "2022-08-02T14:15:00Z",
+			CanaryStartTime:   "2022-08-02T13:15:00Z",
+			LifetimeMinutes:   60,
+			IntervalTime:      3,
+			LookBackType:      "growing",
+			Pass:              80,
+			Marginal:          60,
+			Services: []OPSMXService{
+				{
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-sapor-br",
+					CanaryMetricScope:    "oes-sapor-cr",
+					BaselineLogScope:     "oes-datascienece-br",
+					CanaryLogScope:       "oes-datascience-cr",
+					LogTemplateName:      "logtemp",
+				},
+			},
+		},
+		message: "missing log Scope placeholder for the provided baseline/canary",
+	},
+
+	//Test case when global and service specific template is missing
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			Application:       "testapp",
+			BaselineStartTime: "2022-08-02T14:15:00Z",
+			CanaryStartTime:   "2022-08-02T13:15:00Z",
+			LifetimeMinutes:   60,
+			IntervalTime:      3,
+			LookBackType:      "growing",
+			Pass:              80,
+			Marginal:          60,
+			Services: []OPSMXService{
+				{
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-sapor-br",
+					CanaryMetricScope:    "oes-sapor-cr",
+					CanaryLogScope:       "oes-datascience-cr",
+					LogTemplateName:      "logtemp",
+				},
+			},
+		},
+		message: "missing log Scope placeholder for the provided baseline/canary",
+	},
+
+	//Test case when global and service specific template is missing
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			Application:       "testapp",
+			BaselineStartTime: "2022-08-02T14:15:00Z",
+			CanaryStartTime:   "2022-08-02T13:15:00Z",
+			LifetimeMinutes:   60,
+			IntervalTime:      3,
+			LookBackType:      "growing",
+			Pass:              80,
+			Marginal:          60,
+			Services: []OPSMXService{
+				{
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-sapor-br",
+					CanaryMetricScope:    "oes-sapor-cr",
+					BaselineLogScope:     "oes-datascienece-br",
+					LogTemplateName:      "logtemp",
+				},
+			},
+		},
+		message: "missing log Scope placeholder for the provided baseline/canary",
+	},
+
+	//Test case when global and service specific template is missing
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			Application:       "testapp",
+			BaselineStartTime: "2022-08-02T14:15:00Z",
+			CanaryStartTime:   "2022-08-02T13:15:00Z",
+			LifetimeMinutes:   60,
+			IntervalTime:      3,
+			LookBackType:      "growing",
+			Pass:              80,
+			Marginal:          60,
+			Services: []OPSMXService{
+				{
+					BaselineMetricScope: "oes-sapor-br",
+					CanaryMetricScope:   "oes-sapor-cr",
+					LogScopeVariables:   "kubernetes.container_name",
+					BaselineLogScope:    "oes-datascienece-br",
+					CanaryLogScope:      "oes-datascience-cr",
+					LogTemplateName:     "logtemp",
+				},
+			},
+		},
+		message: "missing metric Scope placeholder for the provided baseline/canary",
+	},
+
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			Application:       "testapp",
+			BaselineStartTime: "2022-08-02T14:15:00Z",
+			CanaryStartTime:   "2022-08-02T13:15:00Z",
+			LifetimeMinutes:   60,
+			IntervalTime:      3,
+			LookBackType:      "growing",
+			Pass:              80,
+			Marginal:          60,
+			Services: []OPSMXService{
+				{
+					CanaryMetricScope: "oes-sapor-cr",
+					LogScopeVariables: "kubernetes.container_name",
+					BaselineLogScope:  "oes-datascienece-br",
+					CanaryLogScope:    "oes-datascience-cr",
+					LogTemplateName:   "logtemp",
+				},
+			},
+		},
+		message: "missing metric Scope placeholder for the provided baseline/canary",
+	},
+
+	//Test case when global and service specific template is missing
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			Application:       "testapp",
+			BaselineStartTime: "2022-08-02T14:15:00Z",
+			CanaryStartTime:   "2022-08-02T13:15:00Z",
+			LifetimeMinutes:   60,
+			IntervalTime:      3,
+			LookBackType:      "growing",
+			Pass:              80,
+			Marginal:          60,
+			Services: []OPSMXService{
+				{
+					BaselineMetricScope: "oes-sapor-br",
+					LogScopeVariables:   "kubernetes.container_name",
+					BaselineLogScope:    "oes-datascienece-br",
+					CanaryLogScope:      "oes-datascience-cr",
+					LogTemplateName:     "logtemp",
+				},
+			},
+		},
+		message: "missing metric Scope placeholder for the provided baseline/canary",
+	},
+}
 
 func TestPayload(t *testing.T) {
 	httpclient := NewHttpClient()
 	clients := newClients(nil, httpclient)
 	SecretData := map[string]string{
 		"cdIntegration": "argocd",
-		"sourceName":    "argocd06",
+		"sourceName":    "sourcename",
 		"gateUrl":       "www.opsmx.com",
+		"user":          "admins",
+	}
+
+	for _, test := range successfulPayload {
+		canaryStartTime, baselineStartTime, lifetimeMinutes, err := getTimeVariables(test.metric.BaselineStartTime, test.metric.CanaryStartTime, test.metric.EndTime, test.metric.LifetimeMinutes)
+		assert.Equal(t, nil, err)
+		payload, err := test.metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "notrequired")
+		assert.Equal(t, nil, err)
+		processedPayload := strings.Replace(strings.Replace(strings.Replace(test.payloadRegisterCanary, "\n", "", -1), "\t", "", -1), " ", "", -1)
+		assert.Equal(t, processedPayload, payload)
+	}
+	for _, test := range failPayload {
+		canaryStartTime, baselineStartTime, lifetimeMinutes, err := getTimeVariables(test.metric.BaselineStartTime, test.metric.CanaryStartTime, test.metric.EndTime, test.metric.LifetimeMinutes)
+		assert.Equal(t, nil, err)
+		_, err = test.metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "notrequired")
+		assert.Equal(t, test.message, err.Error())
+	}
+}
+
+func TestGitops(t *testing.T) {
+	httpclient := NewHttpClient()
+	clients := newClients(nil, httpclient)
+	SecretData := map[string]string{
+		"cdIntegration": "argocd",
+		"sourceName":    "sourcename",
+		"gateUrl":       "http://www.opsmx.com",
 		"user":          "admins",
 	}
 	metric := OPSMXMetric{
 		GateUrl:           "https://opsmx.test.tst",
-		Application:       "testapp",
 		User:              "admin",
-		BaselineStartTime: "2022-08-02T13:15:00Z",
-		CanaryStartTime:   "2022-08-02T13:15:00Z",
-		EndTime:           "",
+		Application:       "multiservice",
+		BaselineStartTime: "2022-08-10T13:15:00Z",
+		CanaryStartTime:   "2022-08-10T13:15:00Z",
 		LifetimeMinutes:   30,
-		Pass:              100,
-		Marginal:          80,
-
-		Services: []OPSMXService{
-			{
-				MetricScopeVariables: "job_name",
-				BaselineMetricScope:  "oes-datascience-br",
-				CanaryMetricScope:    "oes-datascience-cr",
-				MetricTemplateName:   "metrictemplate",
-				LogScopeVariables:    "kubernetes.container_name",
-				BaselineLogScope:     "oes-datascienece-br",
-				CanaryLogScope:       "oes-datascience-cr",
-				LogTemplateName:      "logtemp",
-			},
-		},
+		IntervalTime:      3,
+		Delay:             1,
+		GitOPS:            true,
+		LookBackType:      "growing",
+		Pass:              80,
+		Marginal:          65,
+		Services:          []OPSMXService{},
 	}
+	services := OPSMXService{
+		LogTemplateName:   "loggytemp",
+		LogScopeVariables: "kubernetes.pod_name",
+		BaselineLogScope:  ".*{{env.STABLE_POD_HASH}}.*",
+		CanaryLogScope:    ".*{{env.LATEST_POD_HASH}}.*",
+	}
+	checkPayload := `{
+		"application": "multiservice",
+		"sourceName":"sourcename",
+		"sourceType":"argocd",
+		"canaryConfig": {
+				"lifetimeMinutes": "30",
+				"lookBackType": "growing",
+				"interval": "3",
+				"delay": "1",
+				"canaryHealthCheckHandler": {
+								"minimumCanaryResultScore": "65"
+								},
+				"canarySuccessCriteria": {
+							"canaryResultScore": "80"
+								}
+				},
+		"canaryDeployments": [
+					{
+					"canaryStartTimeMs": "1660137300000",
+					"baselineStartTimeMs": "1660137300000",
+					"canary": {
+						"log": {"service1":{
+						"kubernetes.pod_name":".*.*",
+						"serviceGate":"gate1",
+						"template":"loggytemp",
+						"templateSha1":"1fd53480333cb618aa05ce901a051263efabe3cd"}
+					  }},
+					"baseline": {
+						"log": {"service1":{
+						"kubernetes.pod_name":".*.*",
+						"serviceGate":"gate1",
+						"template":"loggytemp",
+						"templateSha1":"1fd53480333cb618aa05ce901a051263efabe3cd"}}
+					  }
+					}
+		  ]
+	}`
+
+	metric.Services = append(metric.Services, services)
 	canaryStartTime, baselineStartTime, lifetimeMinutes, err := getTimeVariables(metric.BaselineStartTime, metric.CanaryStartTime, metric.EndTime, metric.LifetimeMinutes)
 	assert.Equal(t, nil, err)
-	payload, err := metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes)
+	_, err = metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "incorrect/%s")
+	assert.Equal(t, "open incorrect/loggytemp: no such file or directory", err.Error())
+	payload, err := metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "gitops/%s")
 	assert.Equal(t, nil, err)
-	fmt.Printf("%s", payload)
+	processedPayload := strings.Replace(strings.Replace(strings.Replace(checkPayload, "\n", "", -1), "\t", "", -1), " ", "", -1)
+	assert.Equal(t, processedPayload, payload)
 
-	for _, test := range successfulTests {
-		canaryStartTime, baselineStartTime, lifetimeMinutes, err := getTimeVariables(metric.BaselineStartTime, metric.CanaryStartTime, metric.EndTime, metric.LifetimeMinutes)
-		assert.Equal(t, nil, err)
-		payload, err := metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes)
-		assert.Equal(t, nil, err)
-		processedPayload := strings.ReplaceAll(strings.Replace(strings.Replace(test.payloadRegisterCanary, "\n", "", -1), "\t", "", -1), "*\\*", "")
-		assert.Equal(t, processedPayload, payload)
+	metric = OPSMXMetric{
+		GateUrl:           "https://opsmx.test.tst",
+		User:              "admin",
+		Application:       "multiservice",
+		BaselineStartTime: "2022-08-10T13:15:00Z",
+		CanaryStartTime:   "2022-08-10T13:15:00Z",
+		LifetimeMinutes:   30,
+		IntervalTime:      3,
+		Delay:             1,
+		GitOPS:            true,
+		LookBackType:      "growing",
+		Pass:              80,
+		Marginal:          65,
+		Services:          []OPSMXService{},
 	}
+	services = OPSMXService{
+		MetricTemplateName:   "PrometheusMetricTemplate",
+		MetricScopeVariables: "kubernetes.pod_name",
+		BaselineMetricScope:  ".*{{env.STABLE_POD_HASH}}.*",
+		CanaryMetricScope:    ".*{{env.LATEST_POD_HASH}}.*",
+	}
+	checkPayload = `{
+		"application": "multiservice",
+		"sourceName":"sourcename",
+		"sourceType":"argocd",
+		"canaryConfig": {
+				"lifetimeMinutes": "30",
+				"lookBackType": "growing",
+				"interval": "3",
+				"delay": "1",
+				"canaryHealthCheckHandler": {
+								"minimumCanaryResultScore": "65"
+								},
+				"canarySuccessCriteria": {
+							"canaryResultScore": "80"
+								}
+				},
+		"canaryDeployments": [
+					{
+					"canaryStartTimeMs": "1660137300000",
+					"baselineStartTimeMs": "1660137300000",
+					"canary": {
+						"metric": {"service1":{
+						"kubernetes.pod_name":".*.*",
+						"serviceGate":"gate1",
+						"template":"PrometheusMetricTemplate",
+						"templateSha1":"445b4c60855cd618b070e91ee232860e40e23d9c"}
+					  }},
+					"baseline": {
+						"metric": {"service1":{
+						"kubernetes.pod_name":".*.*",
+						"serviceGate":"gate1",
+						"template":"PrometheusMetricTemplate",
+						"templateSha1":"445b4c60855cd618b070e91ee232860e40e23d9c"}}
+					  }
+					}
+		  ]
+	}`
+
+	metric.Services = append(metric.Services, services)
+	canaryStartTime, baselineStartTime, lifetimeMinutes, err = getTimeVariables(metric.BaselineStartTime, metric.CanaryStartTime, metric.EndTime, metric.LifetimeMinutes)
+	assert.Equal(t, nil, err)
+	payload, err = metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "gitops/%s")
+	assert.Equal(t, nil, err)
+	processedPayload = strings.Replace(strings.Replace(strings.Replace(checkPayload, "\n", "", -1), "\t", "", -1), " ", "", -1)
+	assert.Equal(t, processedPayload, payload)
+
+	invalidjsonmetric := OPSMXMetric{
+		Application:     "final-job",
+		LifetimeMinutes: 3,
+		IntervalTime:    3,
+		LookBackType:    "sliding",
+		Pass:            80,
+		Marginal:        60,
+		GitOPS:          true,
+		Services:        []OPSMXService{},
+	}
+	invalidjsonservices := OPSMXService{
+		LogTemplateName:      "loggytemp.txt",
+		LogScopeVariables:    "kubernetes.pod_name",
+		BaselineLogScope:     ".*{{env.STABLE_POD_HASH}}.*",
+		CanaryLogScope:       ".*{{env.LATEST_POD_HASH}}.*",
+		MetricTemplateName:   "PrometheusMetricTemplate",
+		MetricScopeVariables: "${namespace_key},${pod_key},${app_name}",
+		BaselineMetricScope:  "argocd,{{env.STABLE_POD_HASH}},demoapp-issuegen",
+		CanaryMetricScope:    "argocd,{{env.LATEST_POD_HASH}},demoapp-issuegen",
+	}
+	invalidjsonmetric.Services = append(invalidjsonmetric.Services, invalidjsonservices)
+	_, err = invalidjsonmetric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "gitops/invalid/%s")
+	assert.Equal(t, "invalid template json provided", err.Error())
 }
