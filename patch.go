@@ -32,7 +32,7 @@ func patchJobCanaryDetails(kubeclient kubernetes.Interface, ctx context.Context,
 		return err
 	}
 
-	log.Infof("Successfully patched to Jobfor canary ID %s", cd.canaryId)
+	log.Infof("Successfully patched to Job for canary ID %s", cd.canaryId)
 	return nil
 }
 
