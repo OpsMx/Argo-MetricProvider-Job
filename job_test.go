@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -840,6 +842,718 @@ func TestSecret(t *testing.T) {
 	assert.Equal(t, err.Error(), "cd-integration should be either true or false")
 }
 
+var successfulTests = []struct {
+	metric                OPSMXMetric
+	payloadRegisterCanary string
+}{
+	//Test case for basic function of Single Service feature
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			User:              "admin",
+			Application:       "multiservice",
+			BaselineStartTime: "2022-08-10T13:15:00Z",
+			CanaryStartTime:   "2022-08-10T13:15:00Z",
+			LifetimeMinutes:   30,
+			IntervalTime:      3,
+			Delay:             1,
+			LookBackType:      "growing",
+			Pass:              80,
+			Marginal:          65,
+			Services: []OPSMXService{
+				{
+					MetricScopeVariables:  "job_name",
+					BaselineMetricScope:   "oes-datascience-br",
+					CanaryMetricScope:     "oes-datascience-cr",
+					MetricTemplateName:    "metricTemplate",
+					MetricTemplateVersion: "1",
+				},
+			},
+		},
+		payloadRegisterCanary: `{
+					"application": "multiservice",
+					"sourceName":"sourcename",
+					"sourceType":"argocd",
+					"canaryConfig": {
+							"lifetimeMinutes": "30",
+							"lookBackType": "growing",
+							"interval": "3",
+							"delay": "1",
+							"canaryHealthCheckHandler": {
+											"minimumCanaryResultScore": "65"
+											},
+							"canarySuccessCriteria": {
+										"canaryResultScore": "80"
+											}
+							},
+					"canaryDeployments": [
+								{
+								"canaryStartTimeMs": "1660137300000",
+								"baselineStartTimeMs": "1660137300000",
+								"canary": {
+									"metric": {"service1":{"serviceGate":"gate1","job_name":"oes-datascience-cr","template":"metricTemplate","templateVersion":"1"}
+								  }},
+								"baseline": {
+									"metric": {"service1":{"serviceGate":"gate1","job_name":"oes-datascience-br","template":"metricTemplate","templateVersion":"1"}}
+								  }
+								}
+					  ]
+				}`,
+	},
+	//Test case for endtime function of Single Service feature
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			User:              "admin",
+			Application:       "multiservice",
+			BaselineStartTime: "2022-08-10T13:15:00Z",
+			CanaryStartTime:   "2022-08-10T13:15:00Z",
+			EndTime:           "2022-08-10T13:45:10Z",
+			Pass:              80,
+			Marginal:          65,
+			Services: []OPSMXService{
+				{
+					MetricScopeVariables:  "job_name",
+					BaselineMetricScope:   "oes-datascience-br",
+					CanaryMetricScope:     "oes-datascience-cr",
+					MetricTemplateName:    "metricTemplate",
+					MetricTemplateVersion: "1",
+				},
+			},
+		},
+		payloadRegisterCanary: `{
+					"application": "multiservice",
+					"sourceName":"sourcename",
+					"sourceType":"argocd",
+					"canaryConfig": {
+							"lifetimeMinutes": "30",
+							"canaryHealthCheckHandler": {
+											"minimumCanaryResultScore": "65"
+											},
+							"canarySuccessCriteria": {
+										"canaryResultScore": "80"
+											}
+							},
+					"canaryDeployments": [
+								{
+								"canaryStartTimeMs": "1660137300000",
+								"baselineStartTimeMs": "1660137300000",
+								"canary": {
+									"metric": {"service1":{"serviceGate":"gate1","job_name":"oes-datascience-cr","template":"metricTemplate","templateVersion":"1"}
+								  }},
+								"baseline": {
+									"metric": {"service1":{"serviceGate":"gate1","job_name":"oes-datascience-br","template":"metricTemplate","templateVersion":"1"}}
+								  }
+								}
+					  ]
+				}`,
+	},
+	//Test case for only 1 time stamp given function of Single Service feature
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			User:              "admin",
+			Application:       "multiservice",
+			BaselineStartTime: "2022-08-10T13:15:00Z",
+			CanaryStartTime:   "2022-08-10T13:15:00Z",
+			EndTime:           "2022-08-10T13:45:10Z",
+			Pass:              80,
+			Marginal:          65,
+			Services: []OPSMXService{
+				{
+					MetricScopeVariables:  "job_name",
+					BaselineMetricScope:   "oes-datascience-br",
+					CanaryMetricScope:     "oes-datascience-cr",
+					MetricTemplateName:    "metricTemplate",
+					MetricTemplateVersion: "1",
+				},
+			},
+		},
+		payloadRegisterCanary: `{
+					"application": "multiservice",
+					"sourceName":"sourcename",
+					"sourceType":"argocd",
+					"canaryConfig": {
+							"lifetimeMinutes": "30",
+							"canaryHealthCheckHandler": {
+											"minimumCanaryResultScore": "65"
+											},
+							"canarySuccessCriteria": {
+										"canaryResultScore": "80"
+											}
+							},
+					"canaryDeployments": [
+								{
+								"canaryStartTimeMs": "1660137300000",
+								"baselineStartTimeMs": "1660137300000",
+								"canary": {
+									"metric": {"service1":{"serviceGate":"gate1","job_name":"oes-datascience-cr","template":"metricTemplate","templateVersion":"1"}
+								  }},
+								"baseline": {
+									"metric": {"service1":{"serviceGate":"gate1","job_name":"oes-datascience-br","template":"metricTemplate","templateVersion":"1"}}
+								  }
+								}
+					  ]
+				}`,
+	},
+	//Test case for multi-service feature
+	{
+		metric: OPSMXMetric{
+			User:                 "admin",
+			GateUrl:              "https://opsmx.test.tst",
+			Application:          "multiservice",
+			BaselineStartTime:    "2022-08-10T13:15:00Z",
+			CanaryStartTime:      "2022-08-10T13:15:00Z",
+			EndTime:              "2022-08-10T13:45:10Z",
+			GlobalMetricTemplate: "metricTemplate",
+			Pass:                 80,
+			Marginal:             65,
+			Services: []OPSMXService{
+				{
+					MetricScopeVariables:  "job_name",
+					BaselineMetricScope:   "oes-sapor-br",
+					CanaryMetricScope:     "oes-sapor-cr",
+					MetricTemplateName:    "metricTemplate",
+					MetricTemplateVersion: "1",
+				},
+				{
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-platform-br",
+					CanaryMetricScope:    "oes-platform-cr",
+				},
+			},
+		},
+		payloadRegisterCanary: `		{
+					"application": "multiservice",
+					"sourceName":"sourcename",
+					"sourceType":"argocd",
+					"canaryConfig": {
+						"lifetimeMinutes": "30",
+					  "canaryHealthCheckHandler": {
+						"minimumCanaryResultScore": "65"
+					  },
+					  "canarySuccessCriteria": {
+						"canaryResultScore": "80"
+					  }
+					},
+					"canaryDeployments": [
+					  {
+						"canaryStartTimeMs": "1660137300000",
+						"baselineStartTimeMs": "1660137300000",
+						"canary": {
+						  "metric": {
+							"service1": {
+							  "serviceGate": "gate1",
+							  "job_name": "oes-sapor-cr",
+							  "template":"metricTemplate",
+							  "templateVersion":"1"
+							},
+							"service2": {
+							  "serviceGate": "gate2",
+							  "job_name": "oes-platform-cr",
+							  "template":"metricTemplate"
+							}
+						  }
+						},
+						"baseline": {
+						  "metric": {
+							"service1": {
+							  "serviceGate": "gate1",
+							  "job_name": "oes-sapor-br",
+							  "template":"metricTemplate",
+							  "templateVersion":"1"
+							},
+							"service2": {
+							  "serviceGate": "gate2",
+							  "job_name": "oes-platform-br",
+							  "template":"metricTemplate"
+							}
+						  }
+						}
+					  }
+					]
+				  }`,
+	},
+
+	//Test case for multi-service feature along with logs+metrics analysis
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			User:              "admin",
+			Application:       "multiservice",
+			BaselineStartTime: "2022-08-10T13:15:00Z",
+			CanaryStartTime:   "2022-08-10T13:15:00Z",
+			EndTime:           "2022-08-10T13:45:10Z",
+			Pass:              80,
+			Marginal:          65,
+			Services: []OPSMXService{
+				{
+					MetricScopeVariables:  "job_name",
+					BaselineMetricScope:   "oes-platform-br",
+					CanaryMetricScope:     "oes-platform-cr",
+					MetricTemplateName:    "metricTemplate",
+					MetricTemplateVersion: "1",
+				},
+				{
+					MetricScopeVariables:  "job_name",
+					BaselineMetricScope:   "oes-sapor-br",
+					CanaryMetricScope:     "oes-sapor-cr",
+					MetricTemplateName:    "metricTemplate",
+					MetricTemplateVersion: "1",
+					LogScopeVariables:     "kubernetes.container_name",
+					BaselineLogScope:      "oes-datascience-br",
+					CanaryLogScope:        "oes-datascience-cr",
+					LogTemplateName:       "logTemplate",
+					LogTemplateVersion:    "1",
+				},
+			},
+		},
+		payloadRegisterCanary: `{
+					"application": "multiservice",
+					"sourceName":"sourcename",
+					"sourceType":"argocd",
+					"canaryConfig": {
+					  "lifetimeMinutes": "30",
+					  "canaryHealthCheckHandler": {
+						"minimumCanaryResultScore": "65"
+					  },
+					  "canarySuccessCriteria": {
+						"canaryResultScore": "80"
+					  }
+					},
+					"canaryDeployments": [
+					  {
+						"canaryStartTimeMs": "1660137300000",
+						"baselineStartTimeMs": "1660137300000",
+						"canary": {
+						  "log": {
+							"service2": {
+							  "serviceGate": "gate2",
+							  "kubernetes.container_name": "oes-datascience-cr",
+							  "template":"logTemplate",
+							  "templateVersion":"1"
+							}
+						  },
+						  "metric": {
+							"service1": {
+							  "serviceGate": "gate1",
+							  "job_name": "oes-platform-cr",
+							  "template":"metricTemplate",
+							  "templateVersion":"1"
+							},
+							"service2": {
+							  "serviceGate": "gate2",
+							  "job_name": "oes-sapor-cr",
+							  "template":"metricTemplate",
+							  "templateVersion":"1"
+							}
+						  }
+						},
+						"baseline": {
+						  "log": {
+							"service2": {
+							  "serviceGate": "gate2",
+							  "kubernetes.container_name": "oes-datascience-br",
+							  "template":"logTemplate",
+							  "templateVersion":"1"
+							}
+						  },
+						  "metric": {
+							"service1": {
+							  "serviceGate": "gate1",
+							  "job_name": "oes-platform-br",
+							  "template":"metricTemplate",
+							  "templateVersion":"1"
+							},
+							"service2": {
+							  "serviceGate": "gate2",
+							  "job_name": "oes-sapor-br",
+							  "template":"metricTemplate",
+							  "templateVersion":"1"
+							}
+						  }
+						}
+					  }
+					]
+				  }`,
+	},
+	//Test case for 1 incorrect service and one correct
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			User:              "admin",
+			Application:       "multiservice",
+			BaselineStartTime: "2022-08-10T13:15:00Z",
+			CanaryStartTime:   "2022-08-10T13:15:00Z",
+			EndTime:           "2022-08-10T13:45:10Z",
+			Pass:              80,
+			Marginal:          65,
+			Services: []OPSMXService{
+				{
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-platform-br",
+					CanaryMetricScope:    "oes-platform-cr",
+					MetricTemplateName:   "metricTemplate",
+				},
+				{
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-sapor-br",
+					CanaryMetricScope:    "oes-sapor-cr",
+					MetricTemplateName:   "metricTemplate",
+					LogScopeVariables:    "kubernetes.container_name",
+					BaselineLogScope:     "oes-datascience-br",
+					CanaryLogScope:       "oes-datascience-cr",
+					LogTemplateName:      "logTemplate",
+				},
+			},
+		},
+		payloadRegisterCanary: `{
+					"application": "multiservice",
+					"sourceName":"sourcename",
+					"sourceType":"argocd",
+					"canaryConfig": {
+						"lifetimeMinutes": "30",
+					  "canaryHealthCheckHandler": {
+						"minimumCanaryResultScore": "65"
+					  },
+					  "canarySuccessCriteria": {
+						"canaryResultScore": "80"
+					  }
+					},
+					"canaryDeployments": [
+					  {
+						"canaryStartTimeMs": "1660137300000",
+						"baselineStartTimeMs": "1660137300000",
+						"canary": {
+						  "log": {
+							"service2": {
+							  "serviceGate": "gate2",
+							  "kubernetes.container_name": "oes-datascience-cr",
+							  "template":"logTemplate"
+							}
+						  },
+						  "metric": {
+							"service1": {
+							  "serviceGate": "gate1",
+							  "job_name": "oes-platform-cr",
+							  "template":"metricTemplate"
+							},
+							"service2": {
+							  "serviceGate": "gate2",
+							  "job_name": "oes-sapor-cr",
+							  "template":"metricTemplate"
+							}
+						  }
+						},
+						"baseline": {
+						  "log": {
+							"service2": {
+							  "serviceGate": "gate2",
+							  "kubernetes.container_name": "oes-datascience-br",
+							  "template":"logTemplate"
+							}
+						  },
+						  "metric": {
+							"service1": {
+							  "serviceGate": "gate1",
+							  "job_name": "oes-platform-br",
+							  "template":"metricTemplate"
+							},
+							"service2": {
+							  "serviceGate": "gate2",
+							  "job_name": "oes-sapor-br",
+							  "template":"metricTemplate"
+							}
+						  }
+						}
+					  }
+					]
+				  }`,
+	},
+	//Test case for Service Name given
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			User:              "admin",
+			Application:       "multiservice",
+			BaselineStartTime: "2022-08-10T13:15:00Z",
+			CanaryStartTime:   "2022-08-10T13:15:00Z",
+			EndTime:           "2022-08-10T13:45:10Z",
+			Pass:              80,
+			Marginal:          65,
+			Services: []OPSMXService{
+				{
+					ServiceName:          "service1",
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-platform-br",
+					CanaryMetricScope:    "oes-platform-cr",
+					MetricTemplateName:   "metricTemplate",
+				},
+				{
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-sapor-br",
+					CanaryMetricScope:    "oes-sapor-cr",
+					MetricTemplateName:   "metricTemplate",
+					LogScopeVariables:    "kubernetes.container_name",
+					BaselineLogScope:     "oes-datascience-br",
+					CanaryLogScope:       "oes-datascience-cr",
+					LogTemplateName:      "logTemplate",
+				},
+			},
+		},
+		payloadRegisterCanary: `{
+					"application": "multiservice",
+					"sourceName":"sourcename",
+					"sourceType":"argocd",
+					"canaryConfig": {
+						"lifetimeMinutes": "30",
+					  "canaryHealthCheckHandler": {
+						"minimumCanaryResultScore": "65"
+					  },
+					  "canarySuccessCriteria": {
+						"canaryResultScore": "80"
+					  }
+					},
+					"canaryDeployments": [
+					  {
+						"canaryStartTimeMs": "1660137300000",
+						"baselineStartTimeMs": "1660137300000",
+						"canary": {
+						  "log": {
+							"service2": {
+							  "serviceGate": "gate2",
+							  "kubernetes.container_name": "oes-datascience-cr",
+							  "template":"logTemplate"
+							}
+						  },
+						  "metric": {
+							"service1": {
+							  "serviceGate": "gate1",
+							  "job_name": "oes-platform-cr",
+							  "template":"metricTemplate"
+							},
+							"service2": {
+							  "serviceGate": "gate2",
+							  "job_name": "oes-sapor-cr",
+							  "template":"metricTemplate"
+							}
+						  }
+						},
+						"baseline": {
+						  "log": {
+							"service2": {
+							  "serviceGate": "gate2",
+							  "kubernetes.container_name": "oes-datascience-br",
+							  "template":"logTemplate"
+							}
+						  },
+						  "metric": {
+							"service1": {
+							  "serviceGate": "gate1",
+							  "job_name": "oes-platform-br",
+							  "template":"metricTemplate"
+							},
+							"service2": {
+							  "serviceGate": "gate2",
+							  "job_name": "oes-sapor-br",
+							  "template":"metricTemplate"
+							}
+						  }
+						}
+					  }
+					]
+				  }`,
+	},
+	//Test case for Global log Template
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			User:              "admin",
+			Application:       "multiservice",
+			BaselineStartTime: "2022-08-10T13:15:00Z",
+			CanaryStartTime:   "2022-08-10T13:15:00Z",
+			EndTime:           "2022-08-10T13:45:10Z",
+			GlobalLogTemplate: "logTemplate",
+			Pass:              80,
+			Marginal:          65,
+			Services: []OPSMXService{
+				{
+					ServiceName:          "service1",
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-platform-br",
+					CanaryMetricScope:    "oes-platform-cr",
+					MetricTemplateName:   "metricTemplate",
+				},
+				{
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-sapor-br",
+					CanaryMetricScope:    "oes-sapor-cr",
+					MetricTemplateName:   "metricTemplate",
+					LogScopeVariables:    "kubernetes.container_name",
+					BaselineLogScope:     "oes-datascience-br",
+					CanaryLogScope:       "oes-datascience-cr",
+				},
+			},
+		},
+		payloadRegisterCanary: `{
+					"application": "multiservice",
+					"sourceName":"sourcename",
+					"sourceType":"argocd",
+					"canaryConfig": {
+						"lifetimeMinutes": "30",
+					  "canaryHealthCheckHandler": {
+						"minimumCanaryResultScore": "65"
+					  },
+					  "canarySuccessCriteria": {
+						"canaryResultScore": "80"
+					  }
+					},
+					"canaryDeployments": [
+					  {
+						"canaryStartTimeMs": "1660137300000",
+						"baselineStartTimeMs": "1660137300000",
+						"canary": {
+						  "log": {
+							"service2": {
+							  "serviceGate": "gate2",
+							  "kubernetes.container_name": "oes-datascience-cr",
+							  "template":"logTemplate"
+							}
+						  },
+						  "metric": {
+							"service1": {
+							  "serviceGate": "gate1",
+							  "job_name": "oes-platform-cr",
+							  "template":"metricTemplate"
+							},
+							"service2": {
+							  "serviceGate": "gate2",
+							  "job_name": "oes-sapor-cr",
+							  "template":"metricTemplate"
+							}
+						  }
+						},
+						"baseline": {
+						  "log": {
+							"service2": {
+							  "serviceGate": "gate2",
+							  "kubernetes.container_name": "oes-datascience-br",
+							  "template":"logTemplate"
+							}
+						  },
+						  "metric": {
+							"service1": {
+							  "serviceGate": "gate1",
+							  "job_name": "oes-platform-br",
+							  "template":"metricTemplate"
+							},
+							"service2": {
+							  "serviceGate": "gate2",
+							  "job_name": "oes-sapor-br",
+							  "template":"metricTemplate"
+							}
+						  }
+						}
+					  }
+					]
+				  }`,
+	},
+	//Test case for CanaryStartTime not given but baseline was given
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			User:              "admin",
+			Application:       "multiservice",
+			BaselineStartTime: "2022-08-10T13:15:00Z",
+			CanaryStartTime:   "2022-08-10T13:15:00Z",
+			EndTime:           "2022-08-10T13:45:10Z",
+			Pass:              80,
+			Marginal:          65,
+			Services: []OPSMXService{
+				{
+					ServiceName:          "service1",
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-platform-br",
+					CanaryMetricScope:    "oes-platform-cr",
+					MetricTemplateName:   "metricTemplate",
+				},
+				{
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-sapor-br",
+					CanaryMetricScope:    "oes-sapor-cr",
+					MetricTemplateName:   "metricTemplate",
+					LogScopeVariables:    "kubernetes.container_name",
+					BaselineLogScope:     "oes-datascience-br",
+					CanaryLogScope:       "oes-datascience-cr",
+					LogTemplateName:      "logTemplate",
+				},
+			},
+		},
+		payloadRegisterCanary: `{
+					"application": "multiservice",
+					"sourceName":"sourcename",
+					"sourceType":"argocd",	
+					"canaryConfig": {
+						"lifetimeMinutes": "30",
+					  "canaryHealthCheckHandler": {
+						"minimumCanaryResultScore": "65"
+					  },
+					  "canarySuccessCriteria": {
+						"canaryResultScore": "80"
+					  }
+					},
+					"canaryDeployments": [
+					  {
+						"canaryStartTimeMs": "1660137300000",
+						"baselineStartTimeMs": "1660137300000",
+						"canary": {
+						  "log": {
+							"service2": {
+							  "serviceGate": "gate2",
+							  "kubernetes.container_name": "oes-datascience-cr",
+							  "template":"logTemplate"
+							}
+						  },
+						  "metric": {
+							"service1": {
+							  "serviceGate": "gate1",
+							  "job_name": "oes-platform-cr",
+							  "template":"metricTemplate"
+							},
+							"service2": {
+							  "serviceGate": "gate2",
+							  "job_name": "oes-sapor-cr",
+							  "template":"metricTemplate"
+							}
+						  }
+						},
+						"baseline": {
+						  "log": {
+							"service2": {
+							  "serviceGate": "gate2",
+							  "kubernetes.container_name": "oes-datascience-br",
+							  "template":"logTemplate"
+							}
+						  },
+						  "metric": {
+							"service1": {
+							  "serviceGate": "gate1",
+							  "job_name": "oes-platform-br",
+							  "template":"metricTemplate"
+							},
+							"service2": {
+							  "serviceGate": "gate2",
+							  "job_name": "oes-sapor-br",
+							  "template":"metricTemplate"
+							}
+						  }
+						}
+					  }
+					]
+				  }`,
+	},
+}
+
 func TestPayload(t *testing.T) {
 	httpclient := NewHttpClient()
 	clients := newClients(nil, httpclient)
@@ -866,10 +1580,25 @@ func TestPayload(t *testing.T) {
 				BaselineMetricScope:  "oes-datascience-br",
 				CanaryMetricScope:    "oes-datascience-cr",
 				MetricTemplateName:   "metrictemplate",
+				LogScopeVariables:    "kubernetes.container_name",
+				BaselineLogScope:     "oes-datascienece-br",
+				CanaryLogScope:       "oes-datascience-cr",
+				LogTemplateName:      "logtemp",
 			},
 		},
 	}
 	canaryStartTime, baselineStartTime, lifetimeMinutes, err := getTimeVariables(metric.BaselineStartTime, metric.CanaryStartTime, metric.EndTime, metric.LifetimeMinutes)
 	assert.Equal(t, nil, err)
-	metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes)
+	payload, err := metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes)
+	assert.Equal(t, nil, err)
+	fmt.Printf("%s", payload)
+
+	for _, test := range successfulTests {
+		canaryStartTime, baselineStartTime, lifetimeMinutes, err := getTimeVariables(metric.BaselineStartTime, metric.CanaryStartTime, metric.EndTime, metric.LifetimeMinutes)
+		assert.Equal(t, nil, err)
+		payload, err := metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes)
+		assert.Equal(t, nil, err)
+		processedPayload := strings.ReplaceAll(strings.Replace(strings.Replace(test.payloadRegisterCanary, "\n", "", -1), "\t", "", -1), "*\\*", "")
+		assert.Equal(t, processedPayload, payload)
+	}
 }
