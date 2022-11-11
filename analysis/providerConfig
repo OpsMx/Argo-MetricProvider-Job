@@ -8,10 +8,10 @@ passScore: 80
 marginalScore: 60
 serviceList:
   - logScopeVariables: kubernetes.pod_name
-    baselineLogScope: '.*{{env.STABLE_POD_HASH}}.*'
-    canaryLogScope: '.*{{env.LATEST_POD_HASH}}.*'
+    baselineLogScope: '.*baselinelog.*'
+    canaryLogScope: '.*canarylog.*'
     logTemplateName: loggytemp
     metricScopeVariables: '${namespace_key},${pod_key},${app_name}'
-    baselineMetricScope: 'argocd,{{env.STABLE_POD_HASH}},demoapp-issuegen'
-    canaryMetricScope: 'argocd,{{env.LATEST_POD_HASH}},demoapp-issuegen'
+    baselineMetricScope: 'argocd,baselinemetric,demoapp-issuegen'
+    canaryMetricScope: 'argocd,canarymetric,demoapp-issuegen'
     metricTemplateName: PrometheusMetricTemplate
