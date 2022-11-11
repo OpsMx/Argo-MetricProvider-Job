@@ -39,7 +39,7 @@ func getJobNameFromPod(p *Clients, podName string) (string, error) {
 	}
 	podOwner := pod.OwnerReferences[0]
 	if podOwner.Kind != "Job" {
-		return "", errors.New("The owner of the Pod is not a Job")
+		return "", errors.New("the owner of the pod is not a job")
 	}
 	return podOwner.Name, nil
 }
@@ -48,7 +48,7 @@ func checkPatchabilityReturnResources(c *Clients) (ResourceNames, error) {
 
 	podName, ok := os.LookupEnv("MY_POD_NAME")
 	if !ok {
-		return *new(ResourceNames), errors.New("Environment variable MY_POD_NAME not set")
+		return *new(ResourceNames), errors.New("environment variable my_pod name not set")
 	}
 
 	jobName, err := getJobNameFromPod(c, podName)
@@ -252,12 +252,8 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 	return templateData, nil
 }
 
-func (metric *OPSMXMetric) getDataSecret() (map[string]string, error) {
+func (metric *OPSMXMetric) getDataSecret(userPath string, gateUrlPath string, sourceNamePath string, cdIntegrationPath string) (map[string]string, error) {
 	secretData := map[string]string{}
-	userPath := "/etc/config/secrets/user"
-	gateUrlPath := "/etc/config/secrets/gate-url"
-	sourceNamePath := "/etc/config/secrets/source-name"
-	cdIntegrationPath := "/etc/config/secrets/cd-integration"
 
 	secretUser, err := ioutil.ReadFile(userPath)
 	if err != nil {

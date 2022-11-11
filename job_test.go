@@ -7,7 +7,7 @@ import (
 )
 
 func TestFuncGetAnalysisTemplateData(t *testing.T) {
-	metric, err := getAnalysisTemplateData("/home/user/Argo-MetricProvider-Job/etc/config/provider/providerConfig")
+	metric, err := getAnalysisTemplateData("/home/user/Argo-MetricProvider-Job/analysis/providerConfig")
 	checkMetric := OPSMXMetric{
 		Application:     "final-job",
 		User:            "admin",
@@ -34,7 +34,7 @@ func TestFuncGetAnalysisTemplateData(t *testing.T) {
 	assert.Equal(t, metric, checkMetric)
 	_, err = getAnalysisTemplateData("/etc/config/provider/providerConfig")
 	assert.Equal(t, err.Error(), "open /etc/config/provider/providerConfig: no such file or directory")
-	_, err = getAnalysisTemplateData("/home/user/Argo-MetricProvider-Job/invalidyamltest/invalid")
+	_, err = getAnalysisTemplateData("/home/user/Argo-MetricProvider-Job/analysis/invalid")
 	assert.Equal(t, err.Error(), "yaml: line 9: mapping values are not allowed in this context")
 }
 
@@ -618,6 +618,29 @@ func TestBasicChecks(t *testing.T) {
 		err := test.metric.basicChecks()
 		assert.Equal(t, err.Error(), test.message)
 	}
+	metric := OPSMXMetric{
+		GateUrl:           "https://opsmx.test.tst",
+		Application:       "testapp",
+		User:              "admin",
+		BaselineStartTime: "2022-08-02T13:15:00Z",
+		CanaryStartTime:   "2022-08-02T13:15:00Z",
+		LifetimeMinutes:   30,
+
+		Pass:     100,
+		Marginal: 80,
+
+		Services: []OPSMXService{
+			{
+				MetricScopeVariables: "job_name",
+				BaselineMetricScope:  "oes-datascience-br",
+				CanaryMetricScope:    "oes-datascience-cr",
+				MetricTemplateName:   "metrictemplate",
+			},
+		},
+	}
+	err := metric.basicChecks()
+	assert.Equal(t, err, nil)
+
 }
 
 var checkTimeVariables = []struct {
@@ -713,9 +736,52 @@ var checkTimeVariables = []struct {
 	},
 }
 
-func TestErrorGetTimeVariables(t *testing.T) {
+func TestGetTimeVariables(t *testing.T) {
 	for _, test := range checkTimeVariables {
 		_, _, _, err := getTimeVariables(test.metric.BaselineStartTime, test.metric.CanaryStartTime, test.metric.EndTime, test.metric.LifetimeMinutes)
 		assert.Equal(t, err.Error(), test.message)
 	}
+	metric := OPSMXMetric{
+		GateUrl:         "https://opsmx.test.tst",
+		Application:     "testapp",
+		User:            "admin",
+		LifetimeMinutes: 30,
+		Pass:            80,
+		Marginal:        60,
+		Services: []OPSMXService{
+			{
+				MetricScopeVariables: "job_name",
+				BaselineMetricScope:  "oes-datascience-br",
+				CanaryMetricScope:    "oes-datascience-cr",
+				MetricTemplateName:   "metrictemplate",
+			},
+		},
+	}
+	_, _, _, err := getTimeVariables(metric.BaselineStartTime, metric.CanaryStartTime, metric.EndTime, metric.LifetimeMinutes)
+	assert.Equal(t, err, nil)
+
+	metric = OPSMXMetric{
+		GateUrl:           "https://opsmx.test.tst",
+		Application:       "testapp",
+		BaselineStartTime: "2022-08-02T13:15:00Z",
+		CanaryStartTime:   "2022-08-02T13:15:00Z",
+		EndTime:           "2022-08-02T13:45:00Z",
+		Pass:              80,
+		Marginal:          60,
+		Services: []OPSMXService{
+			{
+				MetricScopeVariables: "job_name",
+				BaselineMetricScope:  "oes-datascience-br",
+				CanaryMetricScope:    "oes-datascience-cr",
+				MetricTemplateName:   "metrictemplate",
+			},
+		},
+	}
+	_, _, lifetimeMinutes, err := getTimeVariables(metric.BaselineStartTime, metric.CanaryStartTime, metric.EndTime, metric.LifetimeMinutes)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, lifetimeMinutes, 30)
+}
+
+func TestSecret(t *testing.T) {
+
 }

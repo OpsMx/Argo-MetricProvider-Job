@@ -24,6 +24,10 @@ const (
 	cdIntegrationArgoRollouts               = "argorollouts"
 	cdIntegrationArgoCD                     = "argocd"
 	analysispath                            = "/etc/config/provider/providerConfig"
+	userPath                                = "/etc/config/secrets/user"
+	gateUrlPath                             = "/etc/config/secrets/gate-url"
+	sourceNamePath                          = "/etc/config/secrets/source-name"
+	cdIntegrationPath                       = "/etc/config/secrets/cd-integration"
 )
 
 func runAnalysis(c *Clients, r ResourceNames) error {
@@ -35,7 +39,7 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 	if err != nil {
 		return err
 	}
-	secretData, err := metric.getDataSecret()
+	secretData, err := metric.getDataSecret(userPath, gateUrlPath, sourceNamePath, cdIntegrationPath)
 	if err != nil {
 		return err
 	}
