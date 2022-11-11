@@ -783,5 +783,59 @@ func TestGetTimeVariables(t *testing.T) {
 }
 
 func TestSecret(t *testing.T) {
+	metric := OPSMXMetric{
+		Application:     "final-job",
+		LifetimeMinutes: 3,
+		IntervalTime:    3,
+		LookBackType:    "sliding",
+		Pass:            80,
+		Marginal:        60,
+		Services:        []OPSMXService{},
+	}
+	services := OPSMXService{
+		LogTemplateName:      "loggytemp",
+		LogScopeVariables:    "kubernetes.pod_name",
+		BaselineLogScope:     ".*{{env.STABLE_POD_HASH}}.*",
+		CanaryLogScope:       ".*{{env.LATEST_POD_HASH}}.*",
+		MetricTemplateName:   "PrometheusMetricTemplate",
+		MetricScopeVariables: "${namespace_key},${pod_key},${app_name}",
+		BaselineMetricScope:  "argocd,{{env.STABLE_POD_HASH}},demoapp-issuegen",
+		CanaryMetricScope:    "argocd,{{env.LATEST_POD_HASH}},demoapp-issuegen",
+	}
+	metric.Services = append(metric.Services, services)
 
+	_, err := metric.getDataSecret("/home/user/Argo-MetricProvider-Job/secret/users", "/home/user/Argo-MetricProvider-Job/secret/gate-url", "/home/user/Argo-MetricProvider-Job/secret/source-name", "/home/user/Argo-MetricProvider-Job/secret/cd-Integration")
+	assert.Equal(t, err.Error(), "open /home/user/Argo-MetricProvider-Job/secret/users: no such file or directory")
+
+	_, err = metric.getDataSecret("/home/user/Argo-MetricProvider-Job/secret/user", "/home/user/Argo-MetricProvider-Job/secret/gate-urls", "/home/user/Argo-MetricProvider-Job/secret/source-name", "/home/user/Argo-MetricProvider-Job/secret/cd-Integration")
+	assert.Equal(t, err.Error(), "open /home/user/Argo-MetricProvider-Job/secret/gate-urls: no such file or directory")
+
+	_, err = metric.getDataSecret("/home/user/Argo-MetricProvider-Job/secret/user", "/home/user/Argo-MetricProvider-Job/secret/gate-url", "/home/user/Argo-MetricProvider-Job/secret/source-names", "/home/user/Argo-MetricProvider-Job/secret/cd-Integration")
+	assert.Equal(t, err.Error(), "open /home/user/Argo-MetricProvider-Job/secret/source-names: no such file or directory")
+
+	_, err = metric.getDataSecret("/home/user/Argo-MetricProvider-Job/secret/user", "/home/user/Argo-MetricProvider-Job/secret/gate-url", "/home/user/Argo-MetricProvider-Job/secret/source-name", "/home/user/Argo-MetricProvider-Job/secret/cd-Integrations")
+	assert.Equal(t, err.Error(), "open /home/user/Argo-MetricProvider-Job/secret/cd-Integrations: no such file or directory")
+
+	secretData, err := metric.getDataSecret("/home/user/Argo-MetricProvider-Job/secret/user", "/home/user/Argo-MetricProvider-Job/secret/gate-url", "/home/user/Argo-MetricProvider-Job/secret/source-name", "/home/user/Argo-MetricProvider-Job/secret/cd-Integration")
+	assert.Equal(t, err, nil)
+	checkSecretData := map[string]string{
+		"cdIntegration": "argocd",
+		"sourceName":    "argocd06",
+		"gateUrl":       "www.opsmx.com",
+		"user":          "admins",
+	}
+	assert.Equal(t, checkSecretData, secretData)
+
+	secretData, err = metric.getDataSecret("/home/user/Argo-MetricProvider-Job/secret/user", "/home/user/Argo-MetricProvider-Job/secret/gate-url", "/home/user/Argo-MetricProvider-Job/secret/source-name", "/home/user/Argo-MetricProvider-Job/secret/cd-Integration-False")
+	assert.Equal(t, err, nil)
+	checkSecretData = map[string]string{
+		"cdIntegration": "argorollouts",
+		"sourceName":    "argocd06",
+		"gateUrl":       "www.opsmx.com",
+		"user":          "admins",
+	}
+	assert.Equal(t, checkSecretData, secretData)
+
+	_, err = metric.getDataSecret("/home/user/Argo-MetricProvider-Job/secret/user", "/home/user/Argo-MetricProvider-Job/secret/gate-url", "/home/user/Argo-MetricProvider-Job/secret/source-name", "/home/user/Argo-MetricProvider-Job/secret/cd-Integration-Invalid")
+	assert.Equal(t, err.Error(), "cd-integration should be either true or false")
 }

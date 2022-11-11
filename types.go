@@ -36,7 +36,6 @@ type JobStatus struct {
 	Status Status `json:"status,omitempty"`
 }
 
-
 type ResourceNames struct {
 	podName string
 	jobName string
@@ -47,7 +46,6 @@ type CanaryDetails struct {
 	canaryId  string
 	gateUrl   string
 	reportUrl string
-	phase     string
 	value     string
 }
 
