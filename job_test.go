@@ -1722,6 +1722,8 @@ func TestGitops(t *testing.T) {
 	metric.Services = append(metric.Services, services)
 	canaryStartTime, baselineStartTime, lifetimeMinutes, err = getTimeVariables(metric.BaselineStartTime, metric.CanaryStartTime, metric.EndTime, metric.LifetimeMinutes)
 	assert.Equal(t, nil, err)
+	_, err = metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "gitops/nothere/%s")
+	assert.Equal(t, "open gitops/nothere/PrometheusMetricTemplate: no such file or directory", err.Error())
 	payload, err = metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "gitops/%s")
 	assert.Equal(t, nil, err)
 	processedPayload = strings.Replace(strings.Replace(strings.Replace(checkPayload, "\n", "", -1), "\t", "", -1), " ", "", -1)
