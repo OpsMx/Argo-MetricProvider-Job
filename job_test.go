@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -39,7 +38,7 @@ func TestFuncGetAnalysisTemplateData(t *testing.T) {
 	assert.Equal(t, err.Error(), "yaml: line 9: mapping values are not allowed in this context")
 }
 
-var negativeTests = []struct {
+var basicChecks = []struct {
 	metric  OPSMXMetric
 	message string
 }{
@@ -225,72 +224,7 @@ var negativeTests = []struct {
 		},
 		message: "lookbacktype is given and interval time is required to run interval analysis",
 	}, /*
-		{
-			metric: OPSMXMetric{
-				GateUrl:           "https://opsmx.test.tst",
-				Application:       "testapp",
-				User:              "admin",
-				BaselineStartTime: "2022-08-02T13:15:00Z",
-				CanaryStartTime:   "2022-O8-02T13:15:00Z",
-				LifetimeMinutes:   30,
-				Pass:              100,
-				Marginal:          80,
 
-				Services: []OPSMXService{
-					{
-						MetricScopeVariables: "job_name",
-						BaselineMetricScope:  "oes-datascience-br",
-						CanaryMetricScope:    "oes-datascience-cr",
-						MetricTemplateName:   "metrictemplate",
-					},
-				},
-			},
-			message: "parsing time \"2022-O8-02T13:15:00Z\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"O8-02T13:15:00Z\" as \"01\"",
-		},
-		//Test case for inappropriate time format baseline
-		{
-			metric: OPSMXMetric{
-				GateUrl:           "https://opsmx.test.tst",
-				Application:       "testapp",
-				User:              "admin",
-				BaselineStartTime: "2022-O8-02T13:15:00Z",
-				CanaryStartTime:   "2022-08-02T13:15:00Z",
-				LifetimeMinutes:   30,
-				Pass:              80,
-				Marginal:          60,
-				Services: []OPSMXService{
-					{
-						MetricScopeVariables: "job_name",
-						BaselineMetricScope:  "oes-datascience-br",
-						CanaryMetricScope:    "oes-datascience-cr",
-						MetricTemplateName:   "metrictemplate",
-					},
-				},
-			},
-			message: "parsing time \"2022-O8-02T13:15:00Z\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"O8-02T13:15:00Z\" as \"01\"",
-		},
-		//Test case for inappropriate time format endTime
-		{
-			metric: OPSMXMetric{
-				GateUrl:           "https://opsmx.test.tst",
-				Application:       "testapp",
-				User:              "admin",
-				BaselineStartTime: "2022-08-02T13:15:00Z",
-				CanaryStartTime:   "2022-08-02T13:15:00Z",
-				EndTime:           "2022-O8-02T13:15:00Z",
-				Pass:              80,
-				Marginal:          60,
-				Services: []OPSMXService{
-					{
-						MetricScopeVariables: "job_name",
-						BaselineMetricScope:  "oes-datascience-br",
-						CanaryMetricScope:    "oes-datascience-cr",
-						MetricTemplateName:   "metrictemplate",
-					},
-				},
-			},
-			message: "parsing time \"2022-O8-02T13:15:00Z\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"O8-02T13:15:00Z\" as \"01\"",
-		},
 
 		//Test case for No log & Metric analysis
 		{
@@ -392,27 +326,6 @@ var negativeTests = []struct {
 				},
 			},
 			message: "mismatch in number of metric scope variables and baseline/canary metric scope",
-		},
-		//Test case for when end time is less than start time
-		{
-			metric: OPSMXMetric{
-				GateUrl:           "https://opsmx.test.tst",
-				Application:       "testapp",
-				BaselineStartTime: "2022-08-02T13:15:00Z",
-				CanaryStartTime:   "2022-08-02T13:15:00Z",
-				EndTime:           "2022-08-02T12:45:00Z",
-				Pass:              80,
-				Marginal:          60,
-				Services: []OPSMXService{
-					{
-						MetricScopeVariables: "job_name",
-						BaselineMetricScope:  "oes-datascience-br",
-						CanaryMetricScope:    "oes-datascience-cr",
-						MetricTemplateName:   "metrictemplate",
-					},
-				},
-			},
-			message: "start time cannot be greater than end time",
 		},
 		//Test case when baseline or canary logplaceholder is missing
 		{
@@ -700,10 +613,109 @@ var negativeTests = []struct {
 		},*/
 }
 
-func TestGenericNegativeTestsRun(t *testing.T) {
-	for i, test := range negativeTests {
-		fmt.Printf("\n%d\n", i)
+func TestBasicChecks(t *testing.T) {
+	for _, test := range basicChecks {
 		err := test.metric.basicChecks()
+		assert.Equal(t, err.Error(), test.message)
+	}
+}
+
+var checkTimeVariables = []struct {
+	metric  OPSMXMetric
+	message string
+}{
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			Application:       "testapp",
+			User:              "admin",
+			BaselineStartTime: "2022-08-02T13:15:00Z",
+			CanaryStartTime:   "2022-O8-02T13:15:00Z",
+			LifetimeMinutes:   30,
+			Pass:              100,
+			Marginal:          80,
+
+			Services: []OPSMXService{
+				{
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-datascience-br",
+					CanaryMetricScope:    "oes-datascience-cr",
+					MetricTemplateName:   "metrictemplate",
+				},
+			},
+		},
+		message: "parsing time \"2022-O8-02T13:15:00Z\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"O8-02T13:15:00Z\" as \"01\"",
+	},
+	//Test case for inappropriate time format baseline
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			Application:       "testapp",
+			User:              "admin",
+			BaselineStartTime: "2022-O8-02T13:15:00Z",
+			CanaryStartTime:   "2022-08-02T13:15:00Z",
+			LifetimeMinutes:   30,
+			Pass:              80,
+			Marginal:          60,
+			Services: []OPSMXService{
+				{
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-datascience-br",
+					CanaryMetricScope:    "oes-datascience-cr",
+					MetricTemplateName:   "metrictemplate",
+				},
+			},
+		},
+		message: "parsing time \"2022-O8-02T13:15:00Z\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"O8-02T13:15:00Z\" as \"01\"",
+	},
+	//Test case for inappropriate time format endTime
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			Application:       "testapp",
+			User:              "admin",
+			BaselineStartTime: "2022-08-02T13:15:00Z",
+			CanaryStartTime:   "2022-08-02T13:15:00Z",
+			EndTime:           "2022-O8-02T13:15:00Z",
+			Pass:              80,
+			Marginal:          60,
+			Services: []OPSMXService{
+				{
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-datascience-br",
+					CanaryMetricScope:    "oes-datascience-cr",
+					MetricTemplateName:   "metrictemplate",
+				},
+			},
+		},
+		message: "parsing time \"2022-O8-02T13:15:00Z\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"O8-02T13:15:00Z\" as \"01\"",
+	},
+	//Test case for when end time is less than start time
+	{
+		metric: OPSMXMetric{
+			GateUrl:           "https://opsmx.test.tst",
+			Application:       "testapp",
+			BaselineStartTime: "2022-08-02T13:15:00Z",
+			CanaryStartTime:   "2022-08-02T13:15:00Z",
+			EndTime:           "2022-08-02T12:45:00Z",
+			Pass:              80,
+			Marginal:          60,
+			Services: []OPSMXService{
+				{
+					MetricScopeVariables: "job_name",
+					BaselineMetricScope:  "oes-datascience-br",
+					CanaryMetricScope:    "oes-datascience-cr",
+					MetricTemplateName:   "metrictemplate",
+				},
+			},
+		},
+		message: "start time cannot be greater than end time",
+	},
+}
+
+func TestErrorGetTimeVariables(t *testing.T) {
+	for _, test := range checkTimeVariables {
+		_, _, _, err := getTimeVariables(test.metric.BaselineStartTime, test.metric.CanaryStartTime, test.metric.EndTime, test.metric.LifetimeMinutes)
 		assert.Equal(t, err.Error(), test.message)
 	}
 }
