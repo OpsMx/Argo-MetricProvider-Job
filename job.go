@@ -23,10 +23,11 @@ const (
 	defaultSecretName                       = "opsmx-profile"
 	cdIntegrationArgoRollouts               = "argorollouts"
 	cdIntegrationArgoCD                     = "argocd"
+	analysispath                            = "/etc/config/provider/providerConfig"
 )
 
 func runAnalysis(c *Clients, r ResourceNames) error {
-	metric, err := getAnalysisTemplateData()
+	metric, err := getAnalysisTemplateData(analysispath)
 	if err != nil {
 		return err
 	}
@@ -318,7 +319,6 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 		return err
 	}
 
-
 	retryScorePool := 5
 	process := "RUNNING"
 	//if the status is Running, pool again after delay
@@ -341,7 +341,7 @@ func runAnalysis(c *Clients, r ResourceNames) error {
 	}
 	//if run is cancelled mid-run
 	if status["status"] == "CANCELLED" {
-		err = patchJobCancelled(c.kubeclientset, ctx,r.jobName, 4)
+		err = patchJobCancelled(c.kubeclientset, ctx, r.jobName, 4)
 		if err != nil {
 			return err
 		}

@@ -23,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-
 func logErrorExit1(err error) {
 	if err != nil {
 		log.Error(err)
@@ -68,7 +67,6 @@ func checkPatchabilityReturnResources(c *Clients) (ResourceNames, error) {
 	}
 	return resourceNames, nil
 }
-
 
 func isJSON(s string) bool {
 	var j map[string]interface{}
@@ -185,8 +183,7 @@ func getTimeVariables(baselineTime string, canaryTime string, endTime string, li
 	return canaryStartTime, baselineStartTime, lifetimeMinutes, nil
 }
 
-func getAnalysisTemplateData() (OPSMXMetric, error) {
-	path := "/etc/config/provider/providerConfig"
+func getAnalysisTemplateData(path string) (OPSMXMetric, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return OPSMXMetric{}, err
