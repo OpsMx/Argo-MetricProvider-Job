@@ -1,4 +1,4 @@
-module main
+module github.com/opsmx/argo-metricprovider-job
 
 go 1.19
 
