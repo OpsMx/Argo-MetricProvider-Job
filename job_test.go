@@ -224,34 +224,7 @@ var basicChecks = []struct {
 			},
 		},
 		message: "lookbacktype is given and interval time is required to run interval analysis",
-	}, /*
-		//Test case when improper URL
-		{
-			metric: OPSMXMetric{
-				GateUrl:           "	",
-				Application:       "testapp",
-				BaselineStartTime: "2022-08-02T14:15:00Z",
-				CanaryStartTime:   "2022-08-02T13:15:00Z",
-				LifetimeMinutes:   60,
-				IntervalTime:      3,
-				LookBackType:      "growing",
-				Pass:              80,
-				Marginal:          60,
-				Services: []OPSMXService{
-					{
-						MetricScopeVariables: "job_name",
-						BaselineMetricScope:  "oes-sapor-br",
-						CanaryMetricScope:    "oes-sapor-cr",
-						MetricTemplateName:   "prom",
-						LogScopeVariables:    "kubernetes.container_name",
-						BaselineLogScope:     "oes-datascienece-br",
-						CanaryLogScope:       "oes-datascience-cr",
-						LogTemplateName:      "logtemp",
-					},
-				},
-			},
-			message: "parse \"\\t\": net/url: invalid control character in URL",
-		},*/
+	},
 }
 
 func TestBasicChecks(t *testing.T) {
