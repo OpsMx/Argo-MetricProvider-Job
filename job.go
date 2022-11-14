@@ -22,15 +22,9 @@ const (
 	defaultSecretName                       = "opsmx-profile"
 	cdIntegrationArgoRollouts               = "argorollouts"
 	cdIntegrationArgoCD                     = "argocd"
-	analysispath                            = "/etc/config/provider/providerConfig"
-	userPath                                = "/etc/config/secrets/user"
-	gateUrlPath                             = "/etc/config/secrets/gate-url"
-	sourceNamePath                          = "/etc/config/secrets/source-name"
-	cdIntegrationPath                       = "/etc/config/secrets/cd-integration"
-	templatePath                            = "/etc/config/templates/%s"
 )
 
-func runAnalysis(c *Clients, r ResourceNames) error {
+func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath string, gateUrlPath string, sourceNamePath string, cdIntegrationPath string, templatePath string) error {
 	metric, err := getAnalysisTemplateData(analysispath)
 	if err != nil {
 		return err

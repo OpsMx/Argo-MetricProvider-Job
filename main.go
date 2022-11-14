@@ -31,14 +31,20 @@ func NewHttpClient() http.Client {
 }
 
 func runner(c *Clients) error {
+	analysispath := "/etc/config/provider/providerConfig"
+	userPath := "/etc/config/secrets/user"
+	gateUrlPath := "/etc/config/secrets/gate-url"
+	sourceNamePath := "/etc/config/secrets/source-name"
+	cdIntegrationPath := "/etc/config/secrets/cd-integration"
+	templatePath := "/etc/config/templates/%s"
 	resourceNames, err := checkPatchabilityReturnResources(c)
 	if err != nil {
 		return err
 	}
-	if errrun := runAnalysis(c, resourceNames); errrun != nil {
+	if errrun := runAnalysis(c, resourceNames, analysispath, userPath, gateUrlPath, sourceNamePath, cdIntegrationPath, templatePath); errrun != nil {
 		err := patchJobError(c.kubeclientset, context.TODO(), resourceNames.jobName, errrun.Error())
 		if err != nil {
-			log.Error("An error occurred while patching the error from runAnalysis")
+			log.Error("an error occurred while patching the error from run analysis")
 			return err
 		}
 	}

@@ -2123,3 +2123,28 @@ func TestProcessResume(t *testing.T) {
 
 	assert.Equal(t, "strconv.Atoi: parsing \"9a7\": invalid syntax", err.Error())
 }
+
+func TestRunAnalysis(t *testing.T) {
+	Head := map[string][]string{
+		"Location": {"www.scoreUrl.com"},
+	}
+	c := NewTestClient(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body: io.NopCloser(bytes.NewBufferString(`
+			{
+				"canaryId": 1424
+			}
+			`)),
+			// Must be set to non-nil value or it panics
+			Header: Head,
+		}, nil
+	})
+	resourceNames := ResourceNames{
+		podName: "podName",
+		jobName: "jobName",
+	}
+	clients := newClients(getFakeClient(map[string][]byte{}), c)
+	err := runAnalysis(clients, resourceNames, "/home/user/Argo-MetricProvider-Job/analysis/providerConfig", "/home/user/Argo-MetricProvider-Job/secret/user", "/home/user/Argo-MetricProvider-Job/secret/gate-url", "/home/user/Argo-MetricProvider-Job/secret/source-name", "/home/user/Argo-MetricProvider-Job/secret/cd-Integration", "/home/user/Argo-MetricProvider-Job/gitops/%s")
+	assert.Equal(t, nil, err)
+}
