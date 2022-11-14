@@ -111,7 +111,7 @@ func makeRequest(client http.Client, requestType string, url string, body string
 
 // Check few conditions pre-analysis
 func (metric *OPSMXMetric) basicChecks() error {
-	if metric.Pass <= metric.Marginal {
+	if metric.Pass < metric.Marginal {
 		return errors.New("pass score cannot be less than marginal score")
 	}
 	if metric.LifetimeMinutes == 0 && metric.EndTime == "" {
