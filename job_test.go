@@ -1,11 +1,58 @@
 package main
 
 import (
+	"bytes"
+	"io"
+	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
+	kubetesting "k8s.io/client-go/testing"
 )
+
+func getFakeClient(dataParam map[string][]byte) *k8sfake.Clientset {
+	data := map[string][]byte{
+		"cd-integration": []byte("true"),
+		"gate-url":       []byte("https://opsmx.secret.tst"),
+		"source-name":    []byte("sourcename"),
+		"user":           []byte("admin"),
+	}
+	if len(dataParam) != 0 {
+		data = dataParam
+	}
+	opsmxSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: defaultSecretName,
+		},
+		Data: data,
+	}
+	fakeClient := k8sfake.NewSimpleClientset()
+	fakeClient.PrependReactor("get", "*", func(action kubetesting.Action) (handled bool, ret runtime.Object, err error) {
+		return true, opsmxSecret, nil
+	})
+
+	return fakeClient
+}
+
+// NewTestClient returns *http.Client with Transport replaced to avoid making real calls
+func NewTestClient(fn RoundTripFunc) http.Client {
+	return http.Client{
+		Transport: fn,
+	}
+}
+
+// RoundTripFunc .
+type RoundTripFunc func(req *http.Request) (*http.Response, error)
+
+// RoundTrip .
+func (f RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
 
 func TestFuncGetAnalysisTemplateData(t *testing.T) {
 	metric, err := getAnalysisTemplateData("/home/user/Argo-MetricProvider-Job/analysis/providerConfig")
@@ -1702,6 +1749,49 @@ func TestGitops(t *testing.T) {
 	processedPayload = strings.Replace(strings.Replace(strings.Replace(checkPayload, "\n", "", -1), "\t", "", -1), " ", "", -1)
 	assert.Equal(t, processedPayload, payload)
 
+	metric = OPSMXMetric{
+		GateUrl:           "https://opsmx.test.tst",
+		User:              "admin",
+		Application:       "multiservice",
+		BaselineStartTime: "2022-08-10T13:15:00Z",
+		CanaryStartTime:   "2022-08-10T13:15:00Z",
+		LifetimeMinutes:   30,
+		IntervalTime:      3,
+		Delay:             1,
+		GitOPS:            true,
+		LookBackType:      "growing",
+		Pass:              80,
+		Marginal:          65,
+		Services:          []OPSMXService{},
+	}
+	services = OPSMXService{
+		MetricTemplateName:   "PrometheusMetricTemplate",
+		MetricScopeVariables: "kubernetes.pod_name",
+		BaselineMetricScope:  ".*{{env.STABLE_POD_HASH}}.*",
+		CanaryMetricScope:    ".*{{env.LATEST_POD_HASH}}.*",
+	}
+	c := NewTestClient(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 500,
+			Body: io.NopCloser(bytes.NewBufferString(`
+			{
+				"timestamp": 1662442034995,
+				"status": 500,
+				"error": "Internal Server Error",
+				"exception": "feign.FeignException$NotFound",
+				"message": "Template Already Exists"
+			}
+			`)),
+			Header: make(http.Header),
+		}, nil
+	})
+	clientFail := newClients(nil, c)
+	metric.Services = append(metric.Services, services)
+	canaryStartTime, baselineStartTime, lifetimeMinutes, err = getTimeVariables(metric.BaselineStartTime, metric.CanaryStartTime, metric.EndTime, metric.LifetimeMinutes)
+	assert.Equal(t, nil, err)
+	_, err = getTemplateData(clientFail.client, SecretData, "loggytemp", "LOG", "gitops/%s")
+	assert.Equal(t, "Template Already Exists", err.Error())
+
 	invalidjsonmetric := OPSMXMetric{
 		Application:     "final-job",
 		LifetimeMinutes: 3,
@@ -1725,4 +1815,311 @@ func TestGitops(t *testing.T) {
 	invalidjsonmetric.Services = append(invalidjsonmetric.Services, invalidjsonservices)
 	_, err = invalidjsonmetric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "gitops/invalid/%s")
 	assert.Equal(t, "invalid template json provided", err.Error())
+}
+
+func TestProcessResume(t *testing.T) {
+	metric := OPSMXMetric{
+		GateUrl:           "https://opsmx.test.tst",
+		User:              "admin",
+		Application:       "multiservice",
+		BaselineStartTime: "2022-08-10T13:15:00Z",
+		CanaryStartTime:   "2022-08-10T13:15:00Z",
+		LifetimeMinutes:   30,
+		IntervalTime:      3,
+		Delay:             1,
+		GitOPS:            true,
+		LookBackType:      "growing",
+		Pass:              80,
+		Marginal:          65,
+		Services:          []OPSMXService{},
+	}
+	services := OPSMXService{
+		MetricTemplateName:   "PrometheusMetricTemplate",
+		MetricScopeVariables: "kubernetes.pod_name",
+		BaselineMetricScope:  ".*{{env.STABLE_POD_HASH}}.*",
+		CanaryMetricScope:    ".*{{env.LATEST_POD_HASH}}.*",
+	}
+	metric.Services = append(metric.Services, services)
+	input, _ := io.ReadAll(bytes.NewBufferString(`
+	{
+		"owner": "admin",
+		"application": "testapp",
+		"canaryResult": {
+			"duration": "0 seconds",
+			"lastUpdated": "2022-09-02 10:02:18.504",
+			"canaryReportURL": "https://opsmx.test.tst/ui/application/deploymentverification/testapp/1424",
+			"overallScore": 100,
+			"intervalNo": 1,
+			"isLastRun": true,
+			"overallResult": "HEALTHY",
+			"message": "Canary Is HEALTHY",
+			"errors": []
+		},
+		"launchedDate": "2022-09-02 10:02:18.504",
+		"canaryConfig": {
+			"combinedCanaryResultStrategy": "LOWEST",
+			"minimumCanaryResultScore": 65.0,
+			"name": "admin",
+			"lifetimeMinutes": 30,
+			"canaryAnalysisIntervalMins": 30,
+			"maximumCanaryResultScore": 80.0
+		},
+		"id": "1424",
+		"services": [],
+		"status": {
+			"complete": false,
+			"status": "COMPLETED"
+		}}
+	`))
+	phase, canaryScore, err := metric.processResume(input)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "100", canaryScore)
+	assert.Equal(t, AnalysisPhaseSuccessful, phase)
+
+	input, _ = io.ReadAll(bytes.NewBufferString(`
+	{
+		"owner": "admin",
+		"application": "testapp",
+		"canaryResult": {
+			"duration": "0 seconds",
+			"lastUpdated": "2022-09-02 10:02:18.504",
+			"canaryReportURL": "https://opsmx.test.tst/ui/application/deploymentverification/testapp/1424",
+			"overallScore": 0,
+			"intervalNo": 1,
+			"isLastRun": true,
+			"overallResult": "HEALTHY",
+			"message": "Canary Is HEALTHY",
+			"errors": []
+		},
+		"launchedDate": "2022-09-02 10:02:18.504",
+		"canaryConfig": {
+			"combinedCanaryResultStrategy": "LOWEST",
+			"minimumCanaryResultScore": 65.0,
+			"name": "admin",
+			"lifetimeMinutes": 30,
+			"canaryAnalysisIntervalMins": 30,
+			"maximumCanaryResultScore": 80.0
+		},
+		"id": "1424",
+		"services": [],
+		"status": {
+			"complete": false,
+			"status": "COMPLETED"
+		}}
+	`))
+	phase, canaryScore, err = metric.processResume(input)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "0", canaryScore)
+	assert.Equal(t, AnalysisPhaseFailed, phase)
+
+	input, _ = io.ReadAll(bytes.NewBufferString(`
+	{
+		"owner": "admin",
+		"application": "testapp",
+		"canaryResult": {
+			"duration": "0 seconds",
+			"lastUpdated": "2022-09-02 10:02:18.504",
+			"canaryReportURL": "https://opsmx.test.tst/ui/application/deploymentverification/testapp/1424",
+			"overallScore": 70,
+			"intervalNo": 1,
+			"isLastRun": true,
+			"overallResult": "HEALTHY",
+			"message": "Canary Is HEALTHY",
+			"errors": []
+		},
+		"launchedDate": "2022-09-02 10:02:18.504",
+		"canaryConfig": {
+			"combinedCanaryResultStrategy": "LOWEST",
+			"minimumCanaryResultScore": 65.0,
+			"name": "admin",
+			"lifetimeMinutes": 30,
+			"canaryAnalysisIntervalMins": 30,
+			"maximumCanaryResultScore": 80.0
+		},
+		"id": "1424",
+		"services": [],
+		"status": {
+			"complete": false,
+			"status": "COMPLETED"
+		}}
+	`))
+	phase, canaryScore, err = metric.processResume(input)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "70", canaryScore)
+	assert.Equal(t, AnalysisPhaseInconclusive, phase)
+
+	input, _ = io.ReadAll(bytes.NewBufferString(`
+	{
+		"owner": "admin",
+		"application": "testapp",
+		"canaryResult": {
+			"duration": "0 seconds",
+			"lastUpdated": "2022-09-02 10:02:18.504",
+			"canaryReportURL": "https://opsmx.test.tst/ui/application/deploymentverification/testapp/1424",
+			"intervalNo": 1,
+			"isLastRun": true,
+			"overallResult": "HEALTHY",
+			"message": "Canary Is HEALTHY",
+			"errors": []
+		},
+		"launchedDate": "2022-09-02 10:02:18.504",
+		"canaryConfig": {
+			"combinedCanaryResultStrategy": "LOWEST",
+			"minimumCanaryResultScore": 65.0,
+			"name": "admin",
+			"lifetimeMinutes": 30,
+			"canaryAnalysisIntervalMins": 30,
+			"maximumCanaryResultScore": 80.0
+		},
+		"id": "1424",
+		"services": [],
+		"status": {
+			"complete": false,
+			"status": "COMPLETED"
+		}}
+	`))
+	phase, canaryScore, err = metric.processResume(input)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "0", canaryScore)
+	assert.Equal(t, AnalysisPhaseFailed, phase)
+
+	input, _ = io.ReadAll(bytes.NewBufferString(`
+	{
+		"owner": "admin",
+		"application": "testapp",
+		"canaryResult": {
+			"duration": "0 seconds",
+			"lastUpdated": "2022-09-02 10:02:18.504",
+			"canaryReportURL": "https://opsmx.test.tst/ui/application/deploymentverification/testapp/1424",
+			"overallScore": 97.25,
+			"intervalNo": 1,
+			"isLastRun": true,
+			"overallResult": "HEALTHY",
+			"message": "Canary Is HEALTHY",
+			"errors": []
+		},
+		"launchedDate": "2022-09-02 10:02:18.504",
+		"canaryConfig": {
+			"combinedCanaryResultStrategy": "LOWEST",
+			"minimumCanaryResultScore": 65.0,
+			"name": "admin",
+			"lifetimeMinutes": 30,
+			"canaryAnalysisIntervalMins": 30,
+			"maximumCanaryResultScore": 80.0
+		},
+		"id": "1424",
+		"services": [],
+		"status": {
+			"complete": false,
+			"status": "COMPLETED"
+		}}
+	`))
+	phase, canaryScore, err = metric.processResume(input)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "97", canaryScore)
+	assert.Equal(t, AnalysisPhaseSuccessful, phase)
+
+	input, _ = io.ReadAll(bytes.NewBufferString(`
+	{
+		"owner": "admin",
+		"application": "testapp",
+		"canaryResult": {
+			"duration": "0 seconds",
+			"lastUpdated": "2022-09-02 10:02:18.504",
+			"canaryReportURL": "https://opsmx.test.tst/ui/application/deploymentverification/testapp/1424",
+			"overallScore": 70,
+			"intervalNo": 1,
+			"isLastRun": true,
+			"overallResult": "HEALTHY",
+			"message": "Canary Is HEALTHY",
+			"errors": []
+		}
+		"launchedDate": "2022-09-02 10:02:18.504",
+		"canaryConfig": {
+			"combinedCanaryResultStrategy": "LOWEST",
+			"minimumCanaryResultScore": 65.0,
+			"name": "admin",
+			"lifetimeMinutes": 30,
+			"canaryAnalysisIntervalMins": 30,
+			"maximumCanaryResultScore": 80.0
+		},
+		"id": "1424",
+		"services": [],
+		"status": {
+			"complete": false,
+			"status": "COMPLETED"
+		}}
+	`))
+	_, _, err = metric.processResume(input)
+	assert.Equal(t, "invalid Response", err.Error())
+
+	input, _ = io.ReadAll(bytes.NewBufferString(`
+	{
+		"owner": "admin",
+		"application": "testapp",
+		"canaryResult": {
+			"duration": "0 seconds",
+			"lastUpdated": "2022-09-02 10:02:18.504",
+			"canaryReportURL": "https://opsmx.test.tst/ui/application/deploymentverification/testapp/1424",
+			"overallScore": "97.2a5",
+			"intervalNo": 1,
+			"isLastRun": true,
+			"overallResult": "HEALTHY",
+			"message": "Canary Is HEALTHY",
+			"errors": []
+		},
+		"launchedDate": "2022-09-02 10:02:18.504",
+		"canaryConfig": {
+			"combinedCanaryResultStrategy": "LOWEST",
+			"minimumCanaryResultScore": 65.0,
+			"name": "admin",
+			"lifetimeMinutes": 30,
+			"canaryAnalysisIntervalMins": 30,
+			"maximumCanaryResultScore": 80.0
+		},
+		"id": "1424",
+		"services": [],
+		"status": {
+			"complete": false,
+			"status": "COMPLETED"
+		}}
+	`))
+	_, _, err = metric.processResume(input)
+
+	assert.Equal(t, "strconv.ParseFloat: parsing \"97.2a5\": invalid syntax", err.Error())
+
+	input, _ = io.ReadAll(bytes.NewBufferString(`
+	{
+		"owner": "admin",
+		"application": "testapp",
+		"canaryResult": {
+			"duration": "0 seconds",
+			"lastUpdated": "2022-09-02 10:02:18.504",
+			"canaryReportURL": "https://opsmx.test.tst/ui/application/deploymentverification/testapp/1424",
+			"overallScore": "9a7",
+			"intervalNo": 1,
+			"isLastRun": true,
+			"overallResult": "HEALTHY",
+			"message": "Canary Is HEALTHY",
+			"errors": []
+		},
+		"launchedDate": "2022-09-02 10:02:18.504",
+		"canaryConfig": {
+			"combinedCanaryResultStrategy": "LOWEST",
+			"minimumCanaryResultScore": 65.0,
+			"name": "admin",
+			"lifetimeMinutes": 30,
+			"canaryAnalysisIntervalMins": 30,
+			"maximumCanaryResultScore": 80.0
+		},
+		"id": "1424",
+		"services": [],
+		"status": {
+			"complete": false,
+			"status": "COMPLETED"
+		}}
+	`))
+	_, _, err = metric.processResume(input)
+
+	assert.Equal(t, "strconv.Atoi: parsing \"9a7\": invalid syntax", err.Error())
 }

@@ -595,5 +595,5 @@ func (metric *OPSMXMetric) processResume(data []byte) (string, string, error) {
 	}
 
 	Phase := evaluateResult(score, int(metric.Pass), int(metric.Marginal))
-	return Phase, canaryScore, nil
+	return Phase, fmt.Sprintf("%v", score), nil
 }
