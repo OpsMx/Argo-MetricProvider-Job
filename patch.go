@@ -21,7 +21,7 @@ func patchJobCanaryDetails(kubeclient kubernetes.Interface, ctx context.Context,
 	jobStatus := JobStatus{
 		Status: Status{
 			Conditions: &[]Conditions{{
-				Message:       fmt.Sprintf("Canary ID: %s\nReport URL: %s", cd.canaryId, cd.reportUrl),
+				Message:       fmt.Sprintf("CanaryID: %s\nReportURL: %s", cd.canaryId, cd.reportUrl),
 				Type:          "OpsmxAnalysis",
 				LastProbeTime: metav1.NewTime(time.Now()),
 				Status:        "True",
@@ -43,7 +43,7 @@ func patchJobSuccessful(kubeclient kubernetes.Interface, ctx context.Context, cd
 	jobStatus := JobStatus{
 		Status: Status{
 			Conditions: &[]Conditions{{
-				Message:       fmt.Sprintf("Canary ID: %s\nReport URL: %s\nScore: %s", cd.canaryId, cd.reportUrl, cd.value),
+				Message:       fmt.Sprintf("CanaryID: %s\nReportURL: %s\nScore: %s", cd.canaryId, cd.reportUrl, cd.value),
 				Type:          "OpsmxAnalysis",
 				LastProbeTime: metav1.NewTime(time.Now()),
 				Status:        "True",
@@ -63,7 +63,7 @@ func patchJobFailedInconclusive(kubeclient kubernetes.Interface, ctx context.Con
 	jobStatus := JobStatus{
 		Status: Status{
 			Conditions: &[]Conditions{{
-				Message:       fmt.Sprintf("Canary ID: %s\nReport URL: %s\nScore: %s", cd.canaryId, cd.reportUrl, cd.value),
+				Message:       fmt.Sprintf("CanaryID: %s\nReportURL: %s\nScore: %s", cd.canaryId, cd.reportUrl, cd.value),
 				Type:          "OpsmxAnalysis",
 				LastProbeTime: metav1.NewTime(time.Now()),
 				Status:        "True",
@@ -85,7 +85,7 @@ func patchJobFailedInconclusive(kubeclient kubernetes.Interface, ctx context.Con
 }
 
 func patchJobCancelled(kubeclient kubernetes.Interface, ctx context.Context, jobName string) error {
-	reason:="Cancelled"
+	reason := "Cancelled"
 	err := patchForcefulFail(kubeclient, ctx, jobName, reason)
 	if err != nil {
 		return err
