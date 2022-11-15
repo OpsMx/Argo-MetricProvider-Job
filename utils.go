@@ -24,11 +24,11 @@ import (
 )
 
 func logErrorAndExit(errCode int, err error) {
-	if errCode !=0 {
-		log.Infof("Exiting the Pod with exit code %d",errCode)
-		os.Exit(errCode)
+	if errCode != 0 {
+		log.Infof("Exiting the Pod with exit code %d", errCode)
+		//os.Exit(errCode)
 	}
-	if errCode ==0 && err != nil {
+	if errCode == 0 && err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}
@@ -109,6 +109,9 @@ func makeRequest(client http.Client, requestType string, url string, body string
 	var urlScore string
 	if strings.Contains(url, "registerCanary") {
 		urlScore = res.Header.Get("Location")
+		if urlScore == "" {
+			return []byte{}, "", errors.New("score url not found")
+		}
 	}
 	return data, urlScore, err
 }
@@ -307,20 +310,24 @@ func (metric *OPSMXMetric) getDataSecret(userPath string, gateUrlPath string, so
 	return secretData, nil
 }
 
-func getScopeValues(scope string) string {
+func getScopeValues(scope string) (string, error) {
 	splitScope := strings.Split(scope, ",")
 	for i, items := range splitScope {
 		if strings.Contains(items, "{{env.") {
 			extrctVal := strings.Split(items, "{{env.")
 			extractkey := strings.Split(extrctVal[1], "}}")
-			podName := os.Getenv(extractkey[0])
+			podName, ok := os.LookupEnv(extractkey[0])
+			if !ok {
+				err := fmt.Sprintf("environment variable %s not set", extractkey[0])
+				return "", errors.New(err)
+			}
 			old := fmt.Sprintf("{{env.%s}}", extractkey[0])
 			testresult := strings.Replace(items, old, podName, 1)
 			splitScope[i] = testresult
 		}
 	}
 	scopeValue := strings.Join(splitScope, ",")
-	return scopeValue
+	return scopeValue, nil
 }
 
 func (metric *OPSMXMetric) getPayload(c *Clients, secretData map[string]string, canaryStartTime string, baselineStartTime string, lifetimeMinutes int, templatePath string) (string, error) {
@@ -406,14 +413,20 @@ func (metric *OPSMXMetric) getPayload(c *Clients, secretData map[string]string, 
 					}
 				}
 
-				baslineLogScope := getScopeValues(item.BaselineLogScope)
+				baslineLogScope, errors := getScopeValues(item.BaselineLogScope)
+				if errors != nil {
+					return "", errors
+				}
 				//Add mandatory field for baseline
 				deployment.Baseline.Log[serviceName] = map[string]string{
 					item.LogScopeVariables: baslineLogScope,
 					"serviceGate":          gateName,
 				}
 
-				canaryLogScope := getScopeValues(item.CanaryLogScope)
+				canaryLogScope, errors := getScopeValues(item.CanaryLogScope)
+				if errors != nil {
+					return "", errors
+				}
 				//Add mandatory field for canary
 				deployment.Canary.Log[serviceName] = map[string]string{
 					item.LogScopeVariables: canaryLogScope,
@@ -480,14 +493,20 @@ func (metric *OPSMXMetric) getPayload(c *Clients, secretData map[string]string, 
 					}
 				}
 
-				baselineMetricScope := getScopeValues(item.BaselineMetricScope)
+				baselineMetricScope, errors := getScopeValues(item.BaselineMetricScope)
+				if errors != nil {
+					return "", errors
+				}
 				//Add mandatory field for baseline
 				deployment.Baseline.Metric[serviceName] = map[string]string{
 					item.MetricScopeVariables: baselineMetricScope,
 					"serviceGate":             gateName,
 				}
 
-				canaryMetricScope := getScopeValues(item.CanaryMetricScope)
+				canaryMetricScope, errors := getScopeValues(item.CanaryMetricScope)
+				if errors != nil {
+					return "", errors
+				}
 				//Add mandatory field for canary
 				deployment.Canary.Metric[serviceName] = map[string]string{
 					item.MetricScopeVariables: canaryMetricScope,
@@ -539,9 +558,7 @@ func (metric *OPSMXMetric) getPayload(c *Clients, secretData map[string]string, 
 	} else {
 		//Check if no services were provided
 		err := errors.New("no services provided")
-		if err != nil {
-			return "", err
-		}
+		return "", err
 	}
 	buffer, err := json.Marshal(payload)
 	if err != nil {
@@ -570,7 +587,7 @@ func (metric *OPSMXMetric) processResume(data []byte) (string, string, error) {
 	)
 
 	if !json.Valid(data) {
-		err := errors.New("invalid Response")
+		err := errors.New("invalid response")
 		return "", "", err
 	}
 

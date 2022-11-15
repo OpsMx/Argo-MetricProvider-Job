@@ -2,12 +2,16 @@ package main
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -1600,9 +1604,36 @@ func TestPayload(t *testing.T) {
 		_, err = test.metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "notrequired")
 		assert.Equal(t, test.message, err.Error())
 	}
+	metric := OPSMXMetric{
+		GateUrl:           "https://opsmx.test.tst",
+		User:              "admin",
+		Application:       "multiservice",
+		BaselineStartTime: "2022-08-10T13:15:00Z",
+		CanaryStartTime:   "2022-08-10T13:15:00Z",
+		LifetimeMinutes:   30,
+		IntervalTime:      3,
+		Delay:             1,
+		LookBackType:      "growing",
+		Pass:              80,
+		Marginal:          65,
+		Services:          []OPSMXService{},
+	}
+	services := OPSMXService{
+		LogTemplateName:   "loggytemp",
+		LogScopeVariables: "kubernetes.pod_name",
+		BaselineLogScope:  ".*{{env.STABLE_POD_HASH}}.*",
+		CanaryLogScope:    ".*{{env.LATEST_POD_HASH}}.*",
+	}
+	metric.Services = append(metric.Services, services)
+	canaryStartTime, baselineStartTime, lifetimeMinutes, err := getTimeVariables(metric.BaselineStartTime, metric.CanaryStartTime, metric.EndTime, metric.LifetimeMinutes)
+	assert.Equal(t, nil, err)
+	_, err = metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "notRequired")
+	assert.Equal(t, "environment variable STABLE_POD_HASH not set", err.Error())
 }
 
 func TestGitops(t *testing.T) {
+	os.Setenv("STABLE_POD_HASH", "baseline")
+	os.Setenv("LATEST_POD_HASH", "canary")
 	httpclient := NewHttpClient()
 	clients := newClients(nil, httpclient)
 	SecretData := map[string]string{
@@ -1654,14 +1685,14 @@ func TestGitops(t *testing.T) {
 					"baselineStartTimeMs": "1660137300000",
 					"canary": {
 						"log": {"service1":{
-						"kubernetes.pod_name":".*.*",
+						"kubernetes.pod_name":".*canary.*",
 						"serviceGate":"gate1",
 						"template":"loggytemp",
 						"templateSha1":"1fd53480333cb618aa05ce901a051263efabe3cd"}
 					  }},
 					"baseline": {
 						"log": {"service1":{
-						"kubernetes.pod_name":".*.*",
+						"kubernetes.pod_name":".*baseline.*",
 						"serviceGate":"gate1",
 						"template":"loggytemp",
 						"templateSha1":"1fd53480333cb618aa05ce901a051263efabe3cd"}}
@@ -1723,14 +1754,14 @@ func TestGitops(t *testing.T) {
 					"baselineStartTimeMs": "1660137300000",
 					"canary": {
 						"metric": {"service1":{
-						"kubernetes.pod_name":".*.*",
+						"kubernetes.pod_name":".*canary.*",
 						"serviceGate":"gate1",
 						"template":"PrometheusMetricTemplate",
 						"templateSha1":"445b4c60855cd618b070e91ee232860e40e23d9c"}
 					  }},
 					"baseline": {
 						"metric": {"service1":{
-						"kubernetes.pod_name":".*.*",
+						"kubernetes.pod_name":".*baseline.*",
 						"serviceGate":"gate1",
 						"template":"PrometheusMetricTemplate",
 						"templateSha1":"445b4c60855cd618b070e91ee232860e40e23d9c"}}
@@ -2051,7 +2082,7 @@ func TestProcessResume(t *testing.T) {
 		}}
 	`))
 	_, _, err = metric.processResume(input)
-	assert.Equal(t, "invalid Response", err.Error())
+	assert.Equal(t, "invalid response", err.Error())
 
 	input, _ = io.ReadAll(bytes.NewBufferString(`
 	{
@@ -2142,9 +2173,276 @@ func TestRunAnalysis(t *testing.T) {
 	})
 	resourceNames := ResourceNames{
 		podName: "podName",
-		jobName: "jobName",
+		jobName: "jobname-123",
 	}
-	clients := newClients(getFakeClient(map[string][]byte{}), c)
-	err := runAnalysis(clients, resourceNames, "/home/user/Argo-MetricProvider-Job/analysis/providerConfig", "/home/user/Argo-MetricProvider-Job/secret/user", "/home/user/Argo-MetricProvider-Job/secret/gate-url", "/home/user/Argo-MetricProvider-Job/secret/source-name", "/home/user/Argo-MetricProvider-Job/secret/cd-Integration", "/home/user/Argo-MetricProvider-Job/gitops/%s")
+	cd := CanaryDetails{
+		jobName:   "jobname-123",
+		canaryId:  "123",
+		reportUrl: "https://opsmx.test.tst/reporturl/123",
+	}
+	cond := batchv1.JobCondition{
+		Message: fmt.Sprintf("Canary ID: %s\nReport URL: %s", cd.canaryId, cd.reportUrl),
+		Type:    "OpsmxAnalysis",
+		Status:  "True",
+	}
+	k8sclient := jobFakeClient(cond)
+	clients := newClients(k8sclient, c)
+	err := runAnalysis(clients, resourceNames, "analysis/providerConfig", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
 	assert.Equal(t, nil, err)
+	err = runAnalysis(clients, resourceNames, "analysis/providerConfigs", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	assert.Equal(t, "open analysis/providerConfigs: no such file or directory", err.Error())
+	err = runAnalysis(clients, resourceNames, "analysis/providerConfig", "secrets/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	assert.Equal(t, "open secrets/user: no such file or directory", err.Error())
+	err = runAnalysis(clients, resourceNames, "analysis/provideConfigGitops", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitopsy/%s")
+	assert.Equal(t, "open gitopsy/loggytemp: no such file or directory", err.Error())
+	err = runAnalysis(clients, resourceNames, "analysis/basicCheckFail", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitopsy/%s")
+	assert.Equal(t, "lookbacktype is given and interval time is required to run interval analysis", err.Error())
+	err = runAnalysis(clients, resourceNames, "analysis/failtimevariables", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitopsy/%s")
+	assert.Equal(t, "parsing time \"abc\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"abc\" as \"2006\"", err.Error())
+
+	cS := NewTestClient(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body: io.NopCloser(bytes.NewBufferString(`
+			{
+				"owner": "admin",
+				"application": "testapp",
+				"canaryResult": {
+					"duration": "0 seconds",
+					"lastUpdated": "2022-09-02 10:02:18.504",
+					"canaryReportURL": "https://opsmx.test.tst/ui/application/deploymentverification/testapp/1424",
+					"overallScore": 100,
+					"intervalNo": 1,
+					"isLastRun": true,
+					"overallResult": "HEALTHY",
+					"message": "Canary Is HEALTHY",
+					"errors": []
+				},
+				"launchedDate": "2022-09-02 10:02:18.504",
+				"canaryConfig": {
+					"combinedCanaryResultStrategy": "LOWEST",
+					"minimumCanaryResultScore": 65.0,
+					"name": "admin",
+					"lifetimeMinutes": 30,
+					"canaryAnalysisIntervalMins": 30,
+					"maximumCanaryResultScore": 80.0
+				},
+				"id": "1424",
+				"services": [],
+				"status": {
+					"complete": false,
+					"status": "COMPLETED"
+				}}
+			`)),
+			// Must be set to non-nil value or it panics
+			Header: Head,
+		}, nil
+	})
+	k8sclientS := jobFakeClient(cond)
+	clientsS := newClients(k8sclientS, cS)
+	err = runAnalysis(clientsS, resourceNames, "analysis/providerConfig", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	assert.Equal(t, nil, err)
+
+	cInc := NewTestClient(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body: io.NopCloser(bytes.NewBufferString(`
+			{
+				"owner": "admin",
+				"application": "testapp",
+				"canaryResult": {
+					"duration": "0 seconds",
+					"lastUpdated": "2022-09-02 10:02:18.504",
+					"canaryReportURL": "https://opsmx.test.tst/ui/application/deploymentverification/testapp/1424",
+					"overallScore": 70,
+					"intervalNo": 1,
+					"isLastRun": true,
+					"overallResult": "HEALTHY",
+					"message": "Canary Is HEALTHY",
+					"errors": []
+				},
+				"launchedDate": "2022-09-02 10:02:18.504",
+				"canaryConfig": {
+					"combinedCanaryResultStrategy": "LOWEST",
+					"minimumCanaryResultScore": 65.0,
+					"name": "admin",
+					"lifetimeMinutes": 30,
+					"canaryAnalysisIntervalMins": 30,
+					"maximumCanaryResultScore": 80.0
+				},
+				"id": "1424",
+				"services": [],
+				"status": {
+					"complete": false,
+					"status": "COMPLETED"
+				}}
+			`)),
+			// Must be set to non-nil value or it panics
+			Header: Head,
+		}, nil
+	})
+	k8sclientInc := jobFakeClient(cond)
+	clientsInc := newClients(k8sclientInc, cInc)
+	err = runAnalysis(clientsInc, resourceNames, "analysis/providerConfig", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	assert.Equal(t, nil, err)
+
+	cInvalid := NewTestClient(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body: io.NopCloser(bytes.NewBufferString(`
+			{
+				"owner": "admin",
+				"application": "testapp",
+				"canaryResult": {
+					"duration": "0 seconds",
+					"lastUpdated": "2022-09-02 10:02:18.504",
+					"canaryReportURL": "https://opsmx.test.tst/ui/application/deploymentverification/testapp/1424",
+					"overallScore": 100,
+					"intervalNo": 1,
+					"isLastRun": true,
+					"overallResult": "HEALTHY",
+					"message": "Canary Is HEALTHY",
+					"errors": []
+				},
+				"launchedDate": "2022-09-02 10:02:18.504",
+				"canaryConfig": {
+					"combinedCanaryResultStrategy": "LOWEST",
+					"minimumCanaryResultScore": 65.0,
+					"name": "admin",
+					"lifetimeMinutes": 30,
+					"canaryAnalysisIntervalMins": 30,
+					"maximumCanaryResultScore": 80.0
+				},
+				"id": "1424"
+				"services": [],
+				"status": {
+					"complete": false,
+					"status": "RUNNING"
+				}}
+			`)),
+			// Must be set to non-nil value or it panics
+			Header: Head,
+		}, nil
+	})
+	clientsInvalid := newClients(k8sclient, cInvalid)
+	err = runAnalysis(clientsInvalid, resourceNames, "analysis/providerConfig", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	assert.Equal(t, "invalid response", err.Error())
+
+	cCancel := NewTestClient(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body: io.NopCloser(bytes.NewBufferString(`
+			{
+				"owner": "admin",
+				"application": "testapp",
+				"canaryResult": {
+					"duration": "0 seconds",
+					"lastUpdated": "2022-09-02 10:02:18.504",
+					"canaryReportURL": "https://opsmx.test.tst/ui/application/deploymentverification/testapp/1424",
+					"overallScore": 100,
+					"intervalNo": 1,
+					"isLastRun": true,
+					"overallResult": "HEALTHY",
+					"message": "Canary Is HEALTHY",
+					"errors": []
+				},
+				"launchedDate": "2022-09-02 10:02:18.504",
+				"canaryConfig": {
+					"combinedCanaryResultStrategy": "LOWEST",
+					"minimumCanaryResultScore": 65.0,
+					"name": "admin",
+					"lifetimeMinutes": 30,
+					"canaryAnalysisIntervalMins": 30,
+					"maximumCanaryResultScore": 80.0
+				},
+				"id": "1424",
+				"services": [],
+				"status": {
+					"complete": false,
+					"status": "CANCELLED"
+				}}
+			`)),
+			// Must be set to non-nil value or it panics
+			Header: Head,
+		}, nil
+	})
+	k8sclientCancel := jobFakeClient(cond)
+	clientsCancel := newClients(k8sclientCancel, cCancel)
+	err = runAnalysis(clientsCancel, resourceNames, "analysis/providerConfig", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	assert.Equal(t, nil, err)
+
+	cHead := NewTestClient(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body: io.NopCloser(bytes.NewBufferString(`
+			{
+				"canaryId": 1424
+			}
+			`)),
+			// Must be set to non-nil value or it panics
+			Header: make(http.Header),
+		}, nil
+	})
+	clientsHead := newClients(k8sclientCancel, cHead)
+	err = runAnalysis(clientsHead, resourceNames, "analysis/providerConfig", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	assert.Equal(t, "score url not found", err.Error())
+
+	cError := NewTestClient(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body: io.NopCloser(bytes.NewBufferString(`
+			{
+				"canaryId": 1424,
+				"message": "Error is Here",
+				"error": "Here is Error"
+			}
+			`)),
+			// Must be set to non-nil value or it panics
+			Header: Head,
+		}, nil
+	})
+	clientsError := newClients(k8sclientCancel, cError)
+	err = runAnalysis(clientsError, resourceNames, "analysis/providerConfig", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	assert.Equal(t, "Error: Here is Error\nMessage: Error is Here", err.Error())
+
+	resourceNames = ResourceNames{
+		podName: "pod",
+		jobName: "job",
+	}
+	clientsPatchError := newClients(getFakeClient(map[string][]byte{}), c)
+	err = runAnalysis(clientsPatchError, resourceNames, "analysis/providerConfig", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	assert.Equal(t, "jobs.batch \"job\" not found", err.Error())
+
+	cUrlEroor := NewTestClient(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 404,
+			Header:     make(http.Header),
+		}, errors.New("Post \"https://opsmx.invalidurl.tst\": dial tcp: lookup https://opsmx.invalidurl.tst: no such host")
+	})
+	clientsUrlError := newClients(k8sclientS, cUrlEroor)
+	err = runAnalysis(clientsUrlError, resourceNames, "analysis/providerConfig", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	assert.Equal(t, "Post \"https://isd.opsmx.net/autopilot/api/v5/registerCanary\": Post \"https://opsmx.invalidurl.tst\": dial tcp: lookup https://opsmx.invalidurl.tst: no such host", err.Error())
+}
+
+func TestRunner(t *testing.T) {
+	httpclient := NewHttpClient()
+	clients := newClients(getFakeClient(map[string][]byte{}), httpclient)
+	err := runner(clients)
+	assert.Equal(t, "environment variable my_pod name not set", err.Error())
+
+	cd := CanaryDetails{
+		jobName:   "jobname-123",
+		canaryId:  "123",
+		reportUrl: "https://opsmx.test.tst/reporturl/123",
+	}
+	cond := batchv1.JobCondition{
+		Message: fmt.Sprintf("Canary ID: %s\nReport URL: %s", cd.canaryId, cd.reportUrl),
+		Type:    "OpsmxAnalysis",
+		Status:  "True",
+	}
+	k8sclient := jobFakeClient(cond)
+	clients = newClients(k8sclient, httpclient)
+	os.Setenv("MY_POD_NAME", "pod")
+	err = runner(clients)
+	assert.Equal(t, "pods \"pod\" not found", err.Error())
 }
