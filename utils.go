@@ -23,8 +23,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func logErrorExit1(err error) {
-	if err != nil {
+func logErrorAndExit(errCode int, err error) {
+	if errCode !=0 {
+		log.Infof("Exiting the Pod with exit code %d",errCode)
+		os.Exit(errCode)
+	}
+	if errCode ==0 && err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}

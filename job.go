@@ -92,7 +92,6 @@ func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath stri
 	cd := CanaryDetails{
 		jobName:   r.jobName,
 		canaryId:  canary.CanaryId.String(),
-		gateUrl:   metric.GateUrl,
 		reportUrl: fmt.Sprintf("%s", reportUrl),
 	}
 
@@ -123,10 +122,11 @@ func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath stri
 	}
 	//if run is cancelled mid-run
 	if status["status"] == "CANCELLED" {
-		err = patchJobCancelled(c.kubeclientset, ctx, r.jobName, 4)
+		err = patchJobCancelled(c.kubeclientset, ctx, r.jobName)
 		if err != nil {
 			return err
 		}
+		logErrorAndExit(4,nil)
 	} else {
 		//POST-Run process
 		Phase, Score, err := metric.processResume(data)
@@ -138,7 +138,6 @@ func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath stri
 			fs := CanaryDetails{
 				jobName:   r.jobName,
 				canaryId:  canary.CanaryId.String(),
-				gateUrl:   metric.GateUrl,
 				reportUrl: fmt.Sprintf("%s", reportUrl),
 				value:     Score,
 			}
@@ -152,28 +151,28 @@ func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath stri
 			fs := CanaryDetails{
 				jobName:   r.jobName,
 				canaryId:  canary.CanaryId.String(),
-				gateUrl:   metric.GateUrl,
 				reportUrl: fmt.Sprintf("%s", reportUrl),
 				value:     Score,
 			}
-			err = patchJobFailedInconclusive(c.kubeclientset, ctx, Phase, fs, 2)
+			err = patchJobFailedInconclusive(c.kubeclientset, ctx, Phase, fs)
 			if err != nil {
 				return err
 			}
+			logErrorAndExit(2,nil)
 		}
 		if Phase == AnalysisPhaseInconclusive {
 
 			fs := CanaryDetails{
 				jobName:   r.jobName,
 				canaryId:  canary.CanaryId.String(),
-				gateUrl:   metric.GateUrl,
 				reportUrl: fmt.Sprintf("%s", reportUrl),
 				value:     Score,
 			}
-			err = patchJobFailedInconclusive(c.kubeclientset, ctx, Phase, fs, 3)
+			err = patchJobFailedInconclusive(c.kubeclientset, ctx, Phase, fs)
 			if err != nil {
 				return err
 			}
+			logErrorAndExit(3,nil)
 		}
 	}
 	return nil

@@ -47,6 +47,7 @@ func runner(c *Clients) error {
 			log.Error("an error occurred while patching the error from run analysis")
 			return err
 		}
+		logErrorAndExit(1,nil)
 	}
 	return nil
 
@@ -54,10 +55,10 @@ func runner(c *Clients) error {
 
 func main() {
 	config, err := rest.InClusterConfig()
-	logErrorExit1(err)
+	logErrorAndExit(0,err)
 
 	clientset, err := kubernetes.NewForConfig(config)
-	logErrorExit1(err)
+	logErrorAndExit(0,err)
 
 	httpclient := NewHttpClient()
 
@@ -65,5 +66,5 @@ func main() {
 
 	log.Info("Starting the runner function")
 	err = runner(clients)
-	logErrorExit1(err)
+	logErrorAndExit(0,err)
 }

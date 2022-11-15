@@ -44,7 +44,6 @@ type ResourceNames struct {
 type CanaryDetails struct {
 	jobName   string
 	canaryId  string
-	gateUrl   string
 	reportUrl string
 	value     string
 }
