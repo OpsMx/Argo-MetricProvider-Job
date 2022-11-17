@@ -126,7 +126,7 @@ func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath stri
 		if err != nil {
 			return err
 		}
-		logErrorAndExit(4,nil)
+		logErrorAndExit(4, nil)
 	} else {
 		//POST-Run process
 		Phase, Score, err := metric.processResume(data)
@@ -158,7 +158,7 @@ func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath stri
 			if err != nil {
 				return err
 			}
-			logErrorAndExit(2,nil)
+			logErrorAndExit(2, nil)
 		}
 		if Phase == AnalysisPhaseInconclusive {
 
@@ -172,7 +172,7 @@ func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath stri
 			if err != nil {
 				return err
 			}
-			logErrorAndExit(3,nil)
+			logErrorAndExit(3, nil)
 		}
 	}
 	return nil

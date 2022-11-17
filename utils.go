@@ -26,7 +26,7 @@ import (
 func logErrorAndExit(errCode int, err error) {
 	if errCode != 0 {
 		log.Infof("Exiting the Pod with exit code %d", errCode)
-		//os.Exit(errCode)
+		os.Exit(errCode)
 	}
 	if errCode == 0 && err != nil {
 		log.Error(err)
