@@ -41,13 +41,17 @@ func runner(c *Clients) error {
 	if err != nil {
 		return err
 	}
-	if errrun := runAnalysis(c, resourceNames, analysispath, userPath, gateUrlPath, sourceNamePath, cdIntegrationPath, templatePath); errrun != nil {
+	errcode, errrun := runAnalysis(c, resourceNames, analysispath, userPath, gateUrlPath, sourceNamePath, cdIntegrationPath, templatePath);
+	if errrun != nil {
 		err := patchJobError(c.kubeclientset, context.TODO(), resourceNames.jobName, errrun.Error())
 		if err != nil {
 			log.Error("an error occurred while patching the error from run analysis")
 			return err
 		}
-		logErrorAndExit(1,nil)
+		// logNon0CodeExit(1)
+	}
+	if errcode !=0{
+		logNon0CodeExit(errcode)
 	}
 	return nil
 
@@ -55,10 +59,10 @@ func runner(c *Clients) error {
 
 func main() {
 	config, err := rest.InClusterConfig()
-	logErrorAndExit(0,err)
+	logErrorExit(err)
 
 	clientset, err := kubernetes.NewForConfig(config)
-	logErrorAndExit(0,err)
+	logErrorExit(err)
 
 	httpclient := NewHttpClient()
 
@@ -66,5 +70,5 @@ func main() {
 
 	log.Info("Starting the runner function")
 	err = runner(clients)
-	logErrorAndExit(0,err)
+	logErrorExit(err)
 }

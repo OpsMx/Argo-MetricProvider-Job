@@ -24,37 +24,37 @@ const (
 	cdIntegrationArgoCD                     = "argocd"
 )
 
-func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath string, gateUrlPath string, sourceNamePath string, cdIntegrationPath string, templatePath string) error {
+func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath string, gateUrlPath string, sourceNamePath string, cdIntegrationPath string, templatePath string) (int, error) {
 	metric, err := getAnalysisTemplateData(analysispath)
 	if err != nil {
-		return err
+		return 1, err
 	}
 	err = metric.basicChecks()
 	if err != nil {
-		return err
+		return 1, err
 	}
 	secretData, err := metric.getDataSecret(userPath, gateUrlPath, sourceNamePath, cdIntegrationPath)
 	if err != nil {
-		return err
+		return 1, err
 	}
 	canaryurl, err := url.JoinPath(secretData["gateUrl"], v5configIdLookupURLFormat)
 	if err != nil {
-		return err
+		return 1, err
 	}
 	//Get the epochs for Time variables and the lifetimeMinutes
 	canaryStartTime, baselineStartTime, lifetimeMinutes, err := getTimeVariables(metric.BaselineStartTime, metric.CanaryStartTime, metric.EndTime, metric.LifetimeMinutes)
 	if err != nil {
-		return err
+		return 1, err
 	}
 
 	payload, err := metric.getPayload(c, secretData, canaryStartTime, baselineStartTime, lifetimeMinutes, templatePath)
 	if err != nil {
-		return err
+		return 1, err
 	}
 
 	data, scoreURL, err := makeRequest(c.client, "POST", canaryurl, payload, secretData["user"])
 	if err != nil {
-		return err
+		return 1, err
 	}
 	//Struct to record canary Response
 	type canaryResponse struct {
@@ -70,13 +70,13 @@ func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath stri
 		errMessage := fmt.Sprintf("Error: %s\nMessage: %s", canary.Error, canary.Message)
 		err := errors.New(errMessage)
 		if err != nil {
-			return err
+			return 1, err
 		}
 	}
 
 	data, _, err = makeRequest(c.client, "GET", scoreURL, "", secretData["user"])
 	if err != nil {
-		return err
+		return 1, err
 	}
 
 	var status map[string]interface{}
@@ -97,7 +97,7 @@ func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath stri
 
 	err = patchJobCanaryDetails(c.kubeclientset, ctx, cd)
 	if err != nil {
-		return err
+		return 1, err
 	}
 
 	retryScorePool := 5
@@ -114,7 +114,7 @@ func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath stri
 			time.Sleep(resumeAfter)
 			data, _, err = makeRequest(c.client, "GET", scoreURL, "", secretData["user"])
 			if err != nil && retryScorePool == 0 {
-				return err
+				return 1, err
 			} else {
 				retryScorePool -= 1
 			}
@@ -124,14 +124,15 @@ func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath stri
 	if status["status"] == "CANCELLED" {
 		err = patchJobCancelled(c.kubeclientset, ctx, r.jobName)
 		if err != nil {
-			return err
+			return 1, err
 		}
-		logErrorAndExit(4, nil)
+		// logErrorAndExit(4, nil)
+		return 4,nil
 	} else {
 		//POST-Run process
 		Phase, Score, err := metric.processResume(data)
 		if err != nil {
-			return err
+			return 1, err
 		}
 		if Phase == AnalysisPhaseSuccessful {
 
@@ -143,7 +144,7 @@ func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath stri
 			}
 			err = patchJobSuccessful(c.kubeclientset, ctx, fs)
 			if err != nil {
-				return err
+				return 1, err
 			}
 		}
 		if Phase == AnalysisPhaseFailed {
@@ -156,9 +157,10 @@ func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath stri
 			}
 			err = patchJobFailedInconclusive(c.kubeclientset, ctx, Phase, fs)
 			if err != nil {
-				return err
+				return 1, err
 			}
-			logErrorAndExit(2, nil)
+			// logErrorAndExit(2, nil)
+			return 2,nil
 		}
 		if Phase == AnalysisPhaseInconclusive {
 
@@ -170,10 +172,11 @@ func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath stri
 			}
 			err = patchJobFailedInconclusive(c.kubeclientset, ctx, Phase, fs)
 			if err != nil {
-				return err
+				return 1, err
 			}
-			logErrorAndExit(3, nil)
+			// logErrorAndExit(3, nil)
+			return 3,nil
 		}
 	}
-	return nil
+	return 0,nil
 }

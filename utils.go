@@ -23,15 +23,16 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func logErrorAndExit(errCode int, err error) {
-	if errCode != 0 {
-		log.Infof("Exiting the Pod with exit code %d", errCode)
-		os.Exit(errCode)
-	}
-	if errCode == 0 && err != nil {
+func logErrorExit(err error) {
+	if err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}
+}
+
+func logNon0CodeExit(exitcode int){
+		log.Infof("Exiting the pod with status code %d",exitcode)
+		os.Exit(exitcode)
 }
 
 func getJobNameFromPod(p *Clients, podName string) (string, error) {
