@@ -8,12 +8,11 @@ import (
 )
 
 const (
-	AnalysisPhasePending      = "Pending"
-	AnalysisPhaseRunning      = "Running"
-	AnalysisPhaseSuccessful   = "Successful"
-	AnalysisPhaseFailed       = "Failed"
-	AnalysisPhaseError        = "Error"
-	AnalysisPhaseInconclusive = "Inconclusive"
+	AnalysisPhasePending    = "Pending"
+	AnalysisPhaseRunning    = "Running"
+	AnalysisPhaseSuccessful = "Successful"
+	AnalysisPhaseFailed     = "Failed"
+	AnalysisPhaseError      = "Error"
 )
 
 type Clients struct {

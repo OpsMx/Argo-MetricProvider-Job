@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -59,7 +60,11 @@ func (f RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestFuncGetAnalysisTemplateData(t *testing.T) {
-	metric, err := getAnalysisTemplateData("testcases/analysis/providerConfig")
+	emptyFile, _ := os.Create("testcases/provider/providerConfig")
+	emptyFile.Close()
+	input, _ := ioutil.ReadFile("testcases/analysis/providerConfig")
+	_ = ioutil.WriteFile("testcases/provider/providerConfig", input, 0644)
+	metric, err := getAnalysisTemplateData("testcases/%s")
 	checkMetric := OPSMXMetric{
 		Application:     "final-job",
 		User:            "admin",
@@ -68,7 +73,7 @@ func TestFuncGetAnalysisTemplateData(t *testing.T) {
 		IntervalTime:    3,
 		LookBackType:    "sliding",
 		Pass:            80,
-		Marginal:        60,
+		Marginal:        80,
 		Services:        []OPSMXService{},
 	}
 	services := OPSMXService{
@@ -84,10 +89,12 @@ func TestFuncGetAnalysisTemplateData(t *testing.T) {
 	checkMetric.Services = append(checkMetric.Services, services)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, metric, checkMetric)
-	_, err = getAnalysisTemplateData("/etc/config/provider/providerConfig")
+	_, err = getAnalysisTemplateData("/etc/config/%s")
 	assert.Equal(t, err.Error(), "open /etc/config/provider/providerConfig: no such file or directory")
-	_, err = getAnalysisTemplateData("testcases/analysis/invalid")
-	assert.Equal(t, err.Error(), "yaml: line 9: mapping values are not allowed in this context")
+	input, _ = ioutil.ReadFile("testcases/analysis/invalid")
+	_ = ioutil.WriteFile("testcases/provider/providerConfig", input, 0644)
+	_, err = getAnalysisTemplateData("testcases/%s")
+	assert.Equal(t, err.Error(), "yaml: line 8: mapping values are not allowed in this context")
 }
 
 var basicChecks = []struct {
@@ -291,7 +298,6 @@ func TestBasicChecks(t *testing.T) {
 		CanaryStartTime:   "2022-08-02T13:15:00Z",
 		LifetimeMinutes:   30,
 		Pass:              100,
-		Marginal:          80,
 
 		Services: []OPSMXService{
 			{
@@ -467,20 +473,35 @@ func TestSecret(t *testing.T) {
 		CanaryMetricScope:    "argocd,{{env.LATEST_POD_HASH}},demoapp-issuegen",
 	}
 	metric.Services = append(metric.Services, services)
+	_, err := metric.getDataSecret("testcases/%s")
+	assert.Equal(t, err.Error(), "open testcases/secrets/user: no such file or directory")
+	emptyFile, _ := os.Create("testcases/secrets/user")
+	emptyFile.Close()
+	input, _ := ioutil.ReadFile("testcases/secret/user")
+	_ = ioutil.WriteFile("testcases/secrets/user", input, 0644)
 
-	_, err := metric.getDataSecret("testcases/secret/users", "/home/user/Argo-MetricProvider-Job/secret/gate-url", "/home/user/Argo-MetricProvider-Job/secret/source-name", "/home/user/Argo-MetricProvider-Job/secret/cd-Integration")
-	assert.Equal(t, err.Error(), "open testcases/secret/users: no such file or directory")
+	_, err = metric.getDataSecret("testcases/%s")
+	assert.Equal(t, err.Error(), "open testcases/secrets/gate-url: no such file or directory")
+	emptyFile, _ = os.Create("testcases/secrets/gate-url")
+	emptyFile.Close()
+	input, _ = ioutil.ReadFile("testcases/secret/gate-url")
+	_ = ioutil.WriteFile("testcases/secrets/gate-url", input, 0644)
 
-	_, err = metric.getDataSecret("/home/user/Argo-MetricProvider-Job/secret/user", "/home/user/Argo-MetricProvider-Job/secret/gate-urls", "/home/user/Argo-MetricProvider-Job/secret/source-name", "/home/user/Argo-MetricProvider-Job/secret/cd-Integration")
-	assert.Equal(t, err.Error(), "open /home/user/Argo-MetricProvider-Job/secret/gate-urls: no such file or directory")
+	_, err = metric.getDataSecret("testcases/%s")
+	assert.Equal(t, err.Error(), "open testcases/secrets/source-name: no such file or directory")
+	emptyFile, _ = os.Create("testcases/secrets/source-name")
+	emptyFile.Close()
+	input, _ = ioutil.ReadFile("testcases/secret/source-name")
+	_ = ioutil.WriteFile("testcases/secrets/source-name", input, 0644)
 
-	_, err = metric.getDataSecret("/home/user/Argo-MetricProvider-Job/secret/user", "/home/user/Argo-MetricProvider-Job/secret/gate-url", "/home/user/Argo-MetricProvider-Job/secret/source-names", "/home/user/Argo-MetricProvider-Job/secret/cd-Integration")
-	assert.Equal(t, err.Error(), "open /home/user/Argo-MetricProvider-Job/secret/source-names: no such file or directory")
+	_, err = metric.getDataSecret("testcases/%s")
+	assert.Equal(t, err.Error(), "open testcases/secrets/cd-integration: no such file or directory")
+	emptyFile, _ = os.Create("testcases/secrets/cd-integration")
+	emptyFile.Close()
+	input, _ = ioutil.ReadFile("testcases/secret/cd-Integration")
+	_ = ioutil.WriteFile("testcases/secrets/cd-integration", input, 0644)
 
-	_, err = metric.getDataSecret("/home/user/Argo-MetricProvider-Job/secret/user", "/home/user/Argo-MetricProvider-Job/secret/gate-url", "/home/user/Argo-MetricProvider-Job/secret/source-name", "/home/user/Argo-MetricProvider-Job/secret/cd-Integrations")
-	assert.Equal(t, err.Error(), "open /home/user/Argo-MetricProvider-Job/secret/cd-Integrations: no such file or directory")
-
-	secretData, err := metric.getDataSecret("/home/user/Argo-MetricProvider-Job/secret/user", "/home/user/Argo-MetricProvider-Job/secret/gate-url", "/home/user/Argo-MetricProvider-Job/secret/source-name", "/home/user/Argo-MetricProvider-Job/secret/cd-Integration")
+	secretData, err := metric.getDataSecret("testcases/%s")
 	assert.Equal(t, err, nil)
 	checkSecretData := map[string]string{
 		"cdIntegration": "argocd",
@@ -490,7 +511,9 @@ func TestSecret(t *testing.T) {
 	}
 	assert.Equal(t, checkSecretData, secretData)
 
-	secretData, err = metric.getDataSecret("/home/user/Argo-MetricProvider-Job/secret/user", "/home/user/Argo-MetricProvider-Job/secret/gate-url", "/home/user/Argo-MetricProvider-Job/secret/source-name", "/home/user/Argo-MetricProvider-Job/secret/cd-Integration-False")
+	input, _ = ioutil.ReadFile("testcases/secret/cd-Integration-False")
+	_ = ioutil.WriteFile("testcases/secrets/cd-integration", input, 0644)
+	secretData, err = metric.getDataSecret("testcases/%s")
 	assert.Equal(t, err, nil)
 	checkSecretData = map[string]string{
 		"cdIntegration": "argorollouts",
@@ -500,8 +523,14 @@ func TestSecret(t *testing.T) {
 	}
 	assert.Equal(t, checkSecretData, secretData)
 
-	_, err = metric.getDataSecret("/home/user/Argo-MetricProvider-Job/secret/user", "/home/user/Argo-MetricProvider-Job/secret/gate-url", "/home/user/Argo-MetricProvider-Job/secret/source-name", "/home/user/Argo-MetricProvider-Job/secret/cd-Integration-Invalid")
+	input, _ = ioutil.ReadFile("testcases/secret/cd-Integration-Invalid")
+	_ = ioutil.WriteFile("testcases/secrets/cd-integration", input, 0644)
+	_, err = metric.getDataSecret("testcases/%s")
 	assert.Equal(t, err.Error(), "cd-integration should be either true or false")
+	_ = os.Remove("testcases/secrets/user")
+	_ = os.Remove("testcases/secrets/cd-integration")
+	_ = os.Remove("testcases/secrets/gate-url")
+	_ = os.Remove("testcases/secrets/source-name")
 }
 
 var successfulPayload = []struct {
@@ -1615,20 +1644,33 @@ func TestPayload(t *testing.T) {
 		Delay:             1,
 		LookBackType:      "growing",
 		Pass:              80,
-		Marginal:          65,
+		Marginal:          80,
 		Services:          []OPSMXService{},
 	}
 	services := OPSMXService{
-		LogTemplateName:   "loggytemp",
-		LogScopeVariables: "kubernetes.pod_name",
-		BaselineLogScope:  ".*{{env.STABLE_POD_HASH}}.*",
-		CanaryLogScope:    ".*{{env.LATEST_POD_HASH}}.*",
+		LogTemplateName:      "loggytemp",
+		LogScopeVariables:    "kubernetes.pod_name",
+		BaselineLogScope:     ".*{{env.STABLE_POD_HASH}}.*",
+		CanaryLogScope:       ".*{{env.LATEST_POD_HASH}}.*",
+		MetricTemplateName:   "metrix",
+		MetricScopeVariables: "kubernetes.pod_name",
+		BaselineMetricScope:  ".*{{env.STABLE_POD_METRIC_HASH}}.*",
+		CanaryMetricScope:    ".*{{env.LATEST_POD_METRIC_HASH}}.*",
 	}
 	metric.Services = append(metric.Services, services)
 	canaryStartTime, baselineStartTime, lifetimeMinutes, err := getTimeVariables(metric.BaselineStartTime, metric.CanaryStartTime, metric.EndTime, metric.LifetimeMinutes)
 	assert.Equal(t, nil, err)
 	_, err = metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "notRequired")
 	assert.Equal(t, "environment variable STABLE_POD_HASH not set", err.Error())
+	os.Setenv("STABLE_POD_HASH", "baseline")
+	_, err = metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "notRequired")
+	assert.Equal(t, "environment variable LATEST_POD_HASH not set", err.Error())
+	os.Setenv("LATEST_POD_HASH", "baseline")
+	_, err = metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "notRequired")
+	assert.Equal(t, "environment variable STABLE_POD_METRIC_HASH not set", err.Error())
+	os.Setenv("STABLE_POD_METRIC_HASH", "baseline")
+	_, err = metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "notRequired")
+	assert.Equal(t, "environment variable LATEST_POD_METRIC_HASH not set", err.Error())
 }
 
 func TestGitops(t *testing.T) {
@@ -1654,7 +1696,7 @@ func TestGitops(t *testing.T) {
 		GitOPS:            true,
 		LookBackType:      "growing",
 		Pass:              80,
-		Marginal:          65,
+		Marginal:          80,
 		Services:          []OPSMXService{},
 	}
 	services := OPSMXService{
@@ -1673,7 +1715,7 @@ func TestGitops(t *testing.T) {
 				"interval": "3",
 				"delay": "1",
 				"canaryHealthCheckHandler": {
-								"minimumCanaryResultScore": "65"
+								"minimumCanaryResultScore": "80"
 								},
 				"canarySuccessCriteria": {
 							"canaryResultScore": "80"
@@ -1705,8 +1747,13 @@ func TestGitops(t *testing.T) {
 	canaryStartTime, baselineStartTime, lifetimeMinutes, err := getTimeVariables(metric.BaselineStartTime, metric.CanaryStartTime, metric.EndTime, metric.LifetimeMinutes)
 	assert.Equal(t, nil, err)
 	_, err = metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "incorrect/%s")
-	assert.Equal(t, "open incorrect/loggytemp: no such file or directory", err.Error())
-	payload, err := metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "gitops/%s")
+	assert.Equal(t, "open incorrect/templates/loggytemp: no such file or directory", err.Error())
+
+	emptyFile, _ := os.Create("testcases/templates/loggytemp")
+	emptyFile.Close()
+	input, _ := ioutil.ReadFile("testcases/gitops/loggytemp")
+	_ = ioutil.WriteFile("testcases/templates/loggytemp", input, 0644)
+	payload, err := metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "testcases/%s")
 	assert.Equal(t, nil, err)
 	processedPayload := strings.Replace(strings.Replace(strings.Replace(checkPayload, "\n", "", -1), "\t", "", -1), " ", "", -1)
 	assert.Equal(t, processedPayload, payload)
@@ -1723,7 +1770,7 @@ func TestGitops(t *testing.T) {
 		GitOPS:            true,
 		LookBackType:      "growing",
 		Pass:              80,
-		Marginal:          65,
+		Marginal:          80,
 		Services:          []OPSMXService{},
 	}
 	services = OPSMXService{
@@ -1742,7 +1789,7 @@ func TestGitops(t *testing.T) {
 				"interval": "3",
 				"delay": "1",
 				"canaryHealthCheckHandler": {
-								"minimumCanaryResultScore": "65"
+								"minimumCanaryResultScore": "80"
 								},
 				"canarySuccessCriteria": {
 							"canaryResultScore": "80"
@@ -1773,9 +1820,13 @@ func TestGitops(t *testing.T) {
 	metric.Services = append(metric.Services, services)
 	canaryStartTime, baselineStartTime, lifetimeMinutes, err = getTimeVariables(metric.BaselineStartTime, metric.CanaryStartTime, metric.EndTime, metric.LifetimeMinutes)
 	assert.Equal(t, nil, err)
+	emptyFile, _ = os.Create("testcases/templates/PrometheusMetricTemplate")
+	emptyFile.Close()
+	input, _ = ioutil.ReadFile("testcases/gitops/PrometheusMetricTemplate")
+	_ = ioutil.WriteFile("testcases/templates/PrometheusMetricTemplate", input, 0644)
 	_, err = metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "gitops/nothere/%s")
-	assert.Equal(t, "open gitops/nothere/PrometheusMetricTemplate: no such file or directory", err.Error())
-	payload, err = metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "gitops/%s")
+	assert.Equal(t, "open gitops/nothere/templates/PrometheusMetricTemplate: no such file or directory", err.Error())
+	payload, err = metric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "testcases/%s")
 	assert.Equal(t, nil, err)
 	processedPayload = strings.Replace(strings.Replace(strings.Replace(checkPayload, "\n", "", -1), "\t", "", -1), " ", "", -1)
 	assert.Equal(t, processedPayload, payload)
@@ -1792,7 +1843,7 @@ func TestGitops(t *testing.T) {
 		GitOPS:            true,
 		LookBackType:      "growing",
 		Pass:              80,
-		Marginal:          65,
+		Marginal:          80,
 		Services:          []OPSMXService{},
 	}
 	services = OPSMXService{
@@ -1809,9 +1860,14 @@ func TestGitops(t *testing.T) {
 				"timestamp": 1662442034995,
 				"status": 500,
 				"error": "Internal Server Error",
+				"errorMessage": [
+				  "ISD-EmptyKeyOrValueInJson-400-07 : Analytics Service - Name key or value is missing in json !",
+				  "ISD-EmptyKeyOrValueInJson-400-07 : Analytics Service - Account name key or value is missing in json !",
+				  "ISD-IsNotFound-404-01 : Analytics Service - Datasource account not found : "
+				],
 				"exception": "feign.FeignException$NotFound",
 				"message": "Template Already Exists"
-			}
+			  }
 			`)),
 			Header: make(http.Header),
 		}, nil
@@ -1820,8 +1876,8 @@ func TestGitops(t *testing.T) {
 	metric.Services = append(metric.Services, services)
 	canaryStartTime, baselineStartTime, lifetimeMinutes, err = getTimeVariables(metric.BaselineStartTime, metric.CanaryStartTime, metric.EndTime, metric.LifetimeMinutes)
 	assert.Equal(t, nil, err)
-	_, err = getTemplateData(clientFail.client, SecretData, "loggytemp", "LOG", "gitops/%s")
-	assert.Equal(t, "Template Already Exists", err.Error())
+	_, err = getTemplateData(clientFail.client, SecretData, "loggytemp", "LOG", "testcases/%s")
+	assert.Equal(t, "[ISD-EmptyKeyOrValueInJson-400-07 : Analytics Service - Name key or value is missing in json ! ISD-EmptyKeyOrValueInJson-400-07 : Analytics Service - Account name key or value is missing in json ! ISD-IsNotFound-404-01 : Analytics Service - Datasource account not found : ]", err.Error())
 
 	invalidjsonmetric := OPSMXMetric{
 		Application:     "final-job",
@@ -1829,12 +1885,12 @@ func TestGitops(t *testing.T) {
 		IntervalTime:    3,
 		LookBackType:    "sliding",
 		Pass:            80,
-		Marginal:        60,
+		Marginal:        80,
 		GitOPS:          true,
 		Services:        []OPSMXService{},
 	}
 	invalidjsonservices := OPSMXService{
-		LogTemplateName:      "loggytemp.txt",
+		LogTemplateName:      "invalid.txt",
 		LogScopeVariables:    "kubernetes.pod_name",
 		BaselineLogScope:     ".*{{env.STABLE_POD_HASH}}.*",
 		CanaryLogScope:       ".*{{env.LATEST_POD_HASH}}.*",
@@ -1844,7 +1900,11 @@ func TestGitops(t *testing.T) {
 		CanaryMetricScope:    "argocd,{{env.LATEST_POD_HASH}},demoapp-issuegen",
 	}
 	invalidjsonmetric.Services = append(invalidjsonmetric.Services, invalidjsonservices)
-	_, err = invalidjsonmetric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "gitops/invalid/%s")
+	emptyFile, _ = os.Create("testcases/templates/invalid.txt")
+	emptyFile.Close()
+	input, _ = ioutil.ReadFile("testcases/gitops/invalid/loggytemp.txt")
+	_ = ioutil.WriteFile("testcases/templates/invalid.txt", input, 0644)
+	_, err = invalidjsonmetric.getPayload(clients, SecretData, canaryStartTime, baselineStartTime, lifetimeMinutes, "testcases/%s")
 	assert.Equal(t, "invalid template json provided", err.Error())
 }
 
@@ -1942,42 +2002,6 @@ func TestProcessResume(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "0", canaryScore)
 	assert.Equal(t, AnalysisPhaseFailed, phase)
-
-	input, _ = io.ReadAll(bytes.NewBufferString(`
-	{
-		"owner": "admin",
-		"application": "testapp",
-		"canaryResult": {
-			"duration": "0 seconds",
-			"lastUpdated": "2022-09-02 10:02:18.504",
-			"canaryReportURL": "https://opsmx.test.tst/ui/application/deploymentverification/testapp/1424",
-			"overallScore": 70,
-			"intervalNo": 1,
-			"isLastRun": true,
-			"overallResult": "HEALTHY",
-			"message": "Canary Is HEALTHY",
-			"errors": []
-		},
-		"launchedDate": "2022-09-02 10:02:18.504",
-		"canaryConfig": {
-			"combinedCanaryResultStrategy": "LOWEST",
-			"minimumCanaryResultScore": 65.0,
-			"name": "admin",
-			"lifetimeMinutes": 30,
-			"canaryAnalysisIntervalMins": 30,
-			"maximumCanaryResultScore": 80.0
-		},
-		"id": "1424",
-		"services": [],
-		"status": {
-			"complete": false,
-			"status": "COMPLETED"
-		}}
-	`))
-	phase, canaryScore, err = metric.processResume(input)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, "70", canaryScore)
-	assert.Equal(t, AnalysisPhaseInconclusive, phase)
 
 	input, _ = io.ReadAll(bytes.NewBufferString(`
 	{
@@ -2156,6 +2180,8 @@ func TestProcessResume(t *testing.T) {
 }
 
 func TestRunAnalysis(t *testing.T) {
+	os.Setenv("STABLE_POD_HASH", "baseline")
+	os.Setenv("LATEST_POD_HASH", "canary")
 	Head := map[string][]string{
 		"Location": {"www.scoreUrl.com"},
 	}
@@ -2187,19 +2213,80 @@ func TestRunAnalysis(t *testing.T) {
 	}
 	k8sclient := jobFakeClient(cond)
 	clients := newClients(k8sclient, c)
-	_, err := runAnalysis(clients, resourceNames, "testcases/analysis/providerConfig", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
+	emptyFile, _ := os.Create("testcases/secrets/user")
+	emptyFile.Close()
+	input, _ := ioutil.ReadFile("testcases/secret/user")
+	_ = ioutil.WriteFile("testcases/secrets/user", input, 0644)
+	emptyFile, _ = os.Create("testcases/secrets/gate-url")
+	emptyFile.Close()
+	input, _ = ioutil.ReadFile("testcases/secret/gate-url")
+	_ = ioutil.WriteFile("testcases/secrets/gate-url", input, 0644)
+	emptyFile, _ = os.Create("testcases/secrets/cd-integration")
+	emptyFile.Close()
+	input, _ = ioutil.ReadFile("testcases/secret/cd-Integration")
+	_ = ioutil.WriteFile("testcases/secrets/cd-integration", input, 0644)
+	emptyFile, _ = os.Create("testcases/secrets/source-name")
+	emptyFile.Close()
+	input, _ = ioutil.ReadFile("testcases/secret/source-name")
+	_ = ioutil.WriteFile("testcases/secrets/source-name", input, 0644)
+	emptyFile, _ = os.Create("testcases/provider/providerConfig")
+	emptyFile.Close()
+	input, _ = ioutil.ReadFile("testcases/analysis/providerConfig")
+	_ = ioutil.WriteFile("testcases/provider/providerConfig", input, 0644)
+	_, err := runAnalysis(clients, resourceNames, "testcases/%s")
 	assert.Equal(t, nil, err)
-	_, err = runAnalysis(clients, resourceNames, "testcases/analysis/providerConfigs", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
-	assert.Equal(t, "open analysis/providerConfigs: no such file or directory", err.Error())
-	_, err = runAnalysis(clients, resourceNames, "testcases/analysis/providerConfig", "testcases/secrets/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
-	assert.Equal(t, "open secrets/user: no such file or directory", err.Error())
-	_, err = runAnalysis(clients, resourceNames, "testcases/analysis/provideConfigGitops", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitopsy/%s")
-	assert.Equal(t, "open gitopsy/loggytemp: no such file or directory", err.Error())
-	_, err = runAnalysis(clients, resourceNames, "testcases/analysis/basicCheckFail", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitopsy/%s")
+
+	_, err = runAnalysis(clients, resourceNames, "testcasesy/%s")
+	assert.Equal(t, "open testcasesy/provider/providerConfig: no such file or directory", err.Error())
+
+	emptyFile, _ = os.Create("testcases/runanalysis/provider/providerConfig")
+	emptyFile.Close()
+	input, _ = ioutil.ReadFile("testcases/analysis/providerConfig")
+	_ = ioutil.WriteFile("testcases/runanalysis/provider/providerConfig", input, 0644)
+	_, err = runAnalysis(clients, resourceNames, "testcases/runanalysis/%s")
+	assert.Equal(t, "open testcases/runanalysis/secrets/user: no such file or directory", err.Error())
+
+	emptyFile, _ = os.Create("testcases/runanalysis/secrets/user")
+	emptyFile.Close()
+	input, _ = ioutil.ReadFile("testcases/secret/user")
+	_ = ioutil.WriteFile("testcases/runanalysis/secrets/user", input, 0644)
+	emptyFile, _ = os.Create("testcases/runanalysis/secrets/gate-url")
+	emptyFile.Close()
+	input, _ = ioutil.ReadFile("testcases/secret/gate-url")
+	_ = ioutil.WriteFile("testcases/runanalysis/secrets/gate-url", input, 0644)
+	emptyFile, _ = os.Create("testcases/runanalysis/secrets/cd-integration")
+	emptyFile.Close()
+	input, _ = ioutil.ReadFile("testcases/secret/cd-Integration")
+	_ = ioutil.WriteFile("testcases/runanalysis/secrets/cd-integration", input, 0644)
+	emptyFile, _ = os.Create("testcases/runanalysis/secrets/source-name")
+	emptyFile.Close()
+	input, _ = ioutil.ReadFile("testcases/secret/source-name")
+	_ = ioutil.WriteFile("testcases/runanalysis/secrets/source-name", input, 0644)
+
+	emptyFile, _ = os.Create("testcases/runanalysis/provider/providerConfig")
+	emptyFile.Close()
+	input, _ = ioutil.ReadFile("testcases/analysis/provideConfigGitops")
+	_ = ioutil.WriteFile("testcases/runanalysis/provider/providerConfig", input, 0644)
+	_, err = runAnalysis(clients, resourceNames, "testcases/runanalysis/%s")
+	assert.Equal(t, "open testcases/runanalysis/templates/loggytemp: no such file or directory", err.Error())
+
+	emptyFile, _ = os.Create("testcases/provider/providerConfig")
+	emptyFile.Close()
+	input, _ = ioutil.ReadFile("testcases/analysis/basicCheckFail")
+	_ = ioutil.WriteFile("testcases/provider/providerConfig", input, 0644)
+	_, err = runAnalysis(clients, resourceNames, "testcases/%s")
 	assert.Equal(t, "lookbacktype is given and interval time is required to run interval analysis", err.Error())
-	_, err = runAnalysis(clients, resourceNames, "testcases/analysis/failtimevariables", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitopsy/%s")
+	emptyFile, _ = os.Create("testcases/provider/providerConfig")
+	emptyFile.Close()
+	input, _ = ioutil.ReadFile("testcases/analysis/failtimevariables")
+	_ = ioutil.WriteFile("testcases/provider/providerConfig", input, 0644)
+	_, err = runAnalysis(clients, resourceNames, "testcases/%s")
 	assert.Equal(t, "parsing time \"abc\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"abc\" as \"2006\"", err.Error())
 
+	emptyFile, _ = os.Create("testcases/runanalysis/provider/providerConfig")
+	emptyFile.Close()
+	input, _ = ioutil.ReadFile("testcases/analysis/providerConfig")
+	_ = ioutil.WriteFile("testcases/runanalysis/provider/providerConfig", input, 0644)
 	cS := NewTestClient(func(req *http.Request) (*http.Response, error) {
 		return &http.Response{
 			StatusCode: 200,
@@ -2240,50 +2327,7 @@ func TestRunAnalysis(t *testing.T) {
 	})
 	k8sclientS := jobFakeClient(cond)
 	clientsS := newClients(k8sclientS, cS)
-	_, err = runAnalysis(clientsS, resourceNames, "testcases/analysis/providerConfig", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
-	assert.Equal(t, nil, err)
-
-	cInc := NewTestClient(func(req *http.Request) (*http.Response, error) {
-		return &http.Response{
-			StatusCode: 200,
-			Body: io.NopCloser(bytes.NewBufferString(`
-			{
-				"owner": "admin",
-				"application": "testapp",
-				"canaryResult": {
-					"duration": "0 seconds",
-					"lastUpdated": "2022-09-02 10:02:18.504",
-					"canaryReportURL": "https://opsmx.test.tst/ui/application/deploymentverification/testapp/1424",
-					"overallScore": 70,
-					"intervalNo": 1,
-					"isLastRun": true,
-					"overallResult": "HEALTHY",
-					"message": "Canary Is HEALTHY",
-					"errors": []
-				},
-				"launchedDate": "2022-09-02 10:02:18.504",
-				"canaryConfig": {
-					"combinedCanaryResultStrategy": "LOWEST",
-					"minimumCanaryResultScore": 65.0,
-					"name": "admin",
-					"lifetimeMinutes": 30,
-					"canaryAnalysisIntervalMins": 30,
-					"maximumCanaryResultScore": 80.0
-				},
-				"id": "1424",
-				"services": [],
-				"status": {
-					"complete": false,
-					"status": "COMPLETED"
-				}}
-			`)),
-			// Must be set to non-nil value or it panics
-			Header: Head,
-		}, nil
-	})
-	k8sclientInc := jobFakeClient(cond)
-	clientsInc := newClients(k8sclientInc, cInc)
-	_, err = runAnalysis(clientsInc, resourceNames, "testcases/analysis/providerConfig", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
+	_, err = runAnalysis(clientsS, resourceNames, "testcases/runanalysis/%s")
 	assert.Equal(t, nil, err)
 
 	cInvalid := NewTestClient(func(req *http.Request) (*http.Response, error) {
@@ -2325,7 +2369,7 @@ func TestRunAnalysis(t *testing.T) {
 		}, nil
 	})
 	clientsInvalid := newClients(k8sclient, cInvalid)
-	_, err = runAnalysis(clientsInvalid, resourceNames, "testcases/analysis/providerConfig", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
+	_, err = runAnalysis(clientsInvalid, resourceNames, "testcases/runanalysis/%s")
 	assert.Equal(t, "invalid response", err.Error())
 
 	cCancel := NewTestClient(func(req *http.Request) (*http.Response, error) {
@@ -2368,7 +2412,7 @@ func TestRunAnalysis(t *testing.T) {
 	})
 	k8sclientCancel := jobFakeClient(cond)
 	clientsCancel := newClients(k8sclientCancel, cCancel)
-	_, err = runAnalysis(clientsCancel, resourceNames, "testcases/analysis/providerConfig", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
+	_, err = runAnalysis(clientsCancel, resourceNames, "testcases/runanalysis/%s")
 	assert.Equal(t, nil, err)
 
 	cHead := NewTestClient(func(req *http.Request) (*http.Response, error) {
@@ -2384,7 +2428,7 @@ func TestRunAnalysis(t *testing.T) {
 		}, nil
 	})
 	clientsHead := newClients(k8sclientCancel, cHead)
-	_, err = runAnalysis(clientsHead, resourceNames, "testcases/analysis/providerConfig", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
+	_, err = runAnalysis(clientsHead, resourceNames, "testcases/runanalysis/%s")
 	assert.Equal(t, "score url not found", err.Error())
 
 	cError := NewTestClient(func(req *http.Request) (*http.Response, error) {
@@ -2394,7 +2438,8 @@ func TestRunAnalysis(t *testing.T) {
 			{
 				"canaryId": 1424,
 				"message": "Error is Here",
-				"error": "Here is Error"
+				"error": "Here is Error",
+				"errorMessage": "ErrorMessage"
 			}
 			`)),
 			// Must be set to non-nil value or it panics
@@ -2402,7 +2447,7 @@ func TestRunAnalysis(t *testing.T) {
 		}, nil
 	})
 	clientsError := newClients(k8sclientCancel, cError)
-	_, err = runAnalysis(clientsError, resourceNames, "testcases/analysis/providerConfig", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
+	_, err = runAnalysis(clientsError, resourceNames, "testcases/runanalysis/%s")
 	assert.Equal(t, "Error: Here is Error\nMessage: Error is Here", err.Error())
 
 	resourceNames = ResourceNames{
@@ -2410,7 +2455,7 @@ func TestRunAnalysis(t *testing.T) {
 		jobName: "job",
 	}
 	clientsPatchError := newClients(getFakeClient(map[string][]byte{}), c)
-	_, err = runAnalysis(clientsPatchError, resourceNames, "testcases/analysis/providerConfig", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
+	_, err = runAnalysis(clientsPatchError, resourceNames, "testcases/runanalysis/%s")
 	assert.Equal(t, "jobs.batch \"job\" not found", err.Error())
 
 	cUrlEroor := NewTestClient(func(req *http.Request) (*http.Response, error) {
@@ -2420,8 +2465,23 @@ func TestRunAnalysis(t *testing.T) {
 		}, errors.New("Post \"https://opsmx.invalidurl.tst\": dial tcp: lookup https://opsmx.invalidurl.tst: no such host")
 	})
 	clientsUrlError := newClients(k8sclientS, cUrlEroor)
-	_, err = runAnalysis(clientsUrlError, resourceNames, "testcases/analysis/providerConfig", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
+	_, err = runAnalysis(clientsUrlError, resourceNames, "testcases/runanalysis/%s")
 	assert.Equal(t, "Post \"https://isd.opsmx.net/autopilot/api/v5/registerCanary\": Post \"https://opsmx.invalidurl.tst\": dial tcp: lookup https://opsmx.invalidurl.tst: no such host", err.Error())
+	_ = os.Remove("testcases/runanalysis/secrets/user")
+	_ = os.Remove("testcases/runanalysis/secrets/cd-integration")
+	_ = os.Remove("testcases/runanalysis/secrets/gate-url")
+	_ = os.Remove("testcases/runanalysis/secrets/source-name")
+	_ = os.Remove("testcases/secrets/user")
+	_ = os.Remove("testcases/secrets/cd-integration")
+	_ = os.Remove("testcases/secrets/gate-url")
+	_ = os.Remove("testcases/secrets/source-name")
+	_ = os.Remove("testcases/provider/providerConfig")
+	_ = os.Remove("testcases/provider/providerConfig")
+	_ = os.Remove("testcases/templates/invalid.txt")
+	_ = os.Remove("testcases/templates/loggytemp")
+	_ = os.Remove("testcases/templates/PrometheusMetricTemplate")
+	_ = os.Remove("testcases/provider/providerConfig")
+	_ = os.Remove("testcases/runanalysis/provider/providerConfig")
 }
 
 func TestRunner(t *testing.T) {

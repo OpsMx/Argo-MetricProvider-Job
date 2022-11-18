@@ -191,7 +191,8 @@ func getTimeVariables(baselineTime string, canaryTime string, endTime string, li
 	return canaryStartTime, baselineStartTime, lifetimeMinutes, nil
 }
 
-func getAnalysisTemplateData(path string) (OPSMXMetric, error) {
+func getAnalysisTemplateData(basePath string) (OPSMXMetric, error) {
+	path := fmt.Sprintf(basePath, "provider/providerConfig")
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return OPSMXMetric{}, err
@@ -212,8 +213,9 @@ func encryptString(s string) string {
 	return sha1_hash
 }
 
-func getTemplateData(client http.Client, secretData map[string]string, template string, templateType string, templatePath string) (string, error) {
+func getTemplateData(client http.Client, secretData map[string]string, template string, templateType string, basePath string) (string, error) {
 	var templateData string
+	templatePath := fmt.Sprintf(basePath, "templates/%s")
 	path := fmt.Sprintf(templatePath, template)
 	templateFileData, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -244,7 +246,7 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 			return "", err
 		}
 		json.Unmarshal(data, &templateCheckSave)
-		if templateCheckSave["errorMessage"] != "" {
+		if templateCheckSave["errorMessage"] != "" && templateCheckSave["errorMessage"] != nil {
 			errorss := fmt.Sprintf("%v", templateCheckSave["errorMessage"])
 			err = errors.New(errorss)
 			return "", err
@@ -253,24 +255,25 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 	return templateData, nil
 }
 
-func (metric *OPSMXMetric) getDataSecret(userPath string, gateUrlPath string, sourceNamePath string, cdIntegrationPath string) (map[string]string, error) {
-	secretData := map[string]string{}
+func (metric *OPSMXMetric) getDataSecret(basePath string) (map[string]string, error) {
 
+	secretData := map[string]string{}
+	userPath := fmt.Sprintf(basePath, "secrets/user")
 	secretUser, err := ioutil.ReadFile(userPath)
 	if err != nil {
 		return nil, err
 	}
-
+	gateUrlPath := fmt.Sprintf(basePath, "secrets/gate-url")
 	secretGateUrl, err := ioutil.ReadFile(gateUrlPath)
 	if err != nil {
 		return nil, err
 	}
-
+	sourceNamePath := fmt.Sprintf(basePath, "secrets/source-name")
 	secretsourcename, err := ioutil.ReadFile(sourceNamePath)
 	if err != nil {
 		return nil, err
 	}
-
+	cdIntegrationPath := fmt.Sprintf(basePath, "secrets/cd-integration")
 	secretcdintegration, err := ioutil.ReadFile(cdIntegrationPath)
 	if err != nil {
 		return nil, err
@@ -324,7 +327,7 @@ func getScopeValues(scope string) (string, error) {
 	return scopeValue, nil
 }
 
-func (metric *OPSMXMetric) getPayload(c *Clients, secretData map[string]string, canaryStartTime string, baselineStartTime string, lifetimeMinutes int, templatePath string) (string, error) {
+func (metric *OPSMXMetric) getPayload(c *Clients, secretData map[string]string, canaryStartTime string, baselineStartTime string, lifetimeMinutes int, basePath string) (string, error) {
 	var intervalTime string
 	if metric.IntervalTime != 0 {
 		intervalTime = fmt.Sprintf("%d", metric.IntervalTime)
@@ -440,7 +443,7 @@ func (metric *OPSMXMetric) getPayload(c *Clients, secretData map[string]string, 
 				var templateData string
 				var err error
 				if metric.GitOPS && item.LogTemplateVersion == "" {
-					templateData, err = getTemplateData(c.client, secretData, tempName, "LOG", templatePath)
+					templateData, err = getTemplateData(c.client, secretData, tempName, "LOG", basePath)
 					if err != nil {
 						return "", err
 					}
@@ -521,7 +524,7 @@ func (metric *OPSMXMetric) getPayload(c *Clients, secretData map[string]string, 
 				var templateData string
 				var err error
 				if metric.GitOPS && item.MetricTemplateVersion == "" {
-					templateData, err = getTemplateData(c.client, secretData, tempName, "METRIC", templatePath)
+					templateData, err = getTemplateData(c.client, secretData, tempName, "METRIC", basePath)
 					if err != nil {
 						return "", err
 					}
@@ -565,9 +568,6 @@ func (metric *OPSMXMetric) getPayload(c *Clients, secretData map[string]string, 
 func evaluateResult(score int, pass int, marginal int) string {
 	if score >= pass {
 		return "Successful"
-	}
-	if score < pass && score >= marginal {
-		return "Inconclusive"
 	}
 	return "Failed"
 }

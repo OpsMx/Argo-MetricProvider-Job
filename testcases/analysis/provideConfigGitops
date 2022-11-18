@@ -6,7 +6,6 @@ intervalTime: 3
 lookBackType: sliding
 gitops: true
 passScore: 80
-marginalScore: 60
 serviceList:
   - logScopeVariables: kubernetes.pod_name
     baselineLogScope: '.*{{env.STABLE_POD_HASH}}.*'

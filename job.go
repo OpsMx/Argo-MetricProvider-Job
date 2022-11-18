@@ -24,8 +24,8 @@ const (
 	cdIntegrationArgoCD                     = "argocd"
 )
 
-func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath string, gateUrlPath string, sourceNamePath string, cdIntegrationPath string, templatePath string) (int, error) {
-	metric, err := getAnalysisTemplateData(analysispath)
+func runAnalysis(c *Clients, r ResourceNames, basePath string) (int, error) {
+	metric, err := getAnalysisTemplateData(basePath)
 	if err != nil {
 		return 1, err
 	}
@@ -33,7 +33,7 @@ func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath stri
 	if err != nil {
 		return 1, err
 	}
-	secretData, err := metric.getDataSecret(userPath, gateUrlPath, sourceNamePath, cdIntegrationPath)
+	secretData, err := metric.getDataSecret(basePath)
 	if err != nil {
 		return 1, err
 	}
@@ -47,7 +47,7 @@ func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath stri
 		return 1, err
 	}
 
-	payload, err := metric.getPayload(c, secretData, canaryStartTime, baselineStartTime, lifetimeMinutes, templatePath)
+	payload, err := metric.getPayload(c, secretData, canaryStartTime, baselineStartTime, lifetimeMinutes, basePath)
 	if err != nil {
 		return 1, err
 	}
@@ -161,21 +161,6 @@ func runAnalysis(c *Clients, r ResourceNames, analysispath string, userPath stri
 			}
 			// logErrorAndExit(2, nil)
 			return 2, nil
-		}
-		if Phase == AnalysisPhaseInconclusive {
-
-			fs := CanaryDetails{
-				jobName:   r.jobName,
-				canaryId:  canary.CanaryId.String(),
-				reportUrl: fmt.Sprintf("%s", reportUrl),
-				value:     Score,
-			}
-			err = patchJobFailedInconclusive(c.kubeclientset, ctx, Phase, fs)
-			if err != nil {
-				return 1, err
-			}
-			// logErrorAndExit(3, nil)
-			return 3, nil
 		}
 	}
 	return 0, nil

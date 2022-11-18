@@ -4,7 +4,6 @@ gateUrl: 'https://isd.opsmx.net/'
 lifetimeMinutes: 3
 lookBackType: sliding
 passScore: 80
-marginalScore: 60
 serviceList:
   - logScopeVariables: kubernetes.pod_name
     baselineLogScope: '.*{{env.STABLE_POD_HASH}}.*'

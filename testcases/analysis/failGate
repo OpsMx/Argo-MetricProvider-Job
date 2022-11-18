@@ -3,7 +3,6 @@ user: admin
 gateUrl: "/"
 lifetimeMinutes: 3
 passScore: 80
-marginalScore: 60
 serviceList:
   - logScopeVariables: kubernetes.pod_name
     baselineLogScope: '.*{{env.STABLE_POD_HASH}}.*'
