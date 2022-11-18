@@ -59,7 +59,7 @@ type OPSMXMetric struct {
 	GlobalLogTemplate    string         `yaml:"globalLogTemplate,omitempty"`
 	GlobalMetricTemplate string         `yaml:"globalMetricTemplate,omitempty"`
 	Pass                 int            `yaml:"passScore"`
-	Marginal             int            `yaml:"marginalScore"`
+	Marginal             int            `yaml:"marginalScore,omitempty"`
 	Services             []OPSMXService `yaml:"serviceList,omitempty"`
 	IntervalTime         int            `yaml:"intervalTime,omitempty"`
 	LookBackType         string         `yaml:"lookBackType,omitempty"`

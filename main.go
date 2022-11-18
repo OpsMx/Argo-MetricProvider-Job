@@ -41,7 +41,7 @@ func runner(c *Clients) error {
 	if err != nil {
 		return err
 	}
-	errcode, errrun := runAnalysis(c, resourceNames, analysispath, userPath, gateUrlPath, sourceNamePath, cdIntegrationPath, templatePath);
+	errcode, errrun := runAnalysis(c, resourceNames, analysispath, userPath, gateUrlPath, sourceNamePath, cdIntegrationPath, templatePath)
 	if errrun != nil {
 		err := patchJobError(c.kubeclientset, context.TODO(), resourceNames.jobName, errrun.Error())
 		if err != nil {
@@ -50,7 +50,7 @@ func runner(c *Clients) error {
 		}
 		// logNon0CodeExit(1)
 	}
-	if errcode !=0{
+	if errcode != 0 {
 		logNon0CodeExit(errcode)
 	}
 	return nil

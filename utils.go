@@ -30,9 +30,9 @@ func logErrorExit(err error) {
 	}
 }
 
-func logNon0CodeExit(exitcode int){
-		log.Infof("Exiting the pod with status code %d",exitcode)
-		os.Exit(exitcode)
+func logNon0CodeExit(exitcode int) {
+	log.Infof("Exiting the pod with status code %d", exitcode)
+	os.Exit(exitcode)
 }
 
 func getJobNameFromPod(p *Clients, podName string) (string, error) {
@@ -201,6 +201,7 @@ func getAnalysisTemplateData(path string) (OPSMXMetric, error) {
 	if err := yaml.Unmarshal(data, &opsmx); err != nil {
 		return OPSMXMetric{}, err
 	}
+	opsmx.Marginal = opsmx.Pass
 	return opsmx, nil
 }
 

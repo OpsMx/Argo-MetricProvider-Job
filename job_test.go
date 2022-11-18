@@ -59,7 +59,7 @@ func (f RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestFuncGetAnalysisTemplateData(t *testing.T) {
-	metric, err := getAnalysisTemplateData("/home/user/Argo-MetricProvider-Job/analysis/providerConfig")
+	metric, err := getAnalysisTemplateData("testcases/analysis/providerConfig")
 	checkMetric := OPSMXMetric{
 		Application:     "final-job",
 		User:            "admin",
@@ -86,7 +86,7 @@ func TestFuncGetAnalysisTemplateData(t *testing.T) {
 	assert.Equal(t, metric, checkMetric)
 	_, err = getAnalysisTemplateData("/etc/config/provider/providerConfig")
 	assert.Equal(t, err.Error(), "open /etc/config/provider/providerConfig: no such file or directory")
-	_, err = getAnalysisTemplateData("/home/user/Argo-MetricProvider-Job/analysis/invalid")
+	_, err = getAnalysisTemplateData("testcases/analysis/invalid")
 	assert.Equal(t, err.Error(), "yaml: line 9: mapping values are not allowed in this context")
 }
 
@@ -468,8 +468,8 @@ func TestSecret(t *testing.T) {
 	}
 	metric.Services = append(metric.Services, services)
 
-	_, err := metric.getDataSecret("/home/user/Argo-MetricProvider-Job/secret/users", "/home/user/Argo-MetricProvider-Job/secret/gate-url", "/home/user/Argo-MetricProvider-Job/secret/source-name", "/home/user/Argo-MetricProvider-Job/secret/cd-Integration")
-	assert.Equal(t, err.Error(), "open /home/user/Argo-MetricProvider-Job/secret/users: no such file or directory")
+	_, err := metric.getDataSecret("testcases/secret/users", "/home/user/Argo-MetricProvider-Job/secret/gate-url", "/home/user/Argo-MetricProvider-Job/secret/source-name", "/home/user/Argo-MetricProvider-Job/secret/cd-Integration")
+	assert.Equal(t, err.Error(), "open testcases/secret/users: no such file or directory")
 
 	_, err = metric.getDataSecret("/home/user/Argo-MetricProvider-Job/secret/user", "/home/user/Argo-MetricProvider-Job/secret/gate-urls", "/home/user/Argo-MetricProvider-Job/secret/source-name", "/home/user/Argo-MetricProvider-Job/secret/cd-Integration")
 	assert.Equal(t, err.Error(), "open /home/user/Argo-MetricProvider-Job/secret/gate-urls: no such file or directory")
@@ -2187,17 +2187,17 @@ func TestRunAnalysis(t *testing.T) {
 	}
 	k8sclient := jobFakeClient(cond)
 	clients := newClients(k8sclient, c)
-	err := runAnalysis(clients, resourceNames, "analysis/providerConfig", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	_, err := runAnalysis(clients, resourceNames, "testcases/analysis/providerConfig", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
 	assert.Equal(t, nil, err)
-	err = runAnalysis(clients, resourceNames, "analysis/providerConfigs", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	_, err = runAnalysis(clients, resourceNames, "testcases/analysis/providerConfigs", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
 	assert.Equal(t, "open analysis/providerConfigs: no such file or directory", err.Error())
-	err = runAnalysis(clients, resourceNames, "analysis/providerConfig", "secrets/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	_, err = runAnalysis(clients, resourceNames, "testcases/analysis/providerConfig", "testcases/secrets/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
 	assert.Equal(t, "open secrets/user: no such file or directory", err.Error())
-	err = runAnalysis(clients, resourceNames, "analysis/provideConfigGitops", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitopsy/%s")
+	_, err = runAnalysis(clients, resourceNames, "testcases/analysis/provideConfigGitops", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitopsy/%s")
 	assert.Equal(t, "open gitopsy/loggytemp: no such file or directory", err.Error())
-	err = runAnalysis(clients, resourceNames, "analysis/basicCheckFail", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitopsy/%s")
+	_, err = runAnalysis(clients, resourceNames, "testcases/analysis/basicCheckFail", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitopsy/%s")
 	assert.Equal(t, "lookbacktype is given and interval time is required to run interval analysis", err.Error())
-	err = runAnalysis(clients, resourceNames, "analysis/failtimevariables", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitopsy/%s")
+	_, err = runAnalysis(clients, resourceNames, "testcases/analysis/failtimevariables", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitopsy/%s")
 	assert.Equal(t, "parsing time \"abc\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"abc\" as \"2006\"", err.Error())
 
 	cS := NewTestClient(func(req *http.Request) (*http.Response, error) {
@@ -2240,7 +2240,7 @@ func TestRunAnalysis(t *testing.T) {
 	})
 	k8sclientS := jobFakeClient(cond)
 	clientsS := newClients(k8sclientS, cS)
-	err = runAnalysis(clientsS, resourceNames, "analysis/providerConfig", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	_, err = runAnalysis(clientsS, resourceNames, "testcases/analysis/providerConfig", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
 	assert.Equal(t, nil, err)
 
 	cInc := NewTestClient(func(req *http.Request) (*http.Response, error) {
@@ -2283,7 +2283,7 @@ func TestRunAnalysis(t *testing.T) {
 	})
 	k8sclientInc := jobFakeClient(cond)
 	clientsInc := newClients(k8sclientInc, cInc)
-	err = runAnalysis(clientsInc, resourceNames, "analysis/providerConfig", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	_, err = runAnalysis(clientsInc, resourceNames, "testcases/analysis/providerConfig", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
 	assert.Equal(t, nil, err)
 
 	cInvalid := NewTestClient(func(req *http.Request) (*http.Response, error) {
@@ -2325,7 +2325,7 @@ func TestRunAnalysis(t *testing.T) {
 		}, nil
 	})
 	clientsInvalid := newClients(k8sclient, cInvalid)
-	err = runAnalysis(clientsInvalid, resourceNames, "analysis/providerConfig", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	_, err = runAnalysis(clientsInvalid, resourceNames, "testcases/analysis/providerConfig", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
 	assert.Equal(t, "invalid response", err.Error())
 
 	cCancel := NewTestClient(func(req *http.Request) (*http.Response, error) {
@@ -2368,7 +2368,7 @@ func TestRunAnalysis(t *testing.T) {
 	})
 	k8sclientCancel := jobFakeClient(cond)
 	clientsCancel := newClients(k8sclientCancel, cCancel)
-	err = runAnalysis(clientsCancel, resourceNames, "analysis/providerConfig", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	_, err = runAnalysis(clientsCancel, resourceNames, "testcases/analysis/providerConfig", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
 	assert.Equal(t, nil, err)
 
 	cHead := NewTestClient(func(req *http.Request) (*http.Response, error) {
@@ -2384,7 +2384,7 @@ func TestRunAnalysis(t *testing.T) {
 		}, nil
 	})
 	clientsHead := newClients(k8sclientCancel, cHead)
-	err = runAnalysis(clientsHead, resourceNames, "analysis/providerConfig", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	_, err = runAnalysis(clientsHead, resourceNames, "testcases/analysis/providerConfig", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
 	assert.Equal(t, "score url not found", err.Error())
 
 	cError := NewTestClient(func(req *http.Request) (*http.Response, error) {
@@ -2402,7 +2402,7 @@ func TestRunAnalysis(t *testing.T) {
 		}, nil
 	})
 	clientsError := newClients(k8sclientCancel, cError)
-	err = runAnalysis(clientsError, resourceNames, "analysis/providerConfig", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	_, err = runAnalysis(clientsError, resourceNames, "testcases/analysis/providerConfig", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
 	assert.Equal(t, "Error: Here is Error\nMessage: Error is Here", err.Error())
 
 	resourceNames = ResourceNames{
@@ -2410,7 +2410,7 @@ func TestRunAnalysis(t *testing.T) {
 		jobName: "job",
 	}
 	clientsPatchError := newClients(getFakeClient(map[string][]byte{}), c)
-	err = runAnalysis(clientsPatchError, resourceNames, "analysis/providerConfig", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	_, err = runAnalysis(clientsPatchError, resourceNames, "testcases/analysis/providerConfig", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
 	assert.Equal(t, "jobs.batch \"job\" not found", err.Error())
 
 	cUrlEroor := NewTestClient(func(req *http.Request) (*http.Response, error) {
@@ -2420,7 +2420,7 @@ func TestRunAnalysis(t *testing.T) {
 		}, errors.New("Post \"https://opsmx.invalidurl.tst\": dial tcp: lookup https://opsmx.invalidurl.tst: no such host")
 	})
 	clientsUrlError := newClients(k8sclientS, cUrlEroor)
-	err = runAnalysis(clientsUrlError, resourceNames, "analysis/providerConfig", "secret/user", "secret/gate-url", "secret/source-name", "secret/cd-Integration", "gitops/%s")
+	_, err = runAnalysis(clientsUrlError, resourceNames, "testcases/analysis/providerConfig", "testcases/secret/user", "testcases/secret/gate-url", "testcases/secret/source-name", "testcases/secret/cd-Integration", "testcases/gitops/%s")
 	assert.Equal(t, "Post \"https://isd.opsmx.net/autopilot/api/v5/registerCanary\": Post \"https://opsmx.invalidurl.tst\": dial tcp: lookup https://opsmx.invalidurl.tst: no such host", err.Error())
 }
 
