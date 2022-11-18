@@ -220,14 +220,6 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 		return "", err
 	}
 
-	type templateResponse struct {
-		Status  string `json:"status,omitempty"`
-		Message string `json:"message,omitempty"`
-		Path    string `json:"path,omitempty"`
-		Error   string `json:"error,omitempty"`
-	}
-	var templateCheckSave templateResponse
-
 	if !isJSON(string(templateFileData)) {
 		err = errors.New("invalid template json provided")
 		return "", err
@@ -245,15 +237,15 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 	var templateVerification bool
 	json.Unmarshal(data, &templateVerification)
 	templateData = sha1Code
-
+	var templateCheckSave map[string]interface{}
 	if !templateVerification {
 		data, _, err = makeRequest(client, "POST", templateUrl, string(templateFileData), secretData["user"])
 		if err != nil {
 			return "", err
 		}
 		json.Unmarshal(data, &templateCheckSave)
-		if templateCheckSave.Error != "" && templateCheckSave.Message != "" {
-			errorss := fmt.Sprintf("%v", templateCheckSave.Message)
+		if templateCheckSave["errorMessage"] != "" {
+			errorss := fmt.Sprintf("%v", templateCheckSave["errorMessage"])
 			err = errors.New(errorss)
 			return "", err
 		}
