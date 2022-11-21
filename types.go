@@ -15,6 +15,16 @@ const (
 	AnalysisPhaseError      = "Error"
 )
 
+type ExitCode int
+
+const (
+	ReturnCodeSuccess ExitCode = iota
+	ReturnCodeError
+	ReturnCodeFailed
+	ReturnCodeInconclusive
+	ReturnCodeCancelled
+)
+
 type Clients struct {
 	kubeclientset kubernetes.Interface
 	client        http.Client
@@ -41,6 +51,7 @@ type ResourceNames struct {
 }
 
 type CanaryDetails struct {
+	user      string
 	jobName   string
 	canaryId  string
 	reportUrl string

@@ -51,7 +51,7 @@ func TestPatchJobCanaryDetails(t *testing.T) {
 		Status:  "True",
 	}
 	k8sclient := jobFakeClient(cond)
-	err := patchJobCanaryDetails(k8sclient, context.TODO(), cd)
+	err := patchJobCanaryDetails(context.TODO(), k8sclient, cd)
 	assert.Equal(t, nil, err)
 }
 
@@ -68,7 +68,7 @@ func TestPatchJobSuccessful(t *testing.T) {
 		Status:  "True",
 	}
 	k8sclient := jobFakeClient(cond)
-	err := patchJobSuccessful(k8sclient, context.TODO(), cd)
+	err := patchJobSuccessful(context.TODO(), k8sclient, cd)
 	assert.Equal(t, nil, err)
 
 	cd = CanaryDetails{
@@ -77,7 +77,7 @@ func TestPatchJobSuccessful(t *testing.T) {
 		reportUrl: "https://opsmx.test.tst/reporturl/123",
 		value:     "98",
 	}
-	err = patchJobSuccessful(getFakeClient(map[string][]byte{}), context.TODO(), cd)
+	err = patchJobSuccessful(context.TODO(), getFakeClient(map[string][]byte{}), cd)
 	assert.Equal(t, "jobs.batch \"jobname-123\" not found", err.Error())
 
 }
@@ -96,7 +96,7 @@ func TestPatchJobFailedInconclusive(t *testing.T) {
 	}
 
 	k8sclient := jobFakeClient(cond)
-	err := patchJobFailedInconclusive(k8sclient, context.TODO(), "Failed", cd)
+	err := patchJobFailedInconclusive(context.TODO(), k8sclient, "Failed", cd)
 	assert.Equal(t, nil, err)
 
 	cd = CanaryDetails{
@@ -105,7 +105,7 @@ func TestPatchJobFailedInconclusive(t *testing.T) {
 		reportUrl: "https://opsmx.test.tst/reporturl/123",
 		value:     "98",
 	}
-	err = patchJobSuccessful(getFakeClient(map[string][]byte{}), context.TODO(), cd)
+	err = patchJobSuccessful(context.TODO(), getFakeClient(map[string][]byte{}), cd)
 	assert.Equal(t, "jobs.batch \"jobname-123\" not found", err.Error())
 }
 
@@ -121,7 +121,7 @@ func TestPatchJobCancelled(t *testing.T) {
 		Status:  "True",
 	}
 	k8sclient := jobFakeClient(cond)
-	err := patchJobCancelled(k8sclient, context.TODO(), "jobname-123")
+	err := patchJobCancelled(context.TODO(), k8sclient, "jobname-123")
 	assert.Equal(t, nil, err)
 
 	cd = CanaryDetails{
@@ -130,7 +130,7 @@ func TestPatchJobCancelled(t *testing.T) {
 		reportUrl: "https://opsmx.test.tst/reporturl/123",
 		value:     "98",
 	}
-	err = patchJobSuccessful(getFakeClient(map[string][]byte{}), context.TODO(), cd)
+	err = patchJobSuccessful(context.TODO(), getFakeClient(map[string][]byte{}), cd)
 	assert.Equal(t, "jobs.batch \"jobname-123\" not found", err.Error())
 }
 
@@ -142,6 +142,6 @@ func TestPatchJobError(t *testing.T) {
 		Status:        "True",
 	}
 	k8sclient := jobFakeClient(cond)
-	err := patchJobError(k8sclient, context.TODO(), "jobname-123", "the error message")
+	err := patchJobError(context.TODO(), k8sclient, "jobname-123", "the error message")
 	assert.Equal(t, nil, err)
 }

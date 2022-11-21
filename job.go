@@ -24,37 +24,37 @@ const (
 	cdIntegrationArgoCD                     = "argocd"
 )
 
-func runAnalysis(c *Clients, r ResourceNames, basePath string) (int, error) {
+func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error) {
 	metric, err := getAnalysisTemplateData(basePath)
 	if err != nil {
-		return 1, err
+		return ReturnCodeError, err
 	}
 	err = metric.basicChecks()
 	if err != nil {
-		return 1, err
+		return ReturnCodeError, err
 	}
 	secretData, err := metric.getDataSecret(basePath)
 	if err != nil {
-		return 1, err
+		return ReturnCodeError, err
 	}
 	canaryurl, err := url.JoinPath(secretData["gateUrl"], v5configIdLookupURLFormat)
 	if err != nil {
-		return 1, err
+		return ReturnCodeError, err
 	}
 	//Get the epochs for Time variables and the lifetimeMinutes
 	err = metric.getTimeVariables()
 	if err != nil {
-		return 1, err
+		return ReturnCodeError, err
 	}
 
 	payload, err := metric.generatePayload(c, secretData, basePath)
 	if err != nil {
-		return 1, err
+		return ReturnCodeError, err
 	}
 
 	data, scoreURL, err := makeRequest(c.client, "POST", canaryurl, payload, secretData["user"])
 	if err != nil {
-		return 1, err
+		return ReturnCodeError, err
 	}
 	//Struct to record canary Response
 	type canaryResponse struct {
@@ -70,13 +70,13 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (int, error) {
 		errMessage := fmt.Sprintf("Error: %s\nMessage: %s", canary.Error, canary.Message)
 		err := errors.New(errMessage)
 		if err != nil {
-			return 1, err
+			return ReturnCodeError, err
 		}
 	}
 
 	data, _, err = makeRequest(c.client, "GET", scoreURL, "", secretData["user"])
 	if err != nil {
-		return 1, err
+		return ReturnCodeError, err
 	}
 
 	var status map[string]interface{}
@@ -90,14 +90,15 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (int, error) {
 	ctx := context.TODO()
 
 	cd := CanaryDetails{
+		user:      secretData["user"],
 		jobName:   r.jobName,
 		canaryId:  canary.CanaryId.String(),
 		reportUrl: fmt.Sprintf("%s", reportUrl),
 	}
 
-	err = patchJobCanaryDetails(c.kubeclientset, ctx, cd)
+	err = patchJobCanaryDetails(ctx, c.kubeclientset, cd)
 	if err != nil {
-		return 1, err
+		return ReturnCodeError, err
 	}
 
 	retryScorePool := 5
@@ -114,7 +115,7 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (int, error) {
 			time.Sleep(resumeAfter)
 			data, _, err = makeRequest(c.client, "GET", scoreURL, "", secretData["user"])
 			if err != nil && retryScorePool == 0 {
-				return 1, err
+				return ReturnCodeError, err
 			} else {
 				retryScorePool -= 1
 			}
@@ -122,46 +123,47 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (int, error) {
 	}
 	//if run is cancelled mid-run
 	if status["status"] == "CANCELLED" {
-		err = patchJobCancelled(c.kubeclientset, ctx, r.jobName)
+		err = patchJobCancelled(ctx, c.kubeclientset, r.jobName)
 		if err != nil {
-			return 1, err
+			return ReturnCodeError, err
 		}
-		// logErrorAndExit(4, nil)
-		return 4, nil
-	} else {
-		//POST-Run process
-		Phase, Score, err := metric.processResume(data)
+		return ReturnCodeCancelled, nil
+	}
+
+	//POST-Run process
+	Phase, Score, err := metric.processResume(data)
+	if err != nil {
+		return ReturnCodeError, err
+	}
+	if Phase == AnalysisPhaseSuccessful {
+
+		fs := CanaryDetails{
+			user:      secretData["user"],
+			jobName:   r.jobName,
+			canaryId:  canary.CanaryId.String(),
+			reportUrl: fmt.Sprintf("%s", reportUrl),
+			value:     Score,
+		}
+		err = patchJobSuccessful(ctx, c.kubeclientset, fs)
 		if err != nil {
-			return 1, err
-		}
-		if Phase == AnalysisPhaseSuccessful {
-
-			fs := CanaryDetails{
-				jobName:   r.jobName,
-				canaryId:  canary.CanaryId.String(),
-				reportUrl: fmt.Sprintf("%s", reportUrl),
-				value:     Score,
-			}
-			err = patchJobSuccessful(c.kubeclientset, ctx, fs)
-			if err != nil {
-				return 1, err
-			}
-		}
-		if Phase == AnalysisPhaseFailed {
-
-			fs := CanaryDetails{
-				jobName:   r.jobName,
-				canaryId:  canary.CanaryId.String(),
-				reportUrl: fmt.Sprintf("%s", reportUrl),
-				value:     Score,
-			}
-			err = patchJobFailedInconclusive(c.kubeclientset, ctx, Phase, fs)
-			if err != nil {
-				return 1, err
-			}
-			// logErrorAndExit(2, nil)
-			return 2, nil
+			return ReturnCodeError, err
 		}
 	}
-	return 0, nil
+	if Phase == AnalysisPhaseFailed {
+
+		fs := CanaryDetails{
+			user:      secretData["user"],
+			jobName:   r.jobName,
+			canaryId:  canary.CanaryId.String(),
+			reportUrl: fmt.Sprintf("%s", reportUrl),
+			value:     Score,
+		}
+		err = patchJobFailedInconclusive(ctx, c.kubeclientset, Phase, fs)
+		if err != nil {
+			return ReturnCodeError, err
+		}
+		return ReturnCodeFailed, nil
+	}
+
+	return ReturnCodeSuccess, nil
 }

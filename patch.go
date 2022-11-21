@@ -16,12 +16,12 @@ import (
 //TODO -Retrieve the previous state?
 //TODO - Rethink error
 
-func patchJobCanaryDetails(kubeclient kubernetes.Interface, ctx context.Context, cd CanaryDetails) error {
+func patchJobCanaryDetails(ctx context.Context, kubeclient kubernetes.Interface, cd CanaryDetails) error {
 
 	jobStatus := JobStatus{
 		Status: Status{
 			Conditions: &[]Conditions{{
-				Message:       fmt.Sprintf("analysisDetails\n canaryID: %s\n reportURL: %s", cd.canaryId, cd.reportUrl),
+				Message:       fmt.Sprintf("analysisDetails\n user: %s\n canaryID: %s\n reportURL: %s", cd.user, cd.canaryId, cd.reportUrl),
 				Type:          "OpsmxAnalysis",
 				LastProbeTime: metav1.NewTime(time.Now()),
 				Status:        "True",
@@ -29,7 +29,7 @@ func patchJobCanaryDetails(kubeclient kubernetes.Interface, ctx context.Context,
 			},
 		},
 	}
-	err := patchToJob(kubeclient, jobStatus, ctx, cd.jobName)
+	err := patchToJob(ctx, kubeclient, jobStatus, cd.jobName)
 	if err != nil {
 		return err
 	}
@@ -38,12 +38,12 @@ func patchJobCanaryDetails(kubeclient kubernetes.Interface, ctx context.Context,
 	return nil
 }
 
-func patchJobSuccessful(kubeclient kubernetes.Interface, ctx context.Context, cd CanaryDetails) error {
+func patchJobSuccessful(ctx context.Context, kubeclient kubernetes.Interface, cd CanaryDetails) error {
 
 	jobStatus := JobStatus{
 		Status: Status{
 			Conditions: &[]Conditions{{
-				Message:       fmt.Sprintf("analysisDetails\n canaryID: %s\n reportURL: %s\n score: %s", cd.canaryId, cd.reportUrl, cd.value),
+				Message:       fmt.Sprintf("analysisDetails\n user: %s\n canaryID: %s\n reportURL: %s\n score: %s", cd.user, cd.canaryId, cd.reportUrl, cd.value),
 				Type:          "OpsmxAnalysis",
 				LastProbeTime: metav1.NewTime(time.Now()),
 				Status:        "True",
@@ -51,7 +51,7 @@ func patchJobSuccessful(kubeclient kubernetes.Interface, ctx context.Context, cd
 			},
 		},
 	}
-	err := patchToJob(kubeclient, jobStatus, ctx, cd.jobName)
+	err := patchToJob(ctx, kubeclient, jobStatus, cd.jobName)
 	if err != nil {
 		return err
 	}
@@ -59,11 +59,11 @@ func patchJobSuccessful(kubeclient kubernetes.Interface, ctx context.Context, cd
 	return nil
 }
 
-func patchJobFailedInconclusive(kubeclient kubernetes.Interface, ctx context.Context, reason string, cd CanaryDetails) error {
+func patchJobFailedInconclusive(ctx context.Context, kubeclient kubernetes.Interface, reason string, cd CanaryDetails) error {
 	jobStatus := JobStatus{
 		Status: Status{
 			Conditions: &[]Conditions{{
-				Message:       fmt.Sprintf("analysisDetails\n canaryID: %s\n reportURL: %s\n score: %s", cd.canaryId, cd.reportUrl, cd.value),
+				Message:       fmt.Sprintf("analysisDetails\n user: %s\n canaryID: %s\n reportURL: %s\n score: %s", cd.user, cd.canaryId, cd.reportUrl, cd.value),
 				Type:          "OpsmxAnalysis",
 				LastProbeTime: metav1.NewTime(time.Now()),
 				Status:        "True",
@@ -71,11 +71,11 @@ func patchJobFailedInconclusive(kubeclient kubernetes.Interface, ctx context.Con
 			},
 		},
 	}
-	err := patchToJob(kubeclient, jobStatus, ctx, cd.jobName)
+	err := patchToJob(ctx, kubeclient, jobStatus, cd.jobName)
 	if err != nil {
 		return err
 	}
-	err = patchForcefulFail(kubeclient, ctx, cd.jobName, reason)
+	err = patchForcefulFail(ctx, kubeclient, cd.jobName, reason)
 	if err != nil {
 		return err
 	}
@@ -83,16 +83,16 @@ func patchJobFailedInconclusive(kubeclient kubernetes.Interface, ctx context.Con
 	return nil
 }
 
-func patchJobCancelled(kubeclient kubernetes.Interface, ctx context.Context, jobName string) error {
+func patchJobCancelled(ctx context.Context, kubeclient kubernetes.Interface, jobName string) error {
 	reason := "Cancelled"
-	err := patchForcefulFail(kubeclient, ctx, jobName, reason)
+	err := patchForcefulFail(ctx, kubeclient, jobName, reason)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func patchJobError(kubeclient kubernetes.Interface, ctx context.Context, jobName string, errMsg string) error {
+func patchJobError(ctx context.Context, kubeclient kubernetes.Interface, jobName string, errMsg string) error {
 	jobStatus := JobStatus{
 		Status: Status{
 			Conditions: &[]Conditions{{
@@ -104,14 +104,14 @@ func patchJobError(kubeclient kubernetes.Interface, ctx context.Context, jobName
 			},
 		},
 	}
-	err := patchToJob(kubeclient, jobStatus, ctx, jobName)
+	err := patchToJob(ctx, kubeclient, jobStatus, jobName)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func patchForcefulFail(kubeclient kubernetes.Interface, ctx context.Context, jobName, reason string) error {
+func patchForcefulFail(ctx context.Context, kubeclient kubernetes.Interface, jobName, reason string) error {
 	jobStatus := JobStatus{
 		Status: Status{
 			Conditions: &[]Conditions{{
@@ -123,14 +123,14 @@ func patchForcefulFail(kubeclient kubernetes.Interface, ctx context.Context, job
 			},
 		},
 	}
-	err := patchToJob(kubeclient, jobStatus, ctx, jobName)
+	err := patchToJob(ctx, kubeclient, jobStatus, jobName)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func patchToJob(kubeclient kubernetes.Interface, jobData JobStatus, ctx context.Context, jobName string) error {
+func patchToJob(ctx context.Context, kubeclient kubernetes.Interface, jobData JobStatus, jobName string) error {
 	jsonData, err := json.Marshal(jobData)
 	if err != nil {
 		return err

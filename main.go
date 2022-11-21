@@ -38,12 +38,11 @@ func runner(c *Clients) error {
 	}
 	errcode, errrun := runAnalysis(c, resourceNames, basePath)
 	if errrun != nil {
-		err := patchJobError(c.kubeclientset, context.TODO(), resourceNames.jobName, errrun.Error())
+		err := patchJobError(context.TODO(), c.kubeclientset, resourceNames.jobName, errrun.Error())
 		if err != nil {
 			log.Error("an error occurred while patching the error from run analysis")
 			return err
 		}
-		// logNon0CodeExit(1)
 	}
 	if errcode != 0 {
 		logNon0CodeExit(errcode)
@@ -54,10 +53,10 @@ func runner(c *Clients) error {
 
 func main() {
 	config, err := rest.InClusterConfig()
-	logErrorExit(err)
+	checkError(err)
 
 	clientset, err := kubernetes.NewForConfig(config)
-	logErrorExit(err)
+	checkError(err)
 
 	httpclient := NewHttpClient()
 
@@ -65,5 +64,5 @@ func main() {
 
 	log.Info("Starting the runner function")
 	err = runner(clients)
-	logErrorExit(err)
+	checkError(err)
 }

@@ -24,16 +24,15 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func logErrorExit(err error) {
+func checkError(err error) {
 	if err != nil {
-		log.Error(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 }
 
-func logNon0CodeExit(exitcode int) {
+func logNon0CodeExit(exitcode ExitCode) {
 	log.Infof("Exiting the pod with status code %d", exitcode)
-	os.Exit(exitcode)
+	os.Exit(int(exitcode))
 }
 
 func getJobNameFromPod(p *Clients, podName string) (string, error) {
@@ -54,18 +53,18 @@ func checkPatchabilityReturnResources(c *Clients) (ResourceNames, error) {
 
 	podName, ok := os.LookupEnv("MY_POD_NAME")
 	if !ok {
-		return *new(ResourceNames), errors.New("environment variable my_pod name not set")
+		return ResourceNames{}, errors.New("environment variable my_pod name not set")
 	}
 
 	jobName, err := getJobNameFromPod(c, podName)
 	if err != nil {
-		return *new(ResourceNames), err
+		return ResourceNames{}, err
 	}
 
 	_, err = c.kubeclientset.BatchV1().Jobs(defaults.Namespace()).Patch(context.TODO(), jobName, types.StrategicMergePatchType, []byte(`{}`), metav1.PatchOptions{}, "status")
 	if err != nil {
 		log.Error("Cannot patch to Job")
-		return *new(ResourceNames), err
+		return ResourceNames{}, err
 	}
 	resourceNames := ResourceNames{
 		podName: podName,
