@@ -73,7 +73,6 @@ func TestFuncGetAnalysisTemplateData(t *testing.T) {
 		IntervalTime:    3,
 		LookBackType:    "sliding",
 		Pass:            80,
-		Marginal:        80,
 		Services:        []OPSMXService{},
 	}
 	services := OPSMXService{
@@ -108,7 +107,6 @@ var basicChecks = []struct {
 			Application: "testapp",
 			User:        "admin",
 			Pass:        80,
-			Marginal:    65,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name",
@@ -120,30 +118,6 @@ var basicChecks = []struct {
 		},
 		message: "either provide lifetimeMinutes or end time",
 	},
-	//Test case for Pass score less than marginal
-	{
-		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
-			Application:       "testapp",
-			User:              "admin",
-			BaselineStartTime: "2022-08-02T13:15:00Z",
-			CanaryStartTime:   "2022-08-02T13:15:00Z",
-			LifetimeMinutes:   30,
-
-			Pass:     60,
-			Marginal: 80,
-
-			Services: []OPSMXService{
-				{
-					MetricScopeVariables: "job_name",
-					BaselineMetricScope:  "oes-datascience-br",
-					CanaryMetricScope:    "oes-datascience-cr",
-					MetricTemplateName:   "metrictemplate",
-				},
-			},
-		},
-		message: "pass score cannot be less than marginal score",
-	},
 	//Test case for no lifetimeMinutes & EndTime
 	{
 		metric: OPSMXMetric{
@@ -153,7 +127,6 @@ var basicChecks = []struct {
 			BaselineStartTime: "2022-08-02T13:15:00Z",
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
 			Pass:              80,
-			Marginal:          60,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name",
@@ -174,7 +147,6 @@ var basicChecks = []struct {
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
 			EndTime:           "2022-08-02T12:45:00Z",
 			Pass:              80,
-			Marginal:          60,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name",
@@ -195,7 +167,6 @@ var basicChecks = []struct {
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
 			LifetimeMinutes:   2,
 			Pass:              80,
-			Marginal:          60,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name",
@@ -218,7 +189,6 @@ var basicChecks = []struct {
 			IntervalTime:      2,
 			LookBackType:      "growing",
 			Pass:              80,
-			Marginal:          60,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name",
@@ -240,7 +210,6 @@ var basicChecks = []struct {
 			LifetimeMinutes:   60,
 			IntervalTime:      3,
 			Pass:              80,
-			Marginal:          60,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name",
@@ -267,7 +236,6 @@ var basicChecks = []struct {
 			LifetimeMinutes:   60,
 			LookBackType:      "growing",
 			Pass:              80,
-			Marginal:          60,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name",
@@ -326,7 +294,6 @@ var checkTimeVariables = []struct {
 			CanaryStartTime:   "2022-O8-02T13:15:00Z",
 			LifetimeMinutes:   30,
 			Pass:              100,
-			Marginal:          80,
 
 			Services: []OPSMXService{
 				{
@@ -349,7 +316,6 @@ var checkTimeVariables = []struct {
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
 			LifetimeMinutes:   30,
 			Pass:              80,
-			Marginal:          60,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name",
@@ -371,7 +337,6 @@ var checkTimeVariables = []struct {
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
 			EndTime:           "2022-O8-02T13:15:00Z",
 			Pass:              80,
-			Marginal:          60,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name",
@@ -392,7 +357,6 @@ var checkTimeVariables = []struct {
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
 			EndTime:           "2022-08-02T12:45:00Z",
 			Pass:              80,
-			Marginal:          60,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name",
@@ -417,7 +381,6 @@ func TestGetTimeVariables(t *testing.T) {
 		User:            "admin",
 		LifetimeMinutes: 30,
 		Pass:            80,
-		Marginal:        60,
 		Services: []OPSMXService{
 			{
 				MetricScopeVariables: "job_name",
@@ -437,7 +400,6 @@ func TestGetTimeVariables(t *testing.T) {
 		CanaryStartTime:   "2022-08-02T13:15:00Z",
 		EndTime:           "2022-08-02T13:45:00Z",
 		Pass:              80,
-		Marginal:          60,
 		Services: []OPSMXService{
 			{
 				MetricScopeVariables: "job_name",
@@ -459,7 +421,6 @@ func TestSecret(t *testing.T) {
 		IntervalTime:    3,
 		LookBackType:    "sliding",
 		Pass:            80,
-		Marginal:        60,
 		Services:        []OPSMXService{},
 	}
 	services := OPSMXService{
@@ -550,7 +511,6 @@ var successfulPayload = []struct {
 			Delay:             1,
 			LookBackType:      "growing",
 			Pass:              80,
-			Marginal:          65,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables:  "job_name",
@@ -571,7 +531,7 @@ var successfulPayload = []struct {
 							"interval": "3",
 							"delay": "1",
 							"canaryHealthCheckHandler": {
-											"minimumCanaryResultScore": "65"
+											"minimumCanaryResultScore": "80"
 											},
 							"canarySuccessCriteria": {
 										"canaryResultScore": "80"
@@ -601,7 +561,6 @@ var successfulPayload = []struct {
 			CanaryStartTime:   "2022-08-10T13:15:00Z",
 			EndTime:           "2022-08-10T13:45:10Z",
 			Pass:              80,
-			Marginal:          65,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables:  "job_name",
@@ -619,7 +578,7 @@ var successfulPayload = []struct {
 					"canaryConfig": {
 							"lifetimeMinutes": "30",
 							"canaryHealthCheckHandler": {
-											"minimumCanaryResultScore": "65"
+											"minimumCanaryResultScore": "80"
 											},
 							"canarySuccessCriteria": {
 										"canaryResultScore": "80"
@@ -649,7 +608,6 @@ var successfulPayload = []struct {
 			CanaryStartTime:   "2022-08-10T13:15:00Z",
 			EndTime:           "2022-08-10T13:45:10Z",
 			Pass:              80,
-			Marginal:          65,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables:  "job_name",
@@ -667,7 +625,7 @@ var successfulPayload = []struct {
 					"canaryConfig": {
 							"lifetimeMinutes": "30",
 							"canaryHealthCheckHandler": {
-											"minimumCanaryResultScore": "65"
+											"minimumCanaryResultScore": "80"
 											},
 							"canarySuccessCriteria": {
 										"canaryResultScore": "80"
@@ -698,7 +656,6 @@ var successfulPayload = []struct {
 			EndTime:              "2022-08-10T13:45:10Z",
 			GlobalMetricTemplate: "metricTemplate",
 			Pass:                 80,
-			Marginal:             65,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables:  "job_name",
@@ -721,7 +678,7 @@ var successfulPayload = []struct {
 					"canaryConfig": {
 						"lifetimeMinutes": "30",
 					  "canaryHealthCheckHandler": {
-						"minimumCanaryResultScore": "65"
+						"minimumCanaryResultScore": "80"
 					  },
 					  "canarySuccessCriteria": {
 						"canaryResultScore": "80"
@@ -776,7 +733,6 @@ var successfulPayload = []struct {
 			CanaryStartTime:   "2022-08-10T13:15:00Z",
 			EndTime:           "2022-08-10T13:45:10Z",
 			Pass:              80,
-			Marginal:          65,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables:  "job_name",
@@ -806,7 +762,7 @@ var successfulPayload = []struct {
 					"canaryConfig": {
 					  "lifetimeMinutes": "30",
 					  "canaryHealthCheckHandler": {
-						"minimumCanaryResultScore": "65"
+						"minimumCanaryResultScore": "80"
 					  },
 					  "canarySuccessCriteria": {
 						"canaryResultScore": "80"
@@ -878,7 +834,6 @@ var successfulPayload = []struct {
 			CanaryStartTime:   "2022-08-10T13:15:00Z",
 			EndTime:           "2022-08-10T13:45:10Z",
 			Pass:              80,
-			Marginal:          65,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name",
@@ -905,7 +860,7 @@ var successfulPayload = []struct {
 					"canaryConfig": {
 						"lifetimeMinutes": "30",
 					  "canaryHealthCheckHandler": {
-						"minimumCanaryResultScore": "65"
+						"minimumCanaryResultScore": "80"
 					  },
 					  "canarySuccessCriteria": {
 						"canaryResultScore": "80"
@@ -971,7 +926,6 @@ var successfulPayload = []struct {
 			CanaryStartTime:   "2022-08-10T13:15:00Z",
 			EndTime:           "2022-08-10T13:45:10Z",
 			Pass:              80,
-			Marginal:          65,
 			Services: []OPSMXService{
 				{
 					ServiceName:          "service1",
@@ -999,7 +953,7 @@ var successfulPayload = []struct {
 					"canaryConfig": {
 						"lifetimeMinutes": "30",
 					  "canaryHealthCheckHandler": {
-						"minimumCanaryResultScore": "65"
+						"minimumCanaryResultScore": "80"
 					  },
 					  "canarySuccessCriteria": {
 						"canaryResultScore": "80"
@@ -1066,7 +1020,6 @@ var successfulPayload = []struct {
 			EndTime:           "2022-08-10T13:45:10Z",
 			GlobalLogTemplate: "logTemplate",
 			Pass:              80,
-			Marginal:          65,
 			Services: []OPSMXService{
 				{
 					ServiceName:          "service1",
@@ -1093,7 +1046,7 @@ var successfulPayload = []struct {
 					"canaryConfig": {
 						"lifetimeMinutes": "30",
 					  "canaryHealthCheckHandler": {
-						"minimumCanaryResultScore": "65"
+						"minimumCanaryResultScore": "80"
 					  },
 					  "canarySuccessCriteria": {
 						"canaryResultScore": "80"
@@ -1160,7 +1113,6 @@ var successfulPayload = []struct {
 			CanaryStartTime:   "2022-08-10T13:15:00Z",
 			EndTime:           "2022-08-10T13:45:10Z",
 			Pass:              80,
-			Marginal:          65,
 			Services: []OPSMXService{
 				{
 					ServiceName:          "service1",
@@ -1188,7 +1140,7 @@ var successfulPayload = []struct {
 					"canaryConfig": {
 						"lifetimeMinutes": "30",
 					  "canaryHealthCheckHandler": {
-						"minimumCanaryResultScore": "65"
+						"minimumCanaryResultScore": "80"
 					  },
 					  "canarySuccessCriteria": {
 						"canaryResultScore": "80"
@@ -1259,7 +1211,6 @@ var failPayload = []struct {
 			CanaryStartTime:   "2022-08-10T13:15:00Z",
 			EndTime:           "2022-08-10T13:45:10Z",
 			Pass:              80,
-			Marginal:          65,
 		},
 		message: "no services provided",
 	},
@@ -1273,7 +1224,6 @@ var failPayload = []struct {
 			CanaryStartTime:   "2022-08-10T13:15:00Z",
 			EndTime:           "2022-08-10T13:45:10Z",
 			Pass:              80,
-			Marginal:          65,
 			Services: []OPSMXService{
 				{
 					ServiceName: "service1",
@@ -1295,7 +1245,6 @@ var failPayload = []struct {
 			CanaryStartTime:   "2022-08-10T13:15:00Z",
 			EndTime:           "2022-08-10T13:45:10Z",
 			Pass:              80,
-			Marginal:          65,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name",
@@ -1328,7 +1277,6 @@ var failPayload = []struct {
 			CanaryStartTime:   "2022-08-10T13:15:00Z",
 			EndTime:           "2022-08-10T13:45:10Z",
 			Pass:              80,
-			Marginal:          65,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name,job123",
@@ -1361,7 +1309,6 @@ var failPayload = []struct {
 			IntervalTime:      3,
 			LookBackType:      "growing",
 			Pass:              80,
-			Marginal:          60,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name",
@@ -1388,7 +1335,6 @@ var failPayload = []struct {
 			IntervalTime:      3,
 			LookBackType:      "growing",
 			Pass:              80,
-			Marginal:          60,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name",
@@ -1415,7 +1361,6 @@ var failPayload = []struct {
 			IntervalTime:      3,
 			LookBackType:      "growing",
 			Pass:              80,
-			Marginal:          60,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name",
@@ -1441,7 +1386,6 @@ var failPayload = []struct {
 			IntervalTime:      3,
 			LookBackType:      "growing",
 			Pass:              80,
-			Marginal:          60,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name",
@@ -1468,7 +1412,6 @@ var failPayload = []struct {
 			IntervalTime:      3,
 			LookBackType:      "growing",
 			Pass:              80,
-			Marginal:          60,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name",
@@ -1494,7 +1437,6 @@ var failPayload = []struct {
 			IntervalTime:      3,
 			LookBackType:      "growing",
 			Pass:              80,
-			Marginal:          60,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name",
@@ -1519,7 +1461,6 @@ var failPayload = []struct {
 			IntervalTime:      3,
 			LookBackType:      "growing",
 			Pass:              80,
-			Marginal:          60,
 			Services: []OPSMXService{
 				{
 					MetricScopeVariables: "job_name",
@@ -1544,7 +1485,6 @@ var failPayload = []struct {
 			IntervalTime:      3,
 			LookBackType:      "growing",
 			Pass:              80,
-			Marginal:          60,
 			Services: []OPSMXService{
 				{
 					BaselineMetricScope: "oes-sapor-br",
@@ -1569,7 +1509,6 @@ var failPayload = []struct {
 			IntervalTime:      3,
 			LookBackType:      "growing",
 			Pass:              80,
-			Marginal:          60,
 			Services: []OPSMXService{
 				{
 					CanaryMetricScope: "oes-sapor-cr",
@@ -1594,7 +1533,6 @@ var failPayload = []struct {
 			IntervalTime:      3,
 			LookBackType:      "growing",
 			Pass:              80,
-			Marginal:          60,
 			Services: []OPSMXService{
 				{
 					BaselineMetricScope: "oes-sapor-br",
@@ -1644,7 +1582,6 @@ func TestPayload(t *testing.T) {
 		Delay:             1,
 		LookBackType:      "growing",
 		Pass:              80,
-		Marginal:          80,
 		Services:          []OPSMXService{},
 	}
 	services := OPSMXService{
@@ -1696,7 +1633,6 @@ func TestGitops(t *testing.T) {
 		GitOPS:            true,
 		LookBackType:      "growing",
 		Pass:              80,
-		Marginal:          80,
 		Services:          []OPSMXService{},
 	}
 	services := OPSMXService{
@@ -1770,7 +1706,6 @@ func TestGitops(t *testing.T) {
 		GitOPS:            true,
 		LookBackType:      "growing",
 		Pass:              80,
-		Marginal:          80,
 		Services:          []OPSMXService{},
 	}
 	services = OPSMXService{
@@ -1843,7 +1778,6 @@ func TestGitops(t *testing.T) {
 		GitOPS:            true,
 		LookBackType:      "growing",
 		Pass:              80,
-		Marginal:          80,
 		Services:          []OPSMXService{},
 	}
 	services = OPSMXService{
@@ -1885,7 +1819,6 @@ func TestGitops(t *testing.T) {
 		IntervalTime:    3,
 		LookBackType:    "sliding",
 		Pass:            80,
-		Marginal:        80,
 		GitOPS:          true,
 		Services:        []OPSMXService{},
 	}
@@ -1921,7 +1854,6 @@ func TestProcessResume(t *testing.T) {
 		GitOPS:            true,
 		LookBackType:      "growing",
 		Pass:              80,
-		Marginal:          65,
 		Services:          []OPSMXService{},
 	}
 	services := OPSMXService{

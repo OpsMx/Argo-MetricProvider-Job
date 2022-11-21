@@ -120,9 +120,6 @@ func makeRequest(client http.Client, requestType string, url string, body string
 
 // Check few conditions pre-analysis
 func (metric *OPSMXMetric) basicChecks() error {
-	if metric.Pass < metric.Marginal {
-		return errors.New("pass score cannot be less than marginal score")
-	}
 	if metric.LifetimeMinutes == 0 && metric.EndTime == "" {
 		return errors.New("either provide lifetimeMinutes or end time")
 	}
@@ -205,7 +202,6 @@ func getAnalysisTemplateData(basePath string) (OPSMXMetric, error) {
 	if err := yaml.Unmarshal(data, &opsmx); err != nil {
 		return OPSMXMetric{}, err
 	}
-	opsmx.Marginal = opsmx.Pass
 	return opsmx, nil
 }
 
@@ -563,7 +559,7 @@ func (metric *OPSMXMetric) generatePayload(c *Clients, secretData map[string]str
 }
 
 // Evaluate canaryScore and accordingly set the AnalysisPhase
-func evaluateResult(score int, pass int, marginal int) string {
+func evaluateResult(score int, pass int) string {
 	if score >= pass {
 		return "Successful"
 	}
@@ -607,6 +603,6 @@ func (metric *OPSMXMetric) processResume(data []byte) (string, string, error) {
 		}
 	}
 
-	Phase := evaluateResult(score, int(metric.Pass), int(metric.Marginal))
+	Phase := evaluateResult(score, int(metric.Pass))
 	return Phase, fmt.Sprintf("%v", score), nil
 }
