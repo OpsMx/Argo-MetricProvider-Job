@@ -42,12 +42,12 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (int, error) {
 		return 1, err
 	}
 	//Get the epochs for Time variables and the lifetimeMinutes
-	canaryStartTime, baselineStartTime, lifetimeMinutes, err := getTimeVariables(metric.BaselineStartTime, metric.CanaryStartTime, metric.EndTime, metric.LifetimeMinutes)
+	err = metric.getTimeVariables()
 	if err != nil {
 		return 1, err
 	}
 
-	payload, err := metric.getPayload(c, secretData, canaryStartTime, baselineStartTime, lifetimeMinutes, basePath)
+	payload, err := metric.generatePayload(c, secretData, basePath)
 	if err != nil {
 		return 1, err
 	}

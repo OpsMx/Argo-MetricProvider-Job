@@ -31,7 +31,7 @@ func NewHttpClient() http.Client {
 }
 
 func runner(c *Clients) error {
-	basePath := "/etc/config/%s"
+	basePath := "/etc/config/"
 	resourceNames, err := checkPatchabilityReturnResources(c)
 	if err != nil {
 		return err

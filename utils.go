@@ -12,6 +12,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -144,55 +145,57 @@ func (metric *OPSMXMetric) basicChecks() error {
 }
 
 // Return epoch values of the specific time provided along with lifetimeMinutes for the Run
-func getTimeVariables(baselineTime string, canaryTime string, endTime string, lifetimeMinutes int) (string, string, int, error) {
+func (metric *OPSMXMetric) getTimeVariables() error {
 
 	var canaryStartTime string
 	var baselineStartTime string
 	tm := time.Now()
 
-	if canaryTime == "" {
+	if metric.CanaryStartTime == "" {
 		canaryStartTime = fmt.Sprintf("%d", tm.UnixNano()/int64(time.Millisecond))
 	} else {
-		tsStart, err := time.Parse(time.RFC3339, canaryTime)
+		tsStart, err := time.Parse(time.RFC3339, metric.CanaryStartTime)
 		if err != nil {
-			return "", "", 0, err
+			return err
 		}
 		canaryStartTime = fmt.Sprintf("%d", tsStart.UnixNano()/int64(time.Millisecond))
 	}
 
-	if baselineTime == "" {
+	if metric.BaselineStartTime == "" {
 		baselineStartTime = fmt.Sprintf("%d", tm.UnixNano()/int64(time.Millisecond))
 	} else {
-		tsStart, err := time.Parse(time.RFC3339, baselineTime)
+		tsStart, err := time.Parse(time.RFC3339, metric.BaselineStartTime)
 		if err != nil {
-			return "", "", 0, err
+			return err
 		}
 		baselineStartTime = fmt.Sprintf("%d", tsStart.UnixNano()/int64(time.Millisecond))
 	}
 
 	//If lifetimeMinutes not given calculate using endTime
-	if lifetimeMinutes == 0 {
-		tsEnd, err := time.Parse(time.RFC3339, endTime)
+	if metric.LifetimeMinutes == 0 {
+		tsEnd, err := time.Parse(time.RFC3339, metric.EndTime)
 		if err != nil {
-			return "", "", 0, err
+			return err
 		}
-		if canaryTime != "" && canaryTime > endTime {
+		if metric.CanaryStartTime != "" && metric.CanaryStartTime > metric.EndTime {
 			err := errors.New("start time cannot be greater than end time")
-			return "", "", 0, err
+			return err
 		}
 		tsStart := tm
-		if canaryTime != "" {
-			tsStart, _ = time.Parse(time.RFC3339, canaryTime)
+		if metric.CanaryStartTime != "" {
+			tsStart, _ = time.Parse(time.RFC3339, metric.CanaryStartTime)
 		}
 		tsDifference := tsEnd.Sub(tsStart)
 		min, _ := time.ParseDuration(tsDifference.String())
-		lifetimeMinutes = int(roundFloat(min.Minutes(), 0))
+		metric.LifetimeMinutes = int(roundFloat(min.Minutes(), 0))
 	}
-	return canaryStartTime, baselineStartTime, lifetimeMinutes, nil
+	metric.BaselineStartTime = baselineStartTime
+	metric.CanaryStartTime = canaryStartTime
+	return nil
 }
 
 func getAnalysisTemplateData(basePath string) (OPSMXMetric, error) {
-	path := fmt.Sprintf(basePath, "provider/providerConfig")
+	path := filepath.Join(basePath, "provider/providerConfig")
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return OPSMXMetric{}, err
@@ -206,7 +209,7 @@ func getAnalysisTemplateData(basePath string) (OPSMXMetric, error) {
 	return opsmx, nil
 }
 
-func encryptString(s string) string {
+func generateSHA1(s string) string {
 	h := sha1.New()
 	h.Write([]byte(s))
 	sha1_hash := hex.EncodeToString(h.Sum(nil))
@@ -215,8 +218,8 @@ func encryptString(s string) string {
 
 func getTemplateData(client http.Client, secretData map[string]string, template string, templateType string, basePath string) (string, error) {
 	var templateData string
-	templatePath := fmt.Sprintf(basePath, "templates/%s")
-	path := fmt.Sprintf(templatePath, template)
+	templatePath := filepath.Join(basePath, "templates/")
+	path := filepath.Join(templatePath, template)
 	templateFileData, err := ioutil.ReadFile(path)
 	if err != nil {
 		return "", err
@@ -227,7 +230,7 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 		return "", err
 	}
 
-	sha1Code := encryptString(string(templateFileData))
+	sha1Code := generateSHA1(string(templateFileData))
 	tempLink := fmt.Sprintf(templateApi, sha1Code, templateType, template)
 	s := []string{secretData["gateUrl"], tempLink}
 	templateUrl := strings.Join(s, "")
@@ -258,22 +261,22 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 func (metric *OPSMXMetric) getDataSecret(basePath string) (map[string]string, error) {
 
 	secretData := map[string]string{}
-	userPath := fmt.Sprintf(basePath, "secrets/user")
+	userPath := filepath.Join(basePath, "secrets/user")
 	secretUser, err := ioutil.ReadFile(userPath)
 	if err != nil {
 		return nil, err
 	}
-	gateUrlPath := fmt.Sprintf(basePath, "secrets/gate-url")
+	gateUrlPath := filepath.Join(basePath, "secrets/gate-url")
 	secretGateUrl, err := ioutil.ReadFile(gateUrlPath)
 	if err != nil {
 		return nil, err
 	}
-	sourceNamePath := fmt.Sprintf(basePath, "secrets/source-name")
+	sourceNamePath := filepath.Join(basePath, "secrets/source-name")
 	secretsourcename, err := ioutil.ReadFile(sourceNamePath)
 	if err != nil {
 		return nil, err
 	}
-	cdIntegrationPath := fmt.Sprintf(basePath, "secrets/cd-integration")
+	cdIntegrationPath := filepath.Join(basePath, "secrets/cd-integration")
 	secretcdintegration, err := ioutil.ReadFile(cdIntegrationPath)
 	if err != nil {
 		return nil, err
@@ -327,19 +330,15 @@ func getScopeValues(scope string) (string, error) {
 	return scopeValue, nil
 }
 
-func (metric *OPSMXMetric) getPayload(c *Clients, secretData map[string]string, canaryStartTime string, baselineStartTime string, lifetimeMinutes int, basePath string) (string, error) {
+func (metric *OPSMXMetric) generatePayload(c *Clients, secretData map[string]string, basePath string) (string, error) {
 	var intervalTime string
 	if metric.IntervalTime != 0 {
 		intervalTime = fmt.Sprintf("%d", metric.IntervalTime)
-	} else {
-		intervalTime = ""
 	}
 
 	var opsmxdelay string
 	if metric.Delay != 0 {
 		opsmxdelay = fmt.Sprintf("%d", metric.Delay)
-	} else {
-		opsmxdelay = ""
 	}
 
 	//Generate the payload
@@ -348,12 +347,12 @@ func (metric *OPSMXMetric) getPayload(c *Clients, secretData map[string]string, 
 		SourceName:  secretData["sourceName"],
 		SourceType:  secretData["cdIntegration"],
 		CanaryConfig: canaryConfig{
-			LifetimeMinutes: fmt.Sprintf("%d", lifetimeMinutes),
+			LifetimeMinutes: fmt.Sprintf("%d", metric.LifetimeMinutes),
 			LookBackType:    metric.LookBackType,
 			IntervalTime:    intervalTime,
 			Delays:          opsmxdelay,
 			CanaryHealthCheckHandler: canaryHealthCheckHandler{
-				MinimumCanaryResultScore: fmt.Sprintf("%d", metric.Marginal),
+				MinimumCanaryResultScore: fmt.Sprintf("%d", metric.Pass),
 			},
 			CanarySuccessCriteria: canarySuccessCriteria{
 				CanaryResultScore: fmt.Sprintf("%d", metric.Pass),
@@ -363,8 +362,8 @@ func (metric *OPSMXMetric) getPayload(c *Clients, secretData map[string]string, 
 	}
 	if metric.Services != nil || len(metric.Services) != 0 {
 		deployment := canaryDeployments{
-			BaselineStartTimeMs: baselineStartTime,
-			CanaryStartTimeMs:   canaryStartTime,
+			BaselineStartTimeMs: metric.BaselineStartTime,
+			CanaryStartTimeMs:   metric.CanaryStartTime,
 			Baseline: &logMetric{
 				Log:    map[string]map[string]string{},
 				Metric: map[string]map[string]string{},
@@ -431,11 +430,11 @@ func (metric *OPSMXMetric) getPayload(c *Clients, secretData map[string]string, 
 				}
 
 				var tempName string
-				if item.LogTemplateName != "" {
-					tempName = item.LogTemplateName
-				} else {
+				tempName = item.LogTemplateName
+				if item.LogTemplateName == "" {
 					tempName = metric.GlobalLogTemplate
 				}
+
 				//Add service specific templateName
 				deployment.Baseline.Log[serviceName]["template"] = tempName
 				deployment.Canary.Log[serviceName]["template"] = tempName
@@ -511,9 +510,8 @@ func (metric *OPSMXMetric) getPayload(c *Clients, secretData map[string]string, 
 				}
 
 				var tempName string
-				if item.MetricTemplateName != "" {
-					tempName = item.MetricTemplateName
-				} else {
+				tempName = item.MetricTemplateName
+				if item.MetricTemplateName == "" {
 					tempName = metric.GlobalMetricTemplate
 				}
 
