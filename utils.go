@@ -110,9 +110,6 @@ func makeRequest(client http.Client, requestType string, url string, body string
 	var urlScore string
 	if strings.Contains(url, "registerCanary") {
 		urlScore = res.Header.Get("Location")
-		if urlScore == "" {
-			return []byte{}, "", errors.New("score url not found")
-		}
 	}
 	return data, urlScore, err
 }

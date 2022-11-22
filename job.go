@@ -73,7 +73,9 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 			return ReturnCodeError, err
 		}
 	}
-
+	if scoreURL == "" {
+		return ReturnCodeError, errors.New("score url not found")
+	}
 	data, _, err = makeRequest(c.client, "GET", scoreURL, "", secretData["user"])
 	if err != nil {
 		return ReturnCodeError, err
