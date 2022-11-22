@@ -64,7 +64,10 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 	}
 	var canary canaryResponse
 
-	json.Unmarshal(data, &canary)
+	err = json.Unmarshal(data, &canary)
+	if err != nil {
+		return ReturnCodeError, err
+	}
 
 	if canary.Error != "" {
 		errMessage := fmt.Sprintf("Error: %s\nMessage: %s", canary.Error, canary.Message)
@@ -84,9 +87,15 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 	var status map[string]interface{}
 	var reportUrlJson map[string]interface{}
 
-	json.Unmarshal(data, &status)
+	err = json.Unmarshal(data, &status)
+	if err != nil {
+		return ReturnCodeError, err
+	}
 	jsonBytes, _ := json.MarshalIndent(status["canaryResult"], "", "   ")
-	json.Unmarshal(jsonBytes, &reportUrlJson)
+	err = json.Unmarshal(jsonBytes, &reportUrlJson)
+	if err != nil {
+		return ReturnCodeError, err
+	}
 	reportUrl := reportUrlJson["canaryReportURL"]
 
 	ctx := context.TODO()
@@ -107,9 +116,15 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 	process := "RUNNING"
 	//if the status is Running, pool again after delay
 	for process == "RUNNING" {
-		json.Unmarshal(data, &status)
+		err = json.Unmarshal(data, &status)
+		if err != nil {
+			return ReturnCodeError, err
+		}
 		a, _ := json.MarshalIndent(status["status"], "", "   ")
-		json.Unmarshal(a, &status)
+		err = json.Unmarshal(a, &status)
+		if err != nil {
+			return ReturnCodeError, err
+		}
 
 		if status["status"] != "RUNNING" {
 			process = "COMPLETED"

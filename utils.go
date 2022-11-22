@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net/http"
 	"os"
@@ -189,7 +188,7 @@ func (metric *OPSMXMetric) getTimeVariables() error {
 
 func getAnalysisTemplateData(basePath string) (OPSMXMetric, error) {
 	path := filepath.Join(basePath, "provider/providerConfig")
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return OPSMXMetric{}, err
 	}
@@ -212,7 +211,7 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 	var templateData string
 	templatePath := filepath.Join(basePath, "templates/")
 	path := filepath.Join(templatePath, template)
-	templateFileData, err := ioutil.ReadFile(path)
+	templateFileData, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
@@ -232,7 +231,10 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 		return "", err
 	}
 	var templateVerification bool
-	json.Unmarshal(data, &templateVerification)
+	err = json.Unmarshal(data, &templateVerification)
+	if err != nil {
+		return "", err
+	}
 	templateData = sha1Code
 	var templateCheckSave map[string]interface{}
 	if !templateVerification {
@@ -240,7 +242,10 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 		if err != nil {
 			return "", err
 		}
-		json.Unmarshal(data, &templateCheckSave)
+		err = json.Unmarshal(data, &templateCheckSave)
+		if err != nil {
+			return "", err
+		}
 		if templateCheckSave["errorMessage"] != "" && templateCheckSave["errorMessage"] != nil {
 			errorss := fmt.Sprintf("%v", templateCheckSave["errorMessage"])
 			err = errors.New(errorss)
@@ -254,22 +259,22 @@ func (metric *OPSMXMetric) getDataSecret(basePath string) (map[string]string, er
 
 	secretData := map[string]string{}
 	userPath := filepath.Join(basePath, "secrets/user")
-	secretUser, err := ioutil.ReadFile(userPath)
+	secretUser, err := os.ReadFile(userPath)
 	if err != nil {
 		return nil, err
 	}
 	gateUrlPath := filepath.Join(basePath, "secrets/gate-url")
-	secretGateUrl, err := ioutil.ReadFile(gateUrlPath)
+	secretGateUrl, err := os.ReadFile(gateUrlPath)
 	if err != nil {
 		return nil, err
 	}
 	sourceNamePath := filepath.Join(basePath, "secrets/source-name")
-	secretsourcename, err := ioutil.ReadFile(sourceNamePath)
+	secretsourcename, err := os.ReadFile(sourceNamePath)
 	if err != nil {
 		return nil, err
 	}
 	cdIntegrationPath := filepath.Join(basePath, "secrets/cd-integration")
-	secretcdintegration, err := ioutil.ReadFile(cdIntegrationPath)
+	secretcdintegration, err := os.ReadFile(cdIntegrationPath)
 	if err != nil {
 		return nil, err
 	}
@@ -575,9 +580,15 @@ func (metric *OPSMXMetric) processResume(data []byte) (string, string, error) {
 		return "", "", err
 	}
 
-	json.Unmarshal(data, &result)
+	err := json.Unmarshal(data, &result)
+	if err != nil {
+		return "", "", err
+	}
 	jsonBytes, _ := json.MarshalIndent(result["canaryResult"], "", "   ")
-	json.Unmarshal(jsonBytes, &finalScore)
+	err = json.Unmarshal(jsonBytes, &finalScore)
+	if err != nil {
+		return "", "", err
+	}
 	if finalScore["overallScore"] == nil {
 		canaryScore = "0"
 	} else {
@@ -585,7 +596,7 @@ func (metric *OPSMXMetric) processResume(data []byte) (string, string, error) {
 	}
 
 	var score int
-	var err error
+	// var err error
 	if strings.Contains(canaryScore, ".") {
 		floatScore, err := strconv.ParseFloat(canaryScore, 64)
 		score = int(roundFloat(floatScore, 0))
