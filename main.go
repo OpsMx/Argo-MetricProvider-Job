@@ -36,13 +36,16 @@ func runner(c *Clients) error {
 	if err != nil {
 		return err
 	}
+	log.Info("starting the runAnalysis function")
 	errcode, errrun := runAnalysis(c, resourceNames, basePath)
 	if errrun != nil {
-		err := patchJobError(context.TODO(), c.kubeclientset, resourceNames.jobName, errrun.Error())
+		errMsg := errrun.Error()
+		err := patchJobError(context.TODO(), c.kubeclientset, resourceNames.jobName, errMsg)
 		if err != nil {
 			log.Error("an error occurred while patching the error from run analysis")
 			return err
 		}
+		log.Infof("an error occurred while processing the request - %s", errMsg)
 	}
 	if errcode != 0 {
 		logNon0CodeExit(errcode)
@@ -62,7 +65,7 @@ func main() {
 
 	clients := newClients(clientset, httpclient)
 
-	log.Info("Starting the runner function")
+	log.Info("starting the runner function")
 	err = runner(clients)
 	checkError(err)
 }

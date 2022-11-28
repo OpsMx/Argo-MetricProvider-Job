@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"errors"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -25,14 +27,17 @@ const (
 )
 
 func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error) {
+	log.Info("starting the getAnalysisTemplateData function")
 	metric, err := getAnalysisTemplateData(basePath)
 	if err != nil {
 		return ReturnCodeError, err
 	}
+	log.Info("performing basic checks")
 	err = metric.basicChecks()
 	if err != nil {
 		return ReturnCodeError, err
 	}
+	log.Info("getting the data from the secret")
 	secretData, err := metric.getDataSecret(basePath)
 	if err != nil {
 		return ReturnCodeError, err
@@ -46,12 +51,12 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 	if err != nil {
 		return ReturnCodeError, err
 	}
-
+	log.Info("generating the payload")
 	payload, err := metric.generatePayload(c, secretData, basePath)
 	if err != nil {
 		return ReturnCodeError, err
 	}
-
+	log.Info("sending a POST request to registerCanary with the payload")
 	data, scoreURL, err := makeRequest(c.client, "POST", canaryurl, payload, secretData["user"])
 	if err != nil {
 		return ReturnCodeError, err
@@ -106,7 +111,7 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 		canaryId:  canary.CanaryId.String(),
 		reportUrl: fmt.Sprintf("%s", reportUrl),
 	}
-
+	log.Info("starting the patching operation of the canary details to the Job")
 	err = patchJobCanaryDetails(ctx, c.kubeclientset, cd)
 	if err != nil {
 		return ReturnCodeError, err
@@ -140,6 +145,7 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 	}
 	//if run is cancelled mid-run
 	if status["status"] == "CANCELLED" {
+		log.Info("starting the patching operation for a CANCELLED operation")
 		err = patchJobCancelled(ctx, c.kubeclientset, r.jobName)
 		if err != nil {
 			return ReturnCodeError, err
@@ -153,7 +159,6 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 		return ReturnCodeError, err
 	}
 	if Phase == AnalysisPhaseSuccessful {
-
 		fs := CanaryDetails{
 			user:      secretData["user"],
 			jobName:   r.jobName,
@@ -161,13 +166,13 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 			reportUrl: fmt.Sprintf("%s", reportUrl),
 			value:     Score,
 		}
+		log.Infof("starting the patching operation for a %s operation", AnalysisPhaseSuccessful)
 		err = patchJobSuccessful(ctx, c.kubeclientset, fs)
 		if err != nil {
 			return ReturnCodeError, err
 		}
 	}
 	if Phase == AnalysisPhaseFailed {
-
 		fs := CanaryDetails{
 			user:      secretData["user"],
 			jobName:   r.jobName,
@@ -175,12 +180,12 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 			reportUrl: fmt.Sprintf("%s", reportUrl),
 			value:     Score,
 		}
+		log.Infof("starting the patching operation for a %s operation", AnalysisPhaseFailed)
 		err = patchJobFailedInconclusive(ctx, c.kubeclientset, Phase, fs)
 		if err != nil {
 			return ReturnCodeError, err
 		}
 		return ReturnCodeFailed, nil
 	}
-
 	return ReturnCodeSuccess, nil
 }
