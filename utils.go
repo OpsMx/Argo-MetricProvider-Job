@@ -226,6 +226,7 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 	s := []string{secretData["gateUrl"], tempLink}
 	templateUrl := strings.Join(s, "")
 
+	log.Info("DEBUG - sending a GET request to gitops API")
 	data, _, err := makeRequest(client, "GET", templateUrl, "", secretData["user"])
 	if err != nil {
 		return "", err
@@ -238,6 +239,7 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 	templateData = sha1Code
 	var templateCheckSave map[string]interface{}
 	if !templateVerification {
+		log.Info("DEBUG - sending a POST request to gitops API")
 		data, _, err = makeRequest(client, "POST", templateUrl, string(templateFileData), secretData["user"])
 		if err != nil {
 			return "", err
@@ -246,8 +248,10 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 		if err != nil {
 			return "", err
 		}
+		log.Infof("DEBUG - The value of templateCheckSave var is %v",templateCheckSave)
 		if templateCheckSave["errorMessage"] != "" && templateCheckSave["errorMessage"] != nil {
 			errorss := fmt.Sprintf("%v", templateCheckSave["errorMessage"])
+			log.Infof("DEBUG- %s",errorss)
 			err = errors.New(errorss)
 			return "", err
 		}
