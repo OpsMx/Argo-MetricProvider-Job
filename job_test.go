@@ -2261,48 +2261,6 @@ func TestRunAnalysis(t *testing.T) {
 	_, err = runAnalysis(clientsS, resourceNames, "testcases/runanalysis/")
 	assert.Equal(t, nil, err)
 
-	cInvalid := NewTestClient(func(req *http.Request) (*http.Response, error) {
-		return &http.Response{
-			StatusCode: 200,
-			Body: io.NopCloser(bytes.NewBufferString(`
-			{
-				"owner": "admin",
-				"application": "testapp",
-				"canaryResult": {
-					"duration": "0 seconds",
-					"lastUpdated": "2022-09-02 10:02:18.504",
-					"canaryReportURL": "https://opsmx.test.tst/ui/application/deploymentverification/testapp/1424",
-					"overallScore": 100,
-					"intervalNo": 1,
-					"isLastRun": true,
-					"overallResult": "HEALTHY",
-					"message": "Canary Is HEALTHY",
-					"errors": []
-				},
-				"launchedDate": "2022-09-02 10:02:18.504",
-				"canaryConfig": {
-					"combinedCanaryResultStrategy": "LOWEST",
-					"minimumCanaryResultScore": 65.0,
-					"name": "admin",
-					"lifetimeMinutes": 30,
-					"canaryAnalysisIntervalMins": 30,
-					"maximumCanaryResultScore": 80.0
-				},
-				"id": "1424"
-				"services": [],
-				"status": {
-					"complete": false,
-					"status": "RUNNING"
-				}}
-			`)),
-			// Must be set to non-nil value or it panics
-			Header: Head,
-		}, nil
-	})
-	clientsInvalid := newClients(k8sclient, cInvalid)
-	_, err = runAnalysis(clientsInvalid, resourceNames, "testcases/runanalysis/")
-	assert.Equal(t, "invalid response", err.Error())
-
 	cCancel := NewTestClient(func(req *http.Request) (*http.Response, error) {
 		return &http.Response{
 			StatusCode: 200,

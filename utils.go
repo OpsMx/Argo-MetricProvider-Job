@@ -580,11 +580,6 @@ func (metric *OPSMXMetric) processResume(data []byte) (string, string, error) {
 		finalScore  map[string]interface{}
 	)
 
-	if !json.Valid(data) {
-		err := errors.New("invalid response")
-		return "", "", err
-	}
-
 	err := json.Unmarshal(data, &result)
 	if err != nil {
 		return "", "", err
