@@ -249,8 +249,9 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 			return "", err
 		}
 		log.Infof("DEBUG - The value of templateCheckSave var is %v", templateCheckSave)
-		if templateCheckSave["errorMessage"] != "" && templateCheckSave["errorMessage"] != nil {
-			errorss := fmt.Sprintf("%v", templateCheckSave["errorMessage"])
+		errorss := fmt.Sprintf("%v", templateCheckSave["errorMessage"])
+		errorss = strings.Replace(strings.Replace(errorss, "[", "", -1), "]", "", -1)
+		if templateCheckSave["errorMessage"] != "" && templateCheckSave["errorMessage"] != nil && len(errorss) > 1 {
 			log.Infof("DEBUG- %s", errorss)
 			err = errors.New(errorss)
 			return "", err
