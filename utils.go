@@ -232,11 +232,11 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 		return "", err
 	}
 	var templateVerification bool
-	json.Unmarshal(data, &templateVerification) //for testing
-	/*err = json.Unmarshal(data, &templateVerification)
+	//json.Unmarshal(data, &templateVerification) //for testing
+	err = json.Unmarshal(data, &templateVerification)
 	if err != nil {
 		return "", err
-	}*/
+	}
 	templateData = sha1Code
 	var templateCheckSave map[string]interface{}
 	if !templateVerification {
@@ -586,10 +586,8 @@ func (metric *OPSMXMetric) processResume(data []byte) (string, string, error) {
 		return "", "", err
 	}
 	jsonBytes, _ := json.MarshalIndent(result["canaryResult"], "", "   ")
-	err = json.Unmarshal(jsonBytes, &finalScore)
-	if err != nil {
-		return "", "", err
-	}
+	json.Unmarshal(jsonBytes, &finalScore)
+
 	if finalScore["overallScore"] == nil {
 		canaryScore = "0"
 	} else {

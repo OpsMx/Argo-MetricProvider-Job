@@ -97,10 +97,7 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 		return ReturnCodeError, err
 	}
 	jsonBytes, _ := json.MarshalIndent(status["canaryResult"], "", "   ")
-	err = json.Unmarshal(jsonBytes, &reportUrlJson)
-	if err != nil {
-		return ReturnCodeError, err
-	}
+	json.Unmarshal(jsonBytes, &reportUrlJson)
 	reportUrl := reportUrlJson["canaryReportURL"]
 
 	ctx := context.TODO()
@@ -126,10 +123,7 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 			return ReturnCodeError, err
 		}
 		a, _ := json.MarshalIndent(status["status"], "", "   ")
-		err = json.Unmarshal(a, &status)
-		if err != nil {
-			return ReturnCodeError, err
-		}
+		json.Unmarshal(a, &status)
 
 		if status["status"] != "RUNNING" {
 			process = "COMPLETED"

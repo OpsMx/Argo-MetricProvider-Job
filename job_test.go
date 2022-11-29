@@ -1676,18 +1676,26 @@ func TestGitops(t *testing.T) {
 		  ]
 	}`
 	c := NewTestClient(func(req *http.Request) (*http.Response, error) {
-		return &http.Response{
-			StatusCode: 500,
-			Body: io.NopCloser(bytes.NewBufferString(`
-			{
-				"timestamp": 1662442034995,
-				"status": 200,
-				"error": "CREATED",
-				"errorMessage": []
-			  }
-			`)),
-			Header: make(http.Header),
-		}, nil
+		if req.Method == "POST" {
+			return &http.Response{
+				StatusCode: 200,
+				Body: io.NopCloser(bytes.NewBufferString(`
+				{
+					"timestamp": 1662442034995,
+					"status": 200,
+					"error": "CREATED",
+					"errorMessage": []
+				  }
+				`)),
+				Header: make(http.Header),
+			}, nil
+		} else {
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(bytes.NewBufferString(`false`)),
+				Header:     make(http.Header),
+			}, nil
+		}
 	})
 	clients := newClients(nil, c)
 	metric.Services = append(metric.Services, services)
@@ -1798,9 +1806,10 @@ func TestGitops(t *testing.T) {
 		CanaryMetricScope:    ".*{{env.LATEST_POD_HASH}}.*",
 	}
 	c = NewTestClient(func(req *http.Request) (*http.Response, error) {
-		return &http.Response{
-			StatusCode: 500,
-			Body: io.NopCloser(bytes.NewBufferString(`
+		if req.Method == "POST" {
+			return &http.Response{
+				StatusCode: 500,
+				Body: io.NopCloser(bytes.NewBufferString(`
 			{
 				"timestamp": 1662442034995,
 				"status": 500,
@@ -1814,8 +1823,15 @@ func TestGitops(t *testing.T) {
 				"message": "Template Already Exists"
 			  }
 			`)),
-			Header: make(http.Header),
-		}, nil
+				Header: make(http.Header),
+			}, nil
+		} else {
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(bytes.NewBufferString(`false`)),
+				Header:     make(http.Header),
+			}, nil
+		}
 	})
 	clientFail := newClients(nil, c)
 	metric.Services = append(metric.Services, services)
@@ -1850,6 +1866,81 @@ func TestGitops(t *testing.T) {
 	_ = os.WriteFile("testcases/templates/invalid.txt", input, 0644)
 	_, err = invalidjsonmetric.generatePayload(clients, SecretData, "testcases/")
 	assert.Equal(t, "invalid template json provided", err.Error())
+
+	metric = OPSMXMetric{
+		GateUrl:           "https://opsmx.test.tst",
+		User:              "admin",
+		Application:       "multiservice",
+		BaselineStartTime: "2022-08-10T13:15:00Z",
+		CanaryStartTime:   "2022-08-10T13:15:00Z",
+		LifetimeMinutes:   30,
+		IntervalTime:      3,
+		Delay:             1,
+		GitOPS:            true,
+		LookBackType:      "growing",
+		Pass:              80,
+		Services:          []OPSMXService{},
+	}
+	services = OPSMXService{
+		LogTemplateName:   "loggytemp",
+		LogScopeVariables: "kubernetes.pod_name",
+		BaselineLogScope:  ".*{{env.STABLE_POD_HASH}}.*",
+		CanaryLogScope:    ".*{{env.LATEST_POD_HASH}}.*",
+	}
+	metric.Services = append(metric.Services, services)
+	cinv := NewTestClient(func(req *http.Request) (*http.Response, error) {
+		if req.Method == "POST" {
+			return &http.Response{
+				StatusCode: 200,
+				Body: io.NopCloser(bytes.NewBufferString(`
+				{
+					"status": 200,
+					"error": "CREATED",
+					"errorMessage": []
+				  }
+			`)),
+				Header: make(http.Header),
+			}, nil
+		} else {
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(bytes.NewBufferString(`{false}`)),
+				Header:     make(http.Header),
+			}, nil
+		}
+	})
+	clientInvalid := newClients(nil, cinv)
+	metric.Services = append(metric.Services, services)
+	err = metric.getTimeVariables()
+	assert.Equal(t, nil, err)
+	_, err = getTemplateData(clientInvalid.client, SecretData, "loggytemp", "LOG", "testcases/")
+	assert.Equal(t, "invalid character 'f' looking for beginning of object key string", err.Error())
+
+	cinv = NewTestClient(func(req *http.Request) (*http.Response, error) {
+		if req.Method == "POST" {
+			return &http.Response{
+				StatusCode: 200,
+				Body: io.NopCloser(bytes.NewBufferString(`
+				{
+					"status" 200,
+					"error": "CREATED",
+					"errorMessage": []
+				  }
+			`)),
+				Header: make(http.Header),
+			}, nil
+		} else {
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(bytes.NewBufferString(`false`)),
+				Header:     make(http.Header),
+			}, nil
+		}
+	})
+	clientInvalid = newClients(nil, cinv)
+	_, err = getTemplateData(clientInvalid.client, SecretData, "loggytemp", "LOG", "testcases/")
+	assert.Equal(t, "invalid character '2' after object key", err.Error())
+
 }
 
 func TestProcessResume(t *testing.T) {
@@ -2086,6 +2177,41 @@ func TestProcessResume(t *testing.T) {
 	_, _, err = metric.processResume(input)
 
 	assert.Equal(t, "strconv.Atoi: parsing \"9a7\": invalid syntax", err.Error())
+
+	input, _ = io.ReadAll(bytes.NewBufferString(`
+	{
+		"owner": "admin",
+		"application": "testapp",
+		"canaryResult": {
+			"duration": "0 seconds"
+			"lastUpdated": "2022-09-02 10:02:18.504",
+			"canaryReportURL": "https://opsmx.test.tst/ui/application/deploymentverification/testapp/1424",
+			"overallScore": "97",
+			"intervalNo": 1,
+			"isLastRun": true,
+			"overallResult": "HEALTHY",
+			"message": "Canary Is HEALTHY",
+			"errors": []
+		},
+		"launchedDate": "2022-09-02 10:02:18.504",
+		"canaryConfig": {
+			"combinedCanaryResultStrategy": "LOWEST",
+			"minimumCanaryResultScore": 65.0,
+			"name": "admin",
+			"lifetimeMinutes": 30,
+			"canaryAnalysisIntervalMins": 30,
+			"maximumCanaryResultScore": 80.0
+		},
+		"id": "1424",
+		"services": [],
+		"status": {
+			"complete": false,
+			"status": "COMPLETED"
+		}}
+	`))
+	_, _, err = metric.processResume(input)
+
+	assert.Equal(t, "invalid character '\"' after object key:value pair", err.Error())
 }
 
 func TestRunAnalysis(t *testing.T) {
@@ -2144,6 +2270,51 @@ func TestRunAnalysis(t *testing.T) {
 	_ = os.WriteFile("testcases/provider/providerConfig", input, 0644)
 	_, err := runAnalysis(clients, resourceNames, "testcases/")
 	assert.Equal(t, nil, err)
+
+	cInv := NewTestClient(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body: io.NopCloser(bytes.NewBufferString(`
+			{
+				canaryId: 1424
+			}
+			`)),
+			// Must be set to non-nil value or it panics
+			Header: Head,
+		}, nil
+	})
+	clientsInv := newClients(k8sclient, cInv)
+	_, err = runAnalysis(clientsInv, resourceNames, "testcases/")
+	assert.Equal(t, `invalid character 'c' looking for beginning of object key string`, err.Error())
+
+	cInv = NewTestClient(func(req *http.Request) (*http.Response, error) {
+		if req.Method == "POST" {
+			return &http.Response{
+				StatusCode: 200,
+				Body: io.NopCloser(bytes.NewBufferString(`
+			{
+				"canaryId": 1424
+			}
+			`)),
+				// Must be set to non-nil value or it panics
+				Header: Head,
+			}, nil
+		} else {
+			return &http.Response{
+				StatusCode: 200,
+				Body: io.NopCloser(bytes.NewBufferString(`
+				{
+					canaryId: 1424
+				}
+				`)),
+				// Must be set to non-nil value or it panics
+				Header: Head,
+			}, nil
+		}
+	})
+	clientsInv = newClients(k8sclient, cInv)
+	_, err = runAnalysis(clientsInv, resourceNames, "testcases/")
+	assert.Equal(t, `invalid character 'c' looking for beginning of object key string`, err.Error())
 
 	_, err = runAnalysis(clients, resourceNames, "testcasesy/")
 	assert.Equal(t, "open testcasesy/provider/providerConfig: no such file or directory", err.Error())
