@@ -586,8 +586,10 @@ func (metric *OPSMXMetric) processResume(data []byte) (string, string, error) {
 		return "", "", err
 	}
 	jsonBytes, _ := json.MarshalIndent(result["canaryResult"], "", "   ")
-	json.Unmarshal(jsonBytes, &finalScore)
-
+	err = json.Unmarshal(jsonBytes, &finalScore)
+	if err != nil {
+		return "", "", err
+	}
 	if finalScore["overallScore"] == nil {
 		canaryScore = "0"
 	} else {
