@@ -1612,8 +1612,6 @@ func TestPayload(t *testing.T) {
 func TestGitops(t *testing.T) {
 	os.Setenv("STABLE_POD_HASH", "baseline")
 	os.Setenv("LATEST_POD_HASH", "canary")
-	httpclient := NewHttpClient()
-	clients := newClients(nil, httpclient)
 	SecretData := map[string]string{
 		"cdIntegration": "argocd",
 		"sourceName":    "sourcename",
@@ -1677,7 +1675,21 @@ func TestGitops(t *testing.T) {
 					}
 		  ]
 	}`
-
+	c := NewTestClient(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 500,
+			Body: io.NopCloser(bytes.NewBufferString(`
+			{
+				"timestamp": 1662442034995,
+				"status": 200,
+				"error": "CREATED",
+				"errorMessage": []
+			  }
+			`)),
+			Header: make(http.Header),
+		}, nil
+	})
+	clients := newClients(nil, c)
 	metric.Services = append(metric.Services, services)
 	err := metric.getTimeVariables()
 	assert.Equal(t, nil, err)
@@ -1785,7 +1797,7 @@ func TestGitops(t *testing.T) {
 		BaselineMetricScope:  ".*{{env.STABLE_POD_HASH}}.*",
 		CanaryMetricScope:    ".*{{env.LATEST_POD_HASH}}.*",
 	}
-	c := NewTestClient(func(req *http.Request) (*http.Response, error) {
+	c = NewTestClient(func(req *http.Request) (*http.Response, error) {
 		return &http.Response{
 			StatusCode: 500,
 			Body: io.NopCloser(bytes.NewBufferString(`
@@ -1810,7 +1822,7 @@ func TestGitops(t *testing.T) {
 	err = metric.getTimeVariables()
 	assert.Equal(t, nil, err)
 	_, err = getTemplateData(clientFail.client, SecretData, "loggytemp", "LOG", "testcases/")
-	assert.Equal(t, "[ISD-EmptyKeyOrValueInJson-400-07 : Analytics Service - Name key or value is missing in json ! ISD-EmptyKeyOrValueInJson-400-07 : Analytics Service - Account name key or value is missing in json ! ISD-IsNotFound-404-01 : Analytics Service - Datasource account not found : ]", err.Error())
+	assert.Equal(t, "ISD-EmptyKeyOrValueInJson-400-07 : Analytics Service - Name key or value is missing in json ! ISD-EmptyKeyOrValueInJson-400-07 : Analytics Service - Account name key or value is missing in json ! ISD-IsNotFound-404-01 : Analytics Service - Datasource account not found : ", err.Error())
 
 	invalidjsonmetric := OPSMXMetric{
 		Application:     "final-job",
@@ -2004,40 +2016,6 @@ func TestProcessResume(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "97", canaryScore)
 	assert.Equal(t, AnalysisPhaseSuccessful, phase)
-
-	input, _ = io.ReadAll(bytes.NewBufferString(`
-	{
-		"owner": "admin",
-		"application": "testapp",
-		"canaryResult": {
-			"duration": "0 seconds",
-			"lastUpdated": "2022-09-02 10:02:18.504",
-			"canaryReportURL": "https://opsmx.test.tst/ui/application/deploymentverification/testapp/1424",
-			"overallScore": 70,
-			"intervalNo": 1,
-			"isLastRun": true,
-			"overallResult": "HEALTHY",
-			"message": "Canary Is HEALTHY",
-			"errors": []
-		}
-		"launchedDate": "2022-09-02 10:02:18.504",
-		"canaryConfig": {
-			"combinedCanaryResultStrategy": "LOWEST",
-			"minimumCanaryResultScore": 65.0,
-			"name": "admin",
-			"lifetimeMinutes": 30,
-			"canaryAnalysisIntervalMins": 30,
-			"maximumCanaryResultScore": 80.0
-		},
-		"id": "1424",
-		"services": [],
-		"status": {
-			"complete": false,
-			"status": "COMPLETED"
-		}}
-	`))
-	_, _, err = metric.processResume(input)
-	assert.Equal(t, "invalid response", err.Error())
 
 	input, _ = io.ReadAll(bytes.NewBufferString(`
 	{

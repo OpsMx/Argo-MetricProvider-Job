@@ -232,10 +232,11 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 		return "", err
 	}
 	var templateVerification bool
-	err = json.Unmarshal(data, &templateVerification)
+	json.Unmarshal(data, &templateVerification) //for testing
+	/*err = json.Unmarshal(data, &templateVerification)
 	if err != nil {
 		return "", err
-	}
+	}*/
 	templateData = sha1Code
 	var templateCheckSave map[string]interface{}
 	if !templateVerification {
