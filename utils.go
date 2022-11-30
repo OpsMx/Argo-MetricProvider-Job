@@ -341,15 +341,18 @@ func getTemplateDataYaml(templateFileData []byte, template string, templateType 
 			errorStringsAvailable = append(errorStringsAvailable, items.ErrorStrings)
 		}
 		var defaults LogTemplateYaml
-		err := json.Unmarshal([]byte(DefaultsErrorTopicsJson), &defaults)
-		if err != nil {
-			return nil, err
-		}
-		for _, items := range defaults.ErrorTopics {
-			if !isExists(errorStringsAvailable, items.ErrorStrings) {
-				logdata.ErrorTopics = append(logdata.ErrorTopics, items)
+		if logdata.DefaultsErrorTopics == "" {
+			err := json.Unmarshal([]byte(DefaultsErrorTopicsJson), &defaults)
+			if err != nil {
+				return nil, err
+			}
+			for _, items := range defaults.ErrorTopics {
+				if !isExists(errorStringsAvailable, items.ErrorStrings) {
+					logdata.ErrorTopics = append(logdata.ErrorTopics, items)
+				}
 			}
 		}
+		logdata.DefaultsErrorTopics = ""
 		return json.Marshal(logdata)
 	}
 	return nil, nil
