@@ -23,6 +23,116 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+const DefaultsErrorTopicsJson = `{
+	"errorTopics": [
+	  {
+		"string": "OnOutOfMemoryError",
+		"topic": "CRITICAL",
+		"type": "default"
+	  },
+	  {
+		"string": "StackOverflowError",
+		"topic": "CRITICAL",
+		"type": "default"
+	  },
+	  {
+		"string": "ClassNotFoundException",
+		"topic": "CRITICAL",
+		"type": "default"
+	  },
+	  {
+		"string": "FileNotFoundException",
+		"topic": "CRITICAL",
+		"type": "default"
+	  },
+	  {
+		"string": "ArrayIndexOutOfBounds",
+		"topic": "CRITICAL",
+		"type": "default"
+	  },
+	  {
+		"string": "NullPointerException",
+		"topic": "CRITICAL",
+		"type": "default"
+	  },
+	  {
+		"string": "StringIndexOutOfBoundsException",
+		"topic": "CRITICAL",
+		"type": "default"
+	  },
+	  {
+		"string": "FATAL",
+		"topic": "CRITICAL",
+		"type": "default"
+	  },
+	  {
+		"string": "SEVERE",
+		"topic": "CRITICAL",
+		"type": "default"
+	  },
+	  {
+		"string": "NoClassDefFoundError",
+		"topic": "ERROR",
+		"type": "default"
+	  },
+	  {
+		"string": "NoSuchMethodFoundError",
+		"topic": "ERROR",
+		"type": "default"
+	  },
+	  {
+		"string": "NumberFormatException",
+		"topic": "ERROR",
+		"type": "default"
+	  },
+	  {
+		"string": "IllegalArgumentException",
+		"topic": "ERROR",
+		"type": "default"
+	  },
+	  {
+		"string": "ParseException",
+		"topic": "ERROR",
+		"type": "default"
+	  },
+	  {
+		"string": "SQLException",
+		"topic": "ERROR",
+		"type": "default"
+	  },
+	  {
+		"string": "ArithmeticException",
+		"topic": "ERROR",
+		"type": "default"
+	  },
+	  {
+		"string": "status=404",
+		"topic": "ERROR",
+		"type": "default"
+	  },
+	  {
+		"string": "status=500",
+		"topic": "ERROR",
+		"type": "default"
+	  },
+	  {
+		"string": "EXCEPTION",
+		"topic": "ERROR",
+		"type": "default"
+	  },
+	  {
+		"string": "ERROR",
+		"topic": "ERROR",
+		"type": "default"
+	  },
+	  {
+		"string": "WARN",
+		"topic": "WARN",
+		"type": "default"
+	  }
+	]
+  }`
+
 func checkError(err error) {
 	if err != nil {
 		log.Fatal(err)
@@ -207,6 +317,15 @@ func generateSHA1(s string) string {
 	return sha1_hash
 }
 
+func isExists(list []string, item string) bool {
+	for _, v := range list {
+		if item == v {
+			return true
+		}
+	}
+	return false
+}
+
 func getTemplateDataYaml(templateFileData []byte, template string, templateType string, ScopeVariables string) ([]byte, error) {
 	if templateType == "LOG" {
 		var logdata LogTemplateYaml
@@ -216,6 +335,21 @@ func getTemplateDataYaml(templateFileData []byte, template string, templateType 
 		}
 		logdata.TemplateName = template
 		logdata.FilterKey = ScopeVariables
+
+		var errorStringsAvailable []string
+		for _, items := range logdata.ErrorTopics {
+			errorStringsAvailable = append(errorStringsAvailable, items.ErrorStrings)
+		}
+		var defaults LogTemplateYaml
+		err := json.Unmarshal([]byte(DefaultsErrorTopicsJson), &defaults)
+		if err != nil {
+			return nil, err
+		}
+		for _, items := range defaults.ErrorTopics {
+			if !isExists(errorStringsAvailable, items.ErrorStrings) {
+				logdata.ErrorTopics = append(logdata.ErrorTopics, items)
+			}
+		}
 		return json.Marshal(logdata)
 	}
 	return nil, nil
@@ -232,7 +366,9 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 
 	if !isJSON(string(templateFileData)) {
 		templateFileData, err = getTemplateDataYaml(templateFileData, template, templateType, ScopeVariables)
-		return "", err
+		if err != nil {
+			return "", err
+		}
 	}
 
 	sha1Code := generateSHA1(string(templateFileData))
