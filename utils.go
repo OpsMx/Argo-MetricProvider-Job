@@ -207,7 +207,21 @@ func generateSHA1(s string) string {
 	return sha1_hash
 }
 
-func getTemplateData(client http.Client, secretData map[string]string, template string, templateType string, basePath string) (string, error) {
+func getTemplateDataYaml(templateFileData []byte, template string, templateType string, ScopeVariables string) ([]byte, error) {
+	if templateType == "LOG" {
+		var logdata LogTemplateYaml
+		if err := yaml.Unmarshal([]byte(templateFileData), &logdata); err != nil {
+			errorMessage := fmt.Sprintf("invalid template json/yaml provided for %v template", template)
+			return nil, errors.New(errorMessage)
+		}
+		logdata.TemplateName = template
+		logdata.FilterKey = ScopeVariables
+
+	}
+	return nil, nil
+}
+
+func getTemplateData(client http.Client, secretData map[string]string, template string, templateType string, basePath string, ScopeVariables string) (string, error) {
 	var templateData string
 	templatePath := filepath.Join(basePath, "templates/")
 	path := filepath.Join(templatePath, template)
@@ -217,7 +231,7 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 	}
 
 	if !isJSON(string(templateFileData)) {
-		err = errors.New("invalid template json provided")
+		templateFileData, err = getTemplateDataYaml(templateFileData, template, templateType, ScopeVariables)
 		return "", err
 	}
 
@@ -445,7 +459,7 @@ func (metric *OPSMXMetric) generatePayload(c *Clients, secretData map[string]str
 				var templateData string
 				var err error
 				if metric.GitOPS && item.LogTemplateVersion == "" {
-					templateData, err = getTemplateData(c.client, secretData, tempName, "LOG", basePath)
+					templateData, err = getTemplateData(c.client, secretData, tempName, "LOG", basePath, item.LogScopeVariables)
 					if err != nil {
 						return "", err
 					}
@@ -525,7 +539,7 @@ func (metric *OPSMXMetric) generatePayload(c *Clients, secretData map[string]str
 				var templateData string
 				var err error
 				if metric.GitOPS && item.MetricTemplateVersion == "" {
-					templateData, err = getTemplateData(c.client, secretData, tempName, "METRIC", basePath)
+					templateData, err = getTemplateData(c.client, secretData, tempName, "METRIC", basePath, item.MetricScopeVariables)
 					if err != nil {
 						return "", err
 					}

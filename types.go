@@ -125,3 +125,35 @@ type logMetric struct {
 	Log    map[string]map[string]string `json:"log,omitempty"`
 	Metric map[string]map[string]string `json:"metric,omitempty"`
 }
+
+type LogTemplateYaml struct {
+	TemplateName         string        `yaml:"templateName" json:"templateName"`
+	FilterKey            string        `yaml:"filterKey" json:"filterKey"`
+	MonitoringProvider   string        `yaml:"monitoringProvider" json:"monitoringProvider"`
+	AccountName          string        `yaml:"accountName" json:"accountName"`
+	ScoringAlgorithm     string        `yaml:"scoringAlgorithm" json:"scoringAlgorithm"`
+	Index                string        `yaml:"index,omitempty" json:"index,omitempty"`
+	ResponseKeywords     string        `yaml:"responseKeywords" json:"responseKeywords"`
+	ContextualCluster    bool          `yaml:"contextualCluster,omitempty" json:"contextualCluster,omitempty"`
+	ContextualWindowSize int           `yaml:"contextualWindowSize,omitempty" json:"contextualWindowSize,omitempty"`
+	InfoScoring          bool          `yaml:"infoScoring,omitempty" json:"infoScoring,omitempty"`
+	RegExFilter          bool          `yaml:"regExFilter,omitempty" json:"regExFilter,omitempty"`
+	RegExResponseKey     string        `yaml:"regExResponseKey,omitempty" json:"regExResponseKey,omitempty"`
+	RegularExpression    string        `yaml:"regularExpression,omitempty" json:"regularExpression,omitempty"`
+	AutoBaseline         bool          `yaml:"autoBaseline,omitempty" json:"autoBaseline,omitempty"`
+	Sensitivity          string        `yaml:"sensitivity,omitempty" json:"sensitivity,omitempty"`
+	Tags                 []customTags  `yaml:"tags" json:"tags,omitempty"`
+	ErrorTopics          []errorTopics `yaml:"errorTopics" json:"errorTopics,omitempty"`
+}
+
+type customTags struct {
+	ErrorStrings string `yaml:"errorString" json:"string"`
+	Tag          string `yaml:"tag" json:"tag"`
+	Id           string `yaml:"id"  json:"id"`
+}
+
+type errorTopics struct {
+	ErrorStrings string `yaml:"errorString" json:"string"`
+	Topic        string `yaml:"topic" json:"topic"`
+	Type         string `yaml:"type" json:"type"`
+}
