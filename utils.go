@@ -216,7 +216,7 @@ func getTemplateDataYaml(templateFileData []byte, template string, templateType 
 		}
 		logdata.TemplateName = template
 		logdata.FilterKey = ScopeVariables
-
+		return json.Marshal(logdata)
 	}
 	return nil, nil
 }
