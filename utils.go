@@ -140,7 +140,7 @@ func checkError(err error) {
 }
 
 func logNon0CodeExit(exitcode ExitCode) {
-	log.Infof("Exiting the pod with status code %d", exitcode)
+	log.Infof("exiting the pod with status code %d", exitcode)
 	os.Exit(int(exitcode))
 }
 
@@ -172,7 +172,7 @@ func checkPatchabilityReturnResources(c *Clients) (ResourceNames, error) {
 
 	_, err = c.kubeclientset.BatchV1().Jobs(defaults.Namespace()).Patch(context.TODO(), jobName, types.StrategicMergePatchType, []byte(`{}`), metav1.PatchOptions{}, "status")
 	if err != nil {
-		log.Error("Cannot patch to Job")
+		log.Error("cannot patch to Job")
 		return ResourceNames{}, err
 	}
 	resourceNames := ResourceNames{
@@ -391,7 +391,7 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 	s := []string{secretData["gateUrl"], tempLink}
 	templateUrl := strings.Join(s, "")
 
-	log.Info("DEBUG - sending a GET request to gitops API")
+	log.Debug("sending a GET request to gitops API")
 	data, _, err := makeRequest(client, "GET", templateUrl, "", secretData["user"])
 	if err != nil {
 		return "", err
@@ -405,7 +405,7 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 	templateData = sha1Code
 	var templateCheckSave map[string]interface{}
 	if !templateVerification {
-		log.Info("DEBUG - sending a POST request to gitops API")
+		log.Debug("sending a POST request to gitops API")
 		data, _, err = makeRequest(client, "POST", templateUrl, string(templateFileData), secretData["user"])
 		if err != nil {
 			return "", err
@@ -414,11 +414,11 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 		if err != nil {
 			return "", err
 		}
-		log.Infof("DEBUG - The value of templateCheckSave var is %v", templateCheckSave)
+		log.Debug("the value of templateCheckSave var is %v", templateCheckSave)
 		errorss := fmt.Sprintf("%v", templateCheckSave["errorMessage"])
 		errorss = strings.Replace(strings.Replace(errorss, "[", "", -1), "]", "", -1)
 		if templateCheckSave["errorMessage"] != "" && templateCheckSave["errorMessage"] != nil && len(errorss) > 1 {
-			log.Infof("DEBUG- %s", errorss)
+			log.Debug("debug- %s", errorss)
 			err = errors.New(errorss)
 			return "", err
 		}

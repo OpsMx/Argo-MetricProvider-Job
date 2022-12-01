@@ -34,7 +34,7 @@ func patchJobCanaryDetails(ctx context.Context, kubeclient kubernetes.Interface,
 		return err
 	}
 
-	log.Infof("Successfully patched to Job for canary ID %s", cd.canaryId)
+	log.Infof("successfully patched to Job for canary ID %s", cd.canaryId)
 	return nil
 }
 
@@ -55,7 +55,7 @@ func patchJobSuccessful(ctx context.Context, kubeclient kubernetes.Interface, cd
 	if err != nil {
 		return err
 	}
-	log.Infof("Successfully patched to Job with the score for canary ID %s", cd.canaryId)
+	log.Infof("successfully patched to Job with the score for canary ID %s", cd.canaryId)
 	return nil
 }
 
@@ -79,7 +79,7 @@ func patchJobFailedInconclusive(ctx context.Context, kubeclient kubernetes.Inter
 	if err != nil {
 		return err
 	}
-	log.Infof("Successfully patched to Job with the score for canary ID %s", cd.canaryId)
+	log.Infof("successfully patched to Job with the score for canary ID %s", cd.canaryId)
 	return nil
 }
 
