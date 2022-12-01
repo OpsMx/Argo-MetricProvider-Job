@@ -72,9 +72,9 @@ func (m *MetricISDTemplate) setFilterKey(templateName string, metricScopeVariabl
 	m.FilterKey = metricScopeVariables
 }
 
-func (m *MetricISDTemplate) setMetricTemplateDefaults(templateName string) {
-	//TODO- Implement after inputs from Java
-}
+// func (m *MetricISDTemplate) setMetricTemplateDefaults(templateName string) {
+// 	//TODO- Implement after inputs from Java
+// }
 
 func (m *MetricISDTemplate) checkMetricTemplateErrors(templateName string) error {
 	//TODO- Extend it further after inputs from Java
