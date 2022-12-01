@@ -355,19 +355,13 @@ func getTemplateDataYaml(templateFileData []byte, template string, templateType 
 		logdata.DefaultsErrorTopics = ""
 		return json.Marshal(logdata)
 	}
-	if templateType == "METRIC"{
-		metricStruct, err := processYamlMetrics(templateFileData,template,ScopeVariables)
-		if err != nil {
-			return nil, err
-		}
 
-		metricByteArray, err := json.Marshal(metricStruct)
-		if err != nil {
-			return nil, err
-		}
-		return metricByteArray,nil
+	metricStruct, err := processYamlMetrics(templateFileData, template, ScopeVariables)
+	if err != nil {
+		return nil, err
 	}
-	return nil, nil
+	return json.Marshal(metricStruct)
+
 }
 
 func getTemplateData(client http.Client, secretData map[string]string, template string, templateType string, basePath string, ScopeVariables string) (string, error) {
