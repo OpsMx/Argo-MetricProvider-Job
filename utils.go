@@ -355,6 +355,18 @@ func getTemplateDataYaml(templateFileData []byte, template string, templateType 
 		logdata.DefaultsErrorTopics = ""
 		return json.Marshal(logdata)
 	}
+	if templateType == "METRIC"{
+		metricStruct, err := processYamlMetrics(templateFileData,template,ScopeVariables)
+		if err != nil {
+			return nil, err
+		}
+
+		metricByteArray, err := json.Marshal(metricStruct)
+		if err != nil {
+			return nil, err
+		}
+		return metricByteArray,nil
+	}
 	return nil, nil
 }
 
