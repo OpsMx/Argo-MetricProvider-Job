@@ -1837,7 +1837,7 @@ func TestGitops(t *testing.T) {
 	metric.Services = append(metric.Services, services)
 	err = metric.getTimeVariables()
 	assert.Equal(t, nil, err)
-	_, err = getTemplateData(clientFail.client, SecretData, "loggytemp", "LOG", "testcases/")
+	_, err = getTemplateData(clientFail.client, SecretData, "loggytemp", "LOG", "testcases/", "scope")
 	assert.Equal(t, "ISD-EmptyKeyOrValueInJson-400-07 : Analytics Service - Name key or value is missing in json ! ISD-EmptyKeyOrValueInJson-400-07 : Analytics Service - Account name key or value is missing in json ! ISD-IsNotFound-404-01 : Analytics Service - Datasource account not found : ", err.Error())
 
 	invalidjsonmetric := OPSMXMetric{
@@ -1913,7 +1913,7 @@ func TestGitops(t *testing.T) {
 	metric.Services = append(metric.Services, services)
 	err = metric.getTimeVariables()
 	assert.Equal(t, nil, err)
-	_, err = getTemplateData(clientInvalid.client, SecretData, "loggytemp", "LOG", "testcases/")
+	_, err = getTemplateData(clientInvalid.client, SecretData, "loggytemp", "LOG", "testcases/", "scope")
 	assert.Equal(t, "invalid character 'f' looking for beginning of object key string", err.Error())
 
 	cinv = NewTestClient(func(req *http.Request) (*http.Response, error) {
@@ -1938,7 +1938,7 @@ func TestGitops(t *testing.T) {
 		}
 	})
 	clientInvalid = newClients(nil, cinv)
-	_, err = getTemplateData(clientInvalid.client, SecretData, "loggytemp", "LOG", "testcases/")
+	_, err = getTemplateData(clientInvalid.client, SecretData, "loggytemp", "LOG", "testcases/", "scope")
 	assert.Equal(t, "invalid character '2' after object key", err.Error())
 
 }
