@@ -11,14 +11,14 @@ import (
 type Metrics struct {
 	MetricType            string `yaml:"metricType" json:"metricType"`
 	MetricWeight          int    `yaml:"metricWeight" json:"metricWeight"`
-	NanStrategy           string `yaml:"nanStrategy,omitempty" json:"nanStrategy,omitempty"`
+	NanStrategy           string `yaml:"nanStrategy" json:"nanStrategy"`
 	AccountName           string `yaml:"accountName" json:"accountName"`
 	RiskDirection         string `yaml:"riskDirection" json:"riskDirection"`
 	CustomThresholdHigher int    `yaml:"customThresholdHigher" json:"customThresholdHigher"`
 	Name                  string `yaml:"name" json:"name"`
-	Criticality           string `yaml:"criticality,omitempty" json:"criticality,omitempty"`
+	Criticality           string `yaml:"criticality" json:"criticality"`
 	CustomThresholdLower  int    `yaml:"customThresholdLower" json:"customThresholdLower"`
-	Watchlist             bool   `yaml:"watchlist,omitempty" json:"watchlist,omitempty"`
+	Watchlist             bool   `yaml:"watchlist" json:"watchlist"`
 }
 
 type Groups struct {
@@ -27,16 +27,16 @@ type Groups struct {
 }
 
 type Data struct {
-	PercentDiffThreshold string   `yaml:"percent_diff_threshold,omitempty" json:"percent_diff_threshold,omitempty"`
-	IsNormalize          bool     `yaml:"isNormalize,omitempty" json:"isNormalize,omitempty"`
-	Groups               []Groups `yaml:"groups,omitempty" json:"groups,omitempty"`
+	PercentDiffThreshold string   `yaml:"percent_diff_threshold" json:"percent_diff_threshold"`
+	IsNormalize          bool     `yaml:"isNormalize" json:"isNormalize"`
+	Groups               []Groups `yaml:"groups" json:"groups"`
 }
 type MetricISDTemplate struct {
-	FilterKey        string `yaml:"filterKey,omitempty" json:"filterKey,omitempty"`
+	FilterKey        string `yaml:"filterKey" json:"filterKey"`
 	AccountName      string `yaml:"accountName" json:"accountName,omitempty"`
-	Data             Data   `yaml:"data,omitempty" json:"data,omitempty"`
-	TemplateName     string `yaml:"templateName,omitempty" json:"templateName,omitempty"`
-	AdvancedProvider string `yaml:"advancedProvider,omitempty" json:"advancedProvider,omitempty"`
+	Data             Data   `yaml:"data" json:"data"`
+	TemplateName     string `yaml:"templateName" json:"templateName"`
+	AdvancedProvider string `yaml:"advancedProvider" json:"advancedProvider"`
 }
 
 func (m *MetricISDTemplate) setAccountName(templateName string) error {
