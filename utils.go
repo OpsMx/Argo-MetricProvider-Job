@@ -18,6 +18,7 @@ import (
 
 	"github.com/argoproj/argo-rollouts/utils/defaults"
 	log "github.com/sirupsen/logrus"
+	"github.com/tidwall/gjson"
 	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -223,6 +224,18 @@ func makeRequest(client http.Client, requestType string, url string, body string
 	return data, urlScore, err
 }
 
+func (metric *OPSMXMetric) checkGateUrl(c *Clients, gateUrl string) error {
+	_, err := c.client.Get(gateUrl)
+	if err != nil && metric.GateUrl != "" && !strings.Contains(err.Error(), "timeout") {
+		return errors.New("incorrect gate url provided in provider config file")
+	} else if err != nil && metric.GateUrl == "" && !strings.Contains(err.Error(), "timeout") {
+		return errors.New("incorrect gate url provided in secret file")
+	} else if err != nil && strings.Contains(err.Error(), "timeout") {
+		return errors.New(err.Error())
+	}
+	return nil
+}
+
 // Check few conditions pre-analysis
 func (metric *OPSMXMetric) basicChecks() error {
 	if metric.LifetimeMinutes == 0 && metric.EndTime == "" {
@@ -307,6 +320,7 @@ func getAnalysisTemplateData(basePath string) (OPSMXMetric, error) {
 	if err := yaml.Unmarshal(data, &opsmx); err != nil {
 		return OPSMXMetric{}, err
 	}
+	log.Info("retireved provider Config Data ", string(data))
 	return opsmx, nil
 }
 
@@ -378,6 +392,12 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 		if err != nil {
 			return "", err
 		}
+	} else {
+		checktemplateName := gjson.Get(string(templateFileData), "templateName")
+		if template != checktemplateName.String() {
+			errmessage := fmt.Sprintf("template name mismatch for template %s", template)
+			return "", errors.New(errmessage)
+		}
 	}
 
 	sha1Code := generateSHA1(string(templateFileData))
@@ -409,7 +429,7 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 			return "", err
 		}
 		log.Debugf("the value of templateCheckSave var is %v", templateCheckSave)
-		errorss := fmt.Sprintf("%v", templateCheckSave["errorMessage"])
+		errorss := fmt.Sprintf("Error in %s template: %v", template, templateCheckSave["errorMessage"])
 		errorss = strings.Replace(strings.Replace(errorss, "[", "", -1), "]", "", -1)
 		if templateCheckSave["errorMessage"] != "" && templateCheckSave["errorMessage"] != nil && len(errorss) > 1 {
 			err = errors.New(errorss)

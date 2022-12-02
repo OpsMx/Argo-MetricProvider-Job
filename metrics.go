@@ -34,9 +34,9 @@ type Data struct {
 type MetricISDTemplate struct {
 	FilterKey        string `yaml:"filterKey" json:"filterKey,omitempty"`
 	AccountName      string `yaml:"accountName" json:"accountName,omitempty"`
-	Data             Data   `yaml:"data" json:"data"`
-	TemplateName     string `yaml:"templateName" json:"templateName,omitempty"`
-	AdvancedProvider string `yaml:"advancedProvider" json:"advancedProvider,omitempty"`
+	Data             Data   `yaml:"metricTemplateSetup" json:"data"`
+	TemplateName     string `yaml:"templateName" json:"templateName"`
+	AdvancedProvider string `yaml:"advancedProvider" json:"advancedProvider"`
 }
 
 func (m *MetricISDTemplate) setAccountName(templateName string) error {

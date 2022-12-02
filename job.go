@@ -32,14 +32,20 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 	if err != nil {
 		return ReturnCodeError, err
 	}
+	log.Info("provider config data retrieved successfully")
 	log.Info("performing basic checks")
 	err = metric.basicChecks()
 	if err != nil {
 		return ReturnCodeError, err
 	}
+	log.Info("basic checks completed successfully")
 	log.Info("getting the data from the secret")
 	secretData, err := metric.getDataSecret(basePath)
 	if err != nil {
+		return ReturnCodeError, err
+	}
+	log.Info("secret data retrieved successfully")
+	if err := metric.checkGateUrl(c, secretData["gateUrl"]); err != nil {
 		return ReturnCodeError, err
 	}
 	canaryurl, err := url.JoinPath(secretData["gateUrl"], v5configIdLookupURLFormat)
@@ -56,6 +62,7 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 	if err != nil {
 		return ReturnCodeError, err
 	}
+	log.Info(payload)
 	log.Info("sending a POST request to registerCanary with the payload")
 	data, scoreURL, err := makeRequest(c.client, "POST", canaryurl, payload, secretData["user"])
 	if err != nil {
@@ -73,7 +80,7 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 	if err != nil {
 		return ReturnCodeError, err
 	}
-
+	log.Info("register canary response ", canary)
 	if canary.Error != "" {
 		errMessage := fmt.Sprintf("Error: %s\nMessage: %s", canary.Error, canary.Message)
 		err := errors.New(errMessage)
@@ -152,7 +159,7 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 		}
 		return ReturnCodeCancelled, nil
 	}
-
+	log.Info("final response ", string(data))
 	//POST-Run process
 	Phase, Score, err := metric.processResume(data)
 	if err != nil {
