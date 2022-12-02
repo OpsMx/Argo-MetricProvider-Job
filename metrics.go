@@ -9,30 +9,30 @@ import (
 )
 
 type Metrics struct {
-	MetricType            string `yaml:"metricType" json:"metricType"`
-	MetricWeight          int    `yaml:"metricWeight" json:"metricWeight"`
-	NanStrategy           string `yaml:"nanStrategy" json:"nanStrategy"`
-	AccountName           string `yaml:"accountName" json:"accountName"`
-	RiskDirection         string `yaml:"riskDirection" json:"riskDirection"`
-	CustomThresholdHigher int    `yaml:"customThresholdHigher" json:"customThresholdHigher"`
-	Name                  string `yaml:"name" json:"name"`
-	Criticality           string `yaml:"criticality" json:"criticality"`
-	CustomThresholdLower  int    `yaml:"customThresholdLower" json:"customThresholdLower"`
-	Watchlist             bool   `yaml:"watchlist" json:"watchlist"`
+	MetricType            string  `yaml:"metricType" json:"metricType,omitempty"`
+	MetricWeight          float64 `yaml:"metricWeight" json:"metricWeight,omitempty"`
+	NanStrategy           string  `yaml:"nanStrategy" json:"nanStrategy,omitempty"`
+	AccountName           string  `yaml:"accountName" json:"accountName,omitempty"`
+	RiskDirection         string  `yaml:"riskDirection" json:"riskDirection,omitempty"`
+	CustomThresholdHigher int     `yaml:"customThresholdHigher" json:"customThresholdHigher,omitempty"`
+	Name                  string  `yaml:"name" json:"name,omitempty"`
+	Criticality           string  `yaml:"criticality" json:"criticality,omitempty"`
+	CustomThresholdLower  int     `yaml:"customThresholdLower" json:"customThresholdLower,omitempty"`
+	Watchlist             bool    `yaml:"watchlist" json:"watchlist"`
 }
 
 type Groups struct {
 	Metrics []Metrics `yaml:"metrics" json:"metrics"`
-	Group   string    `yaml:"group" json:"group"`
+	Group   string    `yaml:"group" json:"group,omitempty"`
 }
 
 type Data struct {
-	PercentDiffThreshold string   `yaml:"percent_diff_threshold" json:"percent_diff_threshold"`
+	PercentDiffThreshold string   `yaml:"percent_diff_threshold" json:"percent_diff_threshold,omitempty"`
 	IsNormalize          bool     `yaml:"isNormalize" json:"isNormalize"`
 	Groups               []Groups `yaml:"groups" json:"groups"`
 }
 type MetricISDTemplate struct {
-	FilterKey        string `yaml:"filterKey" json:"filterKey"`
+	FilterKey        string `yaml:"filterKey" json:"filterKey,omitempty"`
 	AccountName      string `yaml:"accountName" json:"accountName,omitempty"`
 	Data             Data   `yaml:"metricTemplateSetup" json:"data"`
 	TemplateName     string `yaml:"templateName" json:"templateName"`
@@ -71,10 +71,6 @@ func (m *MetricISDTemplate) setFilterKey(templateName string, metricScopeVariabl
 	}
 	m.FilterKey = metricScopeVariables
 }
-
-// func (m *MetricISDTemplate) setMetricTemplateDefaults(templateName string) {
-// 	//TODO- Implement after inputs from Java
-// }
 
 func (m *MetricISDTemplate) checkMetricTemplateErrors(templateName string) error {
 	//TODO- Extend it further after inputs from Java
