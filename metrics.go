@@ -89,15 +89,16 @@ func processYamlMetrics(templateData []byte, templateName string, scopeVariables
 	if err != nil {
 		return MetricISDTemplate{}, err
 	}
-	if err = metric.setAccountName(templateName); err != nil {
+
+	/*if err = metric.setAccountName(templateName); err != nil {
 		return MetricISDTemplate{}, err
-	}
+	}*/
 	metric.setFilterKey(templateName, scopeVariables)
 	metric.setTemplateName(templateName)
 
 	if err = metric.checkMetricTemplateErrors(templateName); err != nil {
 		return MetricISDTemplate{}, err
 	}
-
+	log.Info("processed template and converting to json", metric)
 	return metric, nil
 }
