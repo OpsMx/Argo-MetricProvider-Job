@@ -34,7 +34,7 @@ type Data struct {
 type MetricISDTemplate struct {
 	FilterKey        string `yaml:"filterKey" json:"filterKey"`
 	AccountName      string `yaml:"accountName" json:"accountName,omitempty"`
-	Data             Data   `yaml:"data" json:"data"`
+	Data             Data   `yaml:"metricTemplateSetup" json:"data"`
 	TemplateName     string `yaml:"templateName" json:"templateName"`
 	AdvancedProvider string `yaml:"advancedProvider" json:"advancedProvider"`
 }
