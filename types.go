@@ -127,7 +127,7 @@ type logMetric struct {
 }
 
 type LogTemplateYaml struct {
-	DefaultsErrorTopics  string        `yaml:"disableDefaultErrorTopics" json:",omitempty"`
+	DefaultsErrorTopics  bool          `yaml:"disableDefaultErrorTopics" json:"-"`
 	TemplateName         string        `yaml:"templateName" json:"templateName"`
 	FilterKey            string        `yaml:"filterKey" json:"filterKey"`
 	MonitoringProvider   string        `yaml:"monitoringProvider" json:"monitoringProvider"`

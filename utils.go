@@ -225,13 +225,15 @@ func makeRequest(client http.Client, requestType string, url string, body string
 }
 
 func (metric *OPSMXMetric) checkGateUrl(c *Clients, gateUrl string) error {
-	_, err := c.client.Get(gateUrl)
+	resp, err := c.client.Get(gateUrl)
 	if err != nil && metric.GateUrl != "" && !strings.Contains(err.Error(), "timeout") {
 		return errors.New("incorrect gate url provided in provider config file")
 	} else if err != nil && metric.GateUrl == "" && !strings.Contains(err.Error(), "timeout") {
 		return errors.New("incorrect gate url provided in secret file")
-	} else if err != nil && strings.Contains(err.Error(), "timeout") {
+	} else if err != nil {
 		return errors.New(err.Error())
+	} else if resp.StatusCode != 200 {
+		return errors.New(resp.Status)
 	}
 	return nil
 }
@@ -355,7 +357,8 @@ func getTemplateDataYaml(templateFileData []byte, template string, templateType 
 			errorStringsAvailable = append(errorStringsAvailable, items.ErrorStrings)
 		}
 		var defaults LogTemplateYaml
-		if logdata.DefaultsErrorTopics == "" {
+		if !logdata.DefaultsErrorTopics {
+			log.Info("loading defaults tags for log template")
 			err := json.Unmarshal([]byte(DefaultsErrorTopicsJson), &defaults)
 			if err != nil {
 				return nil, err
@@ -366,7 +369,7 @@ func getTemplateDataYaml(templateFileData []byte, template string, templateType 
 				}
 			}
 		}
-		logdata.DefaultsErrorTopics = ""
+		log.Info("processed template and converting to json", logdata)
 		return json.Marshal(logdata)
 	}
 
@@ -379,6 +382,7 @@ func getTemplateDataYaml(templateFileData []byte, template string, templateType 
 }
 
 func getTemplateData(client http.Client, secretData map[string]string, template string, templateType string, basePath string, ScopeVariables string) (string, error) {
+	log.Info("processing gitops template", template)
 	var templateData string
 	templatePath := filepath.Join(basePath, "templates/")
 	path := filepath.Join(templatePath, template)
@@ -386,9 +390,11 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 	if err != nil {
 		return "", err
 	}
-
+	log.Info("checking if json or yaml for template ", template)
 	if !isJSON(string(templateFileData)) {
+		log.Info("template not recognized in json format")
 		templateFileData, err = getTemplateDataYaml(templateFileData, template, templateType, ScopeVariables)
+		log.Info("json for template ", template, string(templateFileData))
 		if err != nil {
 			return "", err
 		}
@@ -431,7 +437,7 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 		log.Debugf("the value of templateCheckSave var is %v", templateCheckSave)
 		errorss := fmt.Sprintf("Error in %s template: %v", template, templateCheckSave["errorMessage"])
 		errorss = strings.Replace(strings.Replace(errorss, "[", "", -1), "]", "", -1)
-		if templateCheckSave["errorMessage"] != "" && templateCheckSave["errorMessage"] != nil && len(errorss) > 1 {
+		if templateCheckSave["errorMessage"] != "" && templateCheckSave["errorMessage"] != nil && len(errorss) > 1 && templateCheckSave["status"] != "CREATED" {
 			err = errors.New(errorss)
 			return "", err
 		}

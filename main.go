@@ -14,6 +14,7 @@ func init() {
 		FullTimestamp: true,
 	})
 	log.SetLevel(log.InfoLevel)
+	log.SetLevel(log.DebugLevel)
 }
 
 func newClients(kubeclientset kubernetes.Interface, client http.Client) *Clients {
