@@ -1614,7 +1614,6 @@ func TestPayload(t *testing.T) {
 }
 
 func TestGitops(t *testing.T) {
-	t.Skip("Skipping testing in CI environment")
 	os.Setenv("STABLE_POD_HASH", "baseline")
 	os.Setenv("LATEST_POD_HASH", "canary")
 	SecretData := map[string]string{
@@ -1709,6 +1708,7 @@ func TestGitops(t *testing.T) {
 	_, err = metric.generatePayload(clients, SecretData, "incorrect/")
 	assert.Equal(t, "open incorrect/templates/loggytemp: no such file or directory", err.Error())
 
+	_= os.MkdirAll("testcases/templates", os.ModePerm)
 	emptyFile, _ := os.Create("testcases/templates/loggytemp")
 	emptyFile.Close()
 	input, _ := os.ReadFile("testcases/gitops/loggytemp")
@@ -1870,7 +1870,7 @@ func TestGitops(t *testing.T) {
 	input, _ = os.ReadFile("testcases/gitops/invalid/loggytemp.txt")
 	_ = os.WriteFile("testcases/templates/invalid.txt", input, 0644)
 	_, err = invalidjsonmetric.generatePayload(clients, SecretData, "testcases/")
-	assert.Equal(t, "invalid template json provided", err.Error())
+	assert.Equal(t, "invalid template json/yaml provided for invalid.txt template", err.Error())
 
 	metric = OPSMXMetric{
 		GateUrl:           "https://opsmx.test.tst",
@@ -1945,6 +1945,9 @@ func TestGitops(t *testing.T) {
 	clientInvalid = newClients(nil, cinv)
 	_, err = getTemplateData(clientInvalid.client, SecretData, "loggytemp", "LOG", "testcases/", "scope")
 	assert.Equal(t, "invalid character '2' after object key", err.Error())
+	if _, err := os.Stat("testcases/templates"); !os.IsNotExist(err) {
+		os.RemoveAll("testcases/templates")
+	}
 
 }
 
