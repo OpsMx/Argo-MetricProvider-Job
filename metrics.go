@@ -39,25 +39,6 @@ type MetricISDTemplate struct {
 	AdvancedProvider string `yaml:"advancedProvider" json:"advancedProvider"`
 }
 
-func (m *MetricISDTemplate) setAccountName(templateName string) error {
-	var isAccountNameSet bool
-	if m.AccountName == "" {
-		errMsg := fmt.Sprintf("metric template %s does not have the accountName field defined at the level of the template", templateName)
-		return errors.New(errMsg)
-	}
-	for _, metric := range m.Data.Groups {
-		if metric.Metrics[0].AccountName != "" {
-			isAccountNameSet = true
-		}
-		metric.Metrics[0].AccountName = m.AccountName
-	}
-	if isAccountNameSet {
-		log.Warnf("accountName field has been defined at the level of individual metrics for some of the groups for template %s, they will be overriden by %s", templateName, m.AccountName)
-	}
-	m.AccountName = ""
-	return nil
-}
-
 func (m *MetricISDTemplate) setTemplateName(templateName string) {
 	if m.TemplateName != "" && m.TemplateName != templateName {
 		log.Warnf("the templateName field has been defined in the metric template %s, it will be overriden", templateName)
@@ -90,9 +71,6 @@ func processYamlMetrics(templateData []byte, templateName string, scopeVariables
 		return MetricISDTemplate{}, err
 	}
 
-	/*if err = metric.setAccountName(templateName); err != nil {
-		return MetricISDTemplate{}, err
-	}*/
 	metric.setFilterKey(templateName, scopeVariables)
 	metric.setTemplateName(templateName)
 
