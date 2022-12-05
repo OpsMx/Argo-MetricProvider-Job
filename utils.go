@@ -273,7 +273,8 @@ func (metric *OPSMXMetric) getTimeVariables() error {
 	} else {
 		tsStart, err := time.Parse(time.RFC3339, metric.CanaryStartTime)
 		if err != nil {
-			return err
+			errorMsg := fmt.Sprintf("Error in parsing CanaryStartTime given in provider configmap file: %v", err)
+			return errors.New(errorMsg)
 		}
 		canaryStartTime = fmt.Sprintf("%d", tsStart.UnixNano()/int64(time.Millisecond))
 	}
@@ -283,7 +284,8 @@ func (metric *OPSMXMetric) getTimeVariables() error {
 	} else {
 		tsStart, err := time.Parse(time.RFC3339, metric.BaselineStartTime)
 		if err != nil {
-			return err
+			errorMsg := fmt.Sprintf("Error in parsing BaselineStartTime given in provider configmap file: %v", err)
+			return errors.New(errorMsg)
 		}
 		baselineStartTime = fmt.Sprintf("%d", tsStart.UnixNano()/int64(time.Millisecond))
 	}
@@ -292,7 +294,8 @@ func (metric *OPSMXMetric) getTimeVariables() error {
 	if metric.LifetimeMinutes == 0 {
 		tsEnd, err := time.Parse(time.RFC3339, metric.EndTime)
 		if err != nil {
-			return err
+			errorMsg := fmt.Sprintf("Error in parsing EndTime given in provider configmap file: %v", err)
+			return errors.New(errorMsg)
 		}
 		if metric.CanaryStartTime != "" && metric.CanaryStartTime > metric.EndTime {
 			err := errors.New("canary start time given in provider configmap file cannot be greater than end time")
@@ -322,6 +325,8 @@ func getAnalysisTemplateData(basePath string) (OPSMXMetric, error) {
 
 	var opsmx OPSMXMetric
 	if err := yaml.Unmarshal(data, &opsmx); err != nil {
+		errorMsg := fmt.Sprintf("Error in processing provider configmap file: %v", err)
+		err = errors.New(errorMsg)
 		return OPSMXMetric{}, err
 	}
 	log.Info("retireved provider Config Data ", string(data))
@@ -427,7 +432,8 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 	var templateVerification bool
 	err = json.Unmarshal(data, &templateVerification)
 	if err != nil {
-		return "", err
+		errorMessage := fmt.Sprintf("Expected bool response for gitops get response  Error: %v. Action: Check endpoint given in secret/providerConfig.", err)
+		return "", errors.New(errorMessage)
 	}
 	templateData = sha1Code
 	var templateCheckSave map[string]interface{}
@@ -784,7 +790,8 @@ func (metric *OPSMXMetric) processResume(data []byte) (string, string, error) {
 
 	err := json.Unmarshal(data, &result)
 	if err != nil {
-		return "", "", err
+		errorMessage := fmt.Sprintf("Error in post processing canary Response. Error: %v", err)
+		return "", "", errors.New(errorMessage)
 	}
 	jsonBytes, _ := json.MarshalIndent(result["canaryResult"], "", "   ")
 	err = json.Unmarshal(jsonBytes, &finalScore)
@@ -801,10 +808,10 @@ func (metric *OPSMXMetric) processResume(data []byte) (string, string, error) {
 	// var err error
 	if strings.Contains(canaryScore, ".") {
 		floatScore, err := strconv.ParseFloat(canaryScore, 64)
-		score = int(roundFloat(floatScore, 0))
 		if err != nil {
 			return "", "", err
 		}
+		score = int(roundFloat(floatScore, 0))
 	} else {
 		score, err = strconv.Atoi(canaryScore)
 		if err != nil {

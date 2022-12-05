@@ -101,7 +101,8 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 
 	err = json.Unmarshal(data, &status)
 	if err != nil {
-		return ReturnCodeError, err
+		errorMessage := fmt.Sprintf("Error in post processing canary Response. Error: %v", err)
+		return ReturnCodeError, errors.New(errorMessage)
 	}
 	jsonBytes, _ := json.MarshalIndent(status["canaryResult"], "", "   ")
 	err = json.Unmarshal(jsonBytes, &reportUrlJson)
@@ -130,7 +131,8 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 	for process == "RUNNING" {
 		err = json.Unmarshal(data, &status)
 		if err != nil {
-			return ReturnCodeError, err
+			errorMessage := fmt.Sprintf("Error in post processing canary Response. Error: %v", err)
+			return ReturnCodeError, errors.New(errorMessage)
 		}
 		a, _ := json.MarshalIndent(status["status"], "", "   ")
 		err = json.Unmarshal(a, &status)
@@ -144,7 +146,8 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 			time.Sleep(resumeAfter)
 			data, _, err = makeRequest(c.client, "GET", scoreURL, "", secretData["user"])
 			if err != nil && retryScorePool == 0 {
-				return ReturnCodeError, err
+				errorMessage := fmt.Sprintf("Error in getting canary Response. Error: %v", err)
+				return ReturnCodeError, errors.New(errorMessage)
 			} else {
 				retryScorePool -= 1
 			}

@@ -68,7 +68,8 @@ func processYamlMetrics(templateData []byte, templateName string, scopeVariables
 	metric := MetricISDTemplate{}
 	err := yaml.Unmarshal(templateData, &metric)
 	if err != nil {
-		return MetricISDTemplate{}, err
+		errorMsg := fmt.Sprintf("Error in processing gitops template: %v", err)
+		return MetricISDTemplate{}, errors.New(errorMsg)
 	}
 
 	metric.setFilterKey(templateName, scopeVariables)
