@@ -315,6 +315,8 @@ func getAnalysisTemplateData(basePath string) (OPSMXMetric, error) {
 	path := filepath.Join(basePath, "provider/providerConfig")
 	data, err := os.ReadFile(path)
 	if err != nil {
+		errorMsg := fmt.Sprintf("Error: %v\n Action: provider config has to be mounted in analysisTemplate", err)
+		err = errors.New(errorMsg)
 		return OPSMXMetric{}, err
 	}
 
@@ -388,6 +390,8 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 	path := filepath.Join(templatePath, template)
 	templateFileData, err := os.ReadFile(path)
 	if err != nil {
+		errorMsg := fmt.Sprintf("Error: %v\n Action: Template named %v has to be mounted in analysisTemplate", err, template)
+		err = errors.New(errorMsg)
 		return "", err
 	}
 	log.Info("checking if json or yaml for template ", template)
@@ -454,6 +458,8 @@ func (metric *OPSMXMetric) getDataSecret(basePath string) (map[string]string, er
 	userPath := filepath.Join(basePath, "secrets/user")
 	secretUser, err := os.ReadFile(userPath)
 	if err != nil {
+		errorMsg := fmt.Sprintf("Error: %v\n Action: secret file has to be mounted in analysisTemplate", err)
+		err = errors.New(errorMsg)
 		return nil, err
 	}
 	gateUrlPath := filepath.Join(basePath, "secrets/gate-url")
