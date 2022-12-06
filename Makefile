@@ -1,9 +1,9 @@
 IMAGE_PREFIX?=opsmx11
 APP?=argo-isd-metric-provider-job
 IMAGE_TAG?=latest
+DOCKER_PUSH?=false
 CURRENT_DIR=$(shell pwd)
 DIST_DIR=${CURRENT_DIR}/dist
-COMMIT_SHA=$(shell git rev-parse --short HEAD)
 
 
 .PHONY: build
@@ -36,7 +36,8 @@ setup:
 .PHONY: image
 ## image: builds the docker image
 image:
-	DOCKER_BUILDKIT=1 docker build -t $(IMAGE_PREFIX)/$(APP):$(IMAGE_TAG)  .
+	DOCKER_BUILDKIT=1 docker build -t ${IMAGE_PREFIX}/${APP}:${IMAGE_TAG}  .
+	@if [ "${DOCKER_PUSH}" = "true" ] ; then docker push ${IMAGE_PREFIX}/${APP}:${IMAGE_TAG} ; fi
 
 
 .PHONY: lint
