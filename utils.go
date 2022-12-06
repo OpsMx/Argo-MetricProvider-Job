@@ -542,7 +542,7 @@ func (metric *OPSMXMetric) generatePayload(c *Clients, secretData map[string]str
 	if metric.Delay != 0 {
 		opsmxdelay = fmt.Sprintf("%d", metric.Delay)
 	}
-
+	var services []string
 	//Generate the payload
 	payload := jobPayload{
 		Application: metric.Application,
@@ -581,6 +581,11 @@ func (metric *OPSMXMetric) generatePayload(c *Clients, secretData map[string]str
 			if item.ServiceName != "" {
 				serviceName = item.ServiceName
 			}
+			if isExists(services, serviceName) {
+				errorMsg := fmt.Sprintf("Service: %s mentioned in provider Config exists more than once", serviceName)
+				return "", errors.New(errorMsg)
+			}
+			services = append(services, serviceName)
 			gateName := fmt.Sprintf("gate%d", i+1)
 			if item.LogScopeVariables == "" && item.BaselineLogScope != "" || item.LogScopeVariables == "" && item.CanaryLogScope != "" {
 				errorMsg := fmt.Sprintf("missing log Scope placeholder for the provided baseline/canary inside provider configmap file for service: %s", serviceName)
