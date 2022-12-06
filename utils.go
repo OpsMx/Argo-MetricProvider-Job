@@ -582,7 +582,7 @@ func (metric *OPSMXMetric) generatePayload(c *Clients, secretData map[string]str
 				serviceName = item.ServiceName
 			}
 			if isExists(services, serviceName) {
-				errorMsg := fmt.Sprintf("Service: %s mentioned in provider Config exists more than once", serviceName)
+				errorMsg := fmt.Sprintf("serviceName: %s mentioned in provider Config exists more than once", serviceName)
 				return "", errors.New(errorMsg)
 			}
 			services = append(services, serviceName)
