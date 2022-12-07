@@ -60,7 +60,7 @@ type CanaryDetails struct {
 
 type OPSMXMetric struct {
 	User                 string         `yaml:"user,omitempty"`
-	GateUrl              string         `yaml:"gateUrl,omitempty"`
+	OpsmxIsdUrl          string         `yaml:"opsmxIsdUrl,omitempty"`
 	Application          string         `yaml:"application"`
 	BaselineStartTime    string         `yaml:"baselineStartTime,omitempty"`
 	CanaryStartTime      string         `yaml:"canaryStartTime,omitempty"`

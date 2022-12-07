@@ -224,12 +224,12 @@ func makeRequest(client http.Client, requestType string, url string, body string
 	return data, urlScore, err
 }
 
-func (metric *OPSMXMetric) checkGateUrl(c *Clients, gateUrl string) error {
-	resp, err := c.client.Get(gateUrl)
-	if err != nil && metric.GateUrl != "" && !strings.Contains(err.Error(), "timeout") {
-		return errors.New("provider ConfigMap validation error: incorrect gate url")
-	} else if err != nil && metric.GateUrl == "" && !strings.Contains(err.Error(), "timeout") {
-		return errors.New("opsmx profile secret validation error: incorrect gate url")
+func (metric *OPSMXMetric) checkISDUrl(c *Clients, opsmxIsdUrl string) error {
+	resp, err := c.client.Get(opsmxIsdUrl)
+	if err != nil && metric.OpsmxIsdUrl != "" && !strings.Contains(err.Error(), "timeout") {
+		return errors.New("provider ConfigMap validation error: incorrect opsmxIsdUrl")
+	} else if err != nil && metric.OpsmxIsdUrl == "" && !strings.Contains(err.Error(), "timeout") {
+		return errors.New("opsmx profile secret validation error: incorrect opsmxIsdUrl")
 	} else if err != nil {
 		return errors.New(err.Error())
 	} else if resp.StatusCode != 200 {
@@ -417,7 +417,7 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 
 	sha1Code := generateSHA1(string(templateFileData))
 	tempLink := fmt.Sprintf(templateApi, sha1Code, templateType, template)
-	s := []string{secretData["gateUrl"], tempLink}
+	s := []string{secretData["opsmxIsdUrl"], tempLink}
 	templateUrl := strings.Join(s, "")
 
 	log.Debug("sending a GET request to gitops API")
@@ -464,10 +464,10 @@ func (metric *OPSMXMetric) getDataSecret(basePath string) (map[string]string, er
 		err = errors.New(errorMsg)
 		return nil, err
 	}
-	gateUrlPath := filepath.Join(basePath, "secrets/gate-url")
-	secretGateUrl, err := os.ReadFile(gateUrlPath)
+	opsmxIsdUrlPath := filepath.Join(basePath, "secrets/opsmxIsdUrl")
+	opsmxIsdUrl, err := os.ReadFile(opsmxIsdUrlPath)
 	if err != nil {
-		errorMsg := fmt.Sprintf("opsmx profile secret validation error: %v\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'gate-url'", err)
+		errorMsg := fmt.Sprintf("opsmx profile secret validation error: %v\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'opsmxIsdUrl'", err)
 		err = errors.New(errorMsg)
 		return nil, err
 	}
@@ -486,11 +486,11 @@ func (metric *OPSMXMetric) getDataSecret(basePath string) (map[string]string, er
 		return nil, err
 	}
 
-	gateUrl := metric.GateUrl
-	if gateUrl == "" {
-		gateUrl = string(secretGateUrl)
+	opsmxIsdURL := metric.OpsmxIsdUrl
+	if opsmxIsdURL == "" {
+		opsmxIsdURL = string(opsmxIsdUrl)
 	}
-	secretData["gateUrl"] = gateUrl
+	secretData["opsmxIsdUrl"] = opsmxIsdURL
 
 	user := metric.User
 	if user == "" {

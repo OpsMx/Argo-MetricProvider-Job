@@ -45,10 +45,10 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 		return ReturnCodeError, err
 	}
 	log.Info("secret data retrieved successfully")
-	if err := metric.checkGateUrl(c, secretData["gateUrl"]); err != nil {
+	if err := metric.checkISDUrl(c, secretData["opsmxIsdUrl"]); err != nil {
 		return ReturnCodeError, err
 	}
-	canaryurl, err := url.JoinPath(secretData["gateUrl"], v5configIdLookupURLFormat)
+	canaryurl, err := url.JoinPath(secretData["opsmxIsdUrl"], v5configIdLookupURLFormat)
 	if err != nil {
 		return ReturnCodeError, err
 	}
