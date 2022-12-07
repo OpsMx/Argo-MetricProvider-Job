@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -40,6 +41,7 @@ type MetricISDTemplate struct {
 	MetricType       string   `yaml:"metricType" json:"metricType,omitempty"`
 	MetricWeight     *float64 `yaml:"metricWeight" json:"metricWeight,omitempty"`
 	NanStrategy      string   `yaml:"nanStrategy" json:"nanStrategy,omitempty"`
+	Criticality      string   `yaml:"criticality" json:"criticality,omitempty"`
 }
 
 func (m *MetricISDTemplate) setMetricType(templateName string) {
@@ -112,6 +114,43 @@ func (m *MetricISDTemplate) checkMetricTemplateErrors(templateName string) error
 	return nil
 }
 
+func (m *MetricISDTemplate) setCriticality(templateName string) error {
+	//temporary fix -will be handled later on by Java
+	//TODO -redo
+	for _, metric := range m.Data.Groups {
+		if strings.ToLower(metric.Metrics[0].Criticality) == "low" {
+			metric.Metrics[0].Criticality = "Normal"
+		} else if strings.ToLower(metric.Metrics[0].Criticality) == "medium" {
+			metric.Metrics[0].Criticality = "MustHave"
+		} else if strings.ToLower(metric.Metrics[0].Criticality) == "high" {
+			metric.Metrics[0].Criticality = "Critical"
+		} else if metric.Metrics[0].Criticality != "" {
+			errMsg := fmt.Sprintf("gitops '%s' template ConfigMap validation error: criticality field can only take values Low/Medium/High", templateName)
+			return errors.New(errMsg)
+		}
+	}
+	if m.Criticality != "" {
+		if strings.ToLower(m.Criticality) == "low" {
+			m.Criticality = "Normal"
+		} else if strings.ToLower(m.Criticality) == "medium" {
+			m.Criticality = "MustHave"
+		} else if strings.ToLower(m.Criticality) == "high" {
+			m.Criticality = "Critical"
+		} else if m.Criticality != "" {
+			errMsg := fmt.Sprintf("gitops '%s' template ConfigMap validation error: criticality field can only take values Low/Medium/High", templateName)
+			return errors.New(errMsg)
+		}
+
+		for _, metric := range m.Data.Groups {
+			if metric.Metrics[0].Criticality == "" {
+				metric.Metrics[0].Criticality = m.Criticality
+			}
+		}
+		m.Criticality = ""
+	}
+	return nil
+}
+
 func processYamlMetrics(templateData []byte, templateName string, scopeVariables string) (MetricISDTemplate, error) {
 	metric := MetricISDTemplate{}
 	err := yaml.Unmarshal(templateData, &metric)
@@ -125,6 +164,9 @@ func processYamlMetrics(templateData []byte, templateName string, scopeVariables
 	metric.setMetricType(templateName)
 	metric.setMetricWeight(templateName)
 	metric.setNanStrategy(templateName)
+	if err = metric.setCriticality(templateName); err != nil {
+		return MetricISDTemplate{}, err
+	}
 
 	if err = metric.checkMetricTemplateErrors(templateName); err != nil {
 		return MetricISDTemplate{}, err
