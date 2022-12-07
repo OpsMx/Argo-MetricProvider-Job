@@ -82,14 +82,14 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 	}
 	log.Info("register canary response ", canary)
 	if canary.Error != "" {
-		errMessage := fmt.Sprintf("Error: %s\nMessage: %s", canary.Error, canary.Message)
+		errMessage := fmt.Sprintf("analysis Error: %s\nMessage: %s", canary.Error, canary.Message)
 		err := errors.New(errMessage)
 		if err != nil {
 			return ReturnCodeError, err
 		}
 	}
 	if scoreURL == "" {
-		return ReturnCodeError, errors.New("score url not found")
+		return ReturnCodeError, errors.New("analysis Error: score url not found")
 	}
 	data, _, err = makeRequest(c.client, "GET", scoreURL, "", secretData["user"])
 	if err != nil {
@@ -101,7 +101,7 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 
 	err = json.Unmarshal(data, &status)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Error in post processing canary Response. Error: %v", err)
+		errorMessage := fmt.Sprintf("analysis Error: Error in post processing canary Response: %v", err)
 		return ReturnCodeError, errors.New(errorMessage)
 	}
 	jsonBytes, _ := json.MarshalIndent(status["canaryResult"], "", "   ")
@@ -131,7 +131,7 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 	for process == "RUNNING" {
 		err = json.Unmarshal(data, &status)
 		if err != nil {
-			errorMessage := fmt.Sprintf("Error in post processing canary Response. Error: %v", err)
+			errorMessage := fmt.Sprintf("analysis Error: Error in post processing canary Response: %v", err)
 			return ReturnCodeError, errors.New(errorMessage)
 		}
 		a, _ := json.MarshalIndent(status["status"], "", "   ")
@@ -146,7 +146,7 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 			time.Sleep(resumeAfter)
 			data, _, err = makeRequest(c.client, "GET", scoreURL, "", secretData["user"])
 			if err != nil && retryScorePool == 0 {
-				errorMessage := fmt.Sprintf("Error in getting canary Response. Error: %v", err)
+				errorMessage := fmt.Sprintf("analysis Error: Error in getting canary Response: %v", err)
 				return ReturnCodeError, errors.New(errorMessage)
 			} else {
 				retryScorePool -= 1

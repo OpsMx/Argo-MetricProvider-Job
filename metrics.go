@@ -58,7 +58,7 @@ func (m *MetricISDTemplate) checkMetricTemplateErrors(templateName string) error
 
 	//check for groups array
 	if len(m.Data.Groups) == 0 {
-		errMsg := fmt.Sprintf("metric template %s does not have any members defined for the groups field", templateName)
+		errMsg := fmt.Sprintf("gitops '%s' template ConfigMap validation error: metric template %s does not have any members defined for the groups field", templateName, templateName)
 		return errors.New(errMsg)
 	}
 	return nil
@@ -68,7 +68,7 @@ func processYamlMetrics(templateData []byte, templateName string, scopeVariables
 	metric := MetricISDTemplate{}
 	err := yaml.Unmarshal(templateData, &metric)
 	if err != nil {
-		errorMsg := fmt.Sprintf("Error in processing gitops template: %v", err)
+		errorMsg := fmt.Sprintf("gitops '%s' template ConfigMap validation error: %v", templateName, err)
 		return MetricISDTemplate{}, errors.New(errorMsg)
 	}
 
