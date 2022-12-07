@@ -45,18 +45,15 @@ type MetricISDTemplate struct {
 }
 
 func (m *MetricISDTemplate) setMetricType(templateName string) {
-	var isMetricTypeSet bool
+	//metricType
 	if m.MetricType == "" {
-		log.Debugf("the metricType field is not defined at the global level for metric template %s", templateName)
+		log.Infof("the metricType field is not defined at the global level for metric template %s, values at the metric level will be used", templateName)
+		return
 	}
 	for _, metric := range m.Data.Groups {
-		if metric.Metrics[0].MetricType != "" {
-			isMetricTypeSet = true
+		if metric.Metrics[0].MetricType == "" {
+			metric.Metrics[0].MetricType = m.MetricType
 		}
-		metric.Metrics[0].MetricType = m.MetricType
-	}
-	if isMetricTypeSet {
-		log.Warnf("the metricType field has been defined at the level of individual metrics for some of the metrics for template %s, metricType field should be defined only at the global level", templateName, m.AccountName)
 	}
 	m.MetricType = ""
 }
@@ -64,7 +61,7 @@ func (m *MetricISDTemplate) setMetricType(templateName string) {
 func (m *MetricISDTemplate) setMetricWeight(templateName string) {
 	//metricWeight
 	if m.MetricWeight == nil {
-		log.Debugf("the metricWeight field is not defined at the global level for metric template %s, values at the metric level will be taken", templateName)
+		log.Infof("the metricWeight field is not defined at the global level for metric template %s, values at the metric level will be used", templateName)
 		return
 	}
 	for _, metric := range m.Data.Groups {
@@ -78,7 +75,7 @@ func (m *MetricISDTemplate) setMetricWeight(templateName string) {
 func (m *MetricISDTemplate) setNanStrategy(templateName string) {
 	//nanStrategy
 	if m.NanStrategy == "" {
-		log.Debugf("the nanStrategy field is not defined at the global level for metric template %s, values at the metric level will be taken", templateName)
+		log.Infof("the nanStrategy field is not defined at the global level for metric template %s, values at the metric level will be used", templateName)
 		return
 	}
 	for _, metric := range m.Data.Groups {
