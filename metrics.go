@@ -9,16 +9,16 @@ import (
 )
 
 type Metrics struct {
-	MetricType            string  `yaml:"metricType" json:"metricType,omitempty"`
+	MetricType            string   `yaml:"metricType" json:"metricType,omitempty"`
 	MetricWeight          *float64 `yaml:"metricWeight" json:"metricWeight,omitempty"`
-	NanStrategy           string  `yaml:"nanStrategy" json:"nanStrategy,omitempty"`
-	AccountName           string  `yaml:"accountName" json:"accountName,omitempty"`
-	RiskDirection         string  `yaml:"riskDirection" json:"riskDirection,omitempty"`
-	CustomThresholdHigher int     `yaml:"customThresholdHigherPercentage" json:"customThresholdHigher,omitempty"`
-	Name                  string  `yaml:"name" json:"name,omitempty"`
-	Criticality           string  `yaml:"criticality" json:"criticality,omitempty"`
-	CustomThresholdLower  int     `yaml:"customThresholdLowerPercentage" json:"customThresholdLower,omitempty"`
-	Watchlist             bool    `yaml:"watchlist" json:"watchlist"`
+	NanStrategy           string   `yaml:"nanStrategy" json:"nanStrategy,omitempty"`
+	AccountName           string   `yaml:"accountName" json:"accountName,omitempty"`
+	RiskDirection         string   `yaml:"riskDirection" json:"riskDirection,omitempty"`
+	CustomThresholdHigher int      `yaml:"customThresholdHigherPercentage" json:"customThresholdHigher,omitempty"`
+	Name                  string   `yaml:"name" json:"name,omitempty"`
+	Criticality           string   `yaml:"criticality" json:"criticality,omitempty"`
+	CustomThresholdLower  int      `yaml:"customThresholdLowerPercentage" json:"customThresholdLower,omitempty"`
+	Watchlist             bool     `yaml:"watchlist" json:"watchlist"`
 }
 
 type Groups struct {
@@ -32,14 +32,14 @@ type Data struct {
 	Groups               []Groups `yaml:"groups" json:"groups"`
 }
 type MetricISDTemplate struct {
-	FilterKey        string  `yaml:"filterKey" json:"filterKey,omitempty"`
-	AccountName      string  `yaml:"accountName" json:"accountName,omitempty"`
-	Data             Data    `yaml:"metricTemplateSetup" json:"data"`
-	TemplateName     string  `yaml:"templateName" json:"templateName"`
-	AdvancedProvider string  `yaml:"advancedProvider" json:"advancedProvider"`
-	MetricType       string  `yaml:"metricType" json:"metricType,omitempty"`
+	FilterKey        string   `yaml:"filterKey" json:"filterKey,omitempty"`
+	AccountName      string   `yaml:"accountName" json:"accountName,omitempty"`
+	Data             Data     `yaml:"metricTemplateSetup" json:"data"`
+	TemplateName     string   `yaml:"templateName" json:"templateName"`
+	AdvancedProvider string   `yaml:"advancedProvider" json:"advancedProvider"`
+	MetricType       string   `yaml:"metricType" json:"metricType,omitempty"`
 	MetricWeight     *float64 `yaml:"metricWeight" json:"metricWeight,omitempty"`
-	NanStrategy      string  `yaml:"nanStrategy" json:"nanStrategy,omitempty"`
+	NanStrategy      string   `yaml:"nanStrategy" json:"nanStrategy,omitempty"`
 }
 
 func (m *MetricISDTemplate) setMetricType(templateName string) {
@@ -53,7 +53,7 @@ func (m *MetricISDTemplate) setMetricType(templateName string) {
 		}
 		metric.Metrics[0].MetricType = m.MetricType
 	}
-	if isMetricTypeSet{
+	if isMetricTypeSet {
 		log.Warnf("the metricType field has been defined at the level of individual metrics for some of the metrics for template %s, metricType field should be defined only at the global level", templateName, m.AccountName)
 	}
 	m.MetricType = ""
