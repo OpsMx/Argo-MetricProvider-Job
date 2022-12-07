@@ -59,7 +59,7 @@ func (f RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestFuncGetAnalysisTemplateData(t *testing.T) {
-	_= os.MkdirAll("testcases/provider", os.ModePerm)
+	_ = os.MkdirAll("testcases/provider", os.ModePerm)
 	emptyFile, _ := os.Create("testcases/provider/providerConfig")
 	emptyFile.Close()
 	input, _ := os.ReadFile("testcases/analysis/providerConfig")
@@ -438,7 +438,7 @@ func TestSecret(t *testing.T) {
 	}
 	metric.Services = append(metric.Services, services)
 	_, err := metric.getDataSecret("testcases/")
-	_= os.MkdirAll("testcases/secrets", os.ModePerm)
+	_ = os.MkdirAll("testcases/secrets", os.ModePerm)
 	assert.Equal(t, err.Error(), "open testcases/secrets/user: no such file or directory")
 	emptyFile, _ := os.Create("testcases/secrets/user")
 	emptyFile.Close()
@@ -1708,7 +1708,7 @@ func TestGitops(t *testing.T) {
 	_, err = metric.generatePayload(clients, SecretData, "incorrect/")
 	assert.Equal(t, "open incorrect/templates/loggytemp: no such file or directory", err.Error())
 
-	_= os.MkdirAll("testcases/templates", os.ModePerm)
+	_ = os.MkdirAll("testcases/templates", os.ModePerm)
 	emptyFile, _ := os.Create("testcases/templates/loggytemp")
 	emptyFile.Close()
 	input, _ := os.ReadFile("testcases/gitops/loggytemp")
@@ -2256,8 +2256,8 @@ func TestRunAnalysis(t *testing.T) {
 	}
 	k8sclient := jobFakeClient(cond)
 	clients := newClients(k8sclient, c)
-	_= os.MkdirAll("testcases/secrets", os.ModePerm)
-	_= os.MkdirAll("testcases/provider", os.ModePerm)
+	_ = os.MkdirAll("testcases/secrets", os.ModePerm)
+	_ = os.MkdirAll("testcases/provider", os.ModePerm)
 	emptyFile, _ := os.Create("testcases/secrets/user")
 	emptyFile.Close()
 	input, _ := os.ReadFile("testcases/secret/user")
@@ -2323,9 +2323,9 @@ func TestRunAnalysis(t *testing.T) {
 		}
 	})
 	clientsInv = newClients(k8sclient, cInv)
-	_= os.MkdirAll("testcases/runanalysis/templates", os.ModePerm)
-	_= os.MkdirAll("testcases/runanalysis/provider", os.ModePerm)
-	_= os.MkdirAll("testcases/runanalysis/secrets", os.ModePerm)
+	_ = os.MkdirAll("testcases/runanalysis/templates", os.ModePerm)
+	_ = os.MkdirAll("testcases/runanalysis/provider", os.ModePerm)
+	_ = os.MkdirAll("testcases/runanalysis/secrets", os.ModePerm)
 	_, err = runAnalysis(clientsInv, resourceNames, "testcases/")
 	assert.Equal(t, `invalid character 'c' looking for beginning of object key string`, err.Error())
 

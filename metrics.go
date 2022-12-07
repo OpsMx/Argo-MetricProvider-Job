@@ -29,6 +29,7 @@ type Groups struct {
 type Data struct {
 	PercentDiffThreshold string   `yaml:"percent_diff_threshold" json:"percent_diff_threshold,omitempty"`
 	IsNormalize          bool     `yaml:"isNormalize" json:"isNormalize"`
+	MetricTypeGlobal     string   `yaml:"metricTypeGlobal" json:"metricTypeGlobal,omitempty"`
 	Groups               []Groups `yaml:"groups" json:"groups"`
 }
 type MetricISDTemplate struct {
@@ -37,6 +38,19 @@ type MetricISDTemplate struct {
 	Data             Data   `yaml:"metricTemplateSetup" json:"data"`
 	TemplateName     string `yaml:"templateName" json:"templateName"`
 	AdvancedProvider string `yaml:"advancedProvider" json:"advancedProvider"`
+}
+
+func (m *MetricISDTemplate) setVariablesForEachMetric(templateName string) {
+	if m.Data.MetricTypeGlobal == "" {
+		log.Debugf("the metricTypeGlobal field is not defined for metric template %s", templateName)
+		return
+	}
+	for _, metric := range m.Data.Groups {
+		if metric.Metrics[0].MetricType == "" {
+			metric.Metrics[0].MetricType = m.Data.MetricTypeGlobal
+		}
+	}
+	m.Data.MetricTypeGlobal = ""
 }
 
 func (m *MetricISDTemplate) setTemplateName(templateName string) {
@@ -74,6 +88,7 @@ func processYamlMetrics(templateData []byte, templateName string, scopeVariables
 
 	metric.setFilterKey(templateName, scopeVariables)
 	metric.setTemplateName(templateName)
+	metric.setVariablesForEachMetric(templateName)
 
 	if err = metric.checkMetricTemplateErrors(templateName); err != nil {
 		return MetricISDTemplate{}, err
