@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -28,7 +27,7 @@ type Groups struct {
 }
 
 type Data struct {
-	PercentDiffThreshold string   `yaml:"percent_diff_threshold" json:"percent_diff_threshold,omitempty"`
+	PercentDiffThreshold string   `yaml:"percentDiffThreshold" json:"percentDiffThreshold,omitempty"`
 	IsNormalize          bool     `yaml:"isNormalize" json:"isNormalize"`
 	Groups               []Groups `yaml:"groups" json:"groups"`
 }
@@ -100,50 +99,25 @@ func (m *MetricISDTemplate) setFilterKey(templateName string, metricScopeVariabl
 	m.FilterKey = metricScopeVariables
 }
 
-func (m *MetricISDTemplate) checkMetricTemplateErrors(templateName string) error {
-	//TODO- Extend it further after inputs from Java
+func (m *MetricISDTemplate) setCriticality(templateName string) {
+	//criticality
+	if m.Criticality == "" {
+		log.Infof("the criticaility field is not defined at the global level for metric template %s, values at the metric level will be used", templateName)
+		return
+	}
+	for _, metric := range m.Data.Groups {
+		if metric.Metrics[0].Criticality == "" {
+			metric.Metrics[0].Criticality = m.Criticality
+		}
+	}
+	m.Criticality = ""
+}
 
+func (m *MetricISDTemplate) checkMetricTemplateErrors(templateName string) error {
 	//check for groups array
 	if len(m.Data.Groups) == 0 {
 		errMsg := fmt.Sprintf("gitops '%s' template ConfigMap validation error: metric template %s does not have any members defined for the groups field", templateName, templateName)
 		return errors.New(errMsg)
-	}
-	return nil
-}
-
-func (m *MetricISDTemplate) setCriticality(templateName string) error {
-	//temporary fix -will be handled later on by Java
-	//TODO -redo
-	for _, metric := range m.Data.Groups {
-		if strings.ToLower(metric.Metrics[0].Criticality) == "low" {
-			metric.Metrics[0].Criticality = "Normal"
-		} else if strings.ToLower(metric.Metrics[0].Criticality) == "medium" {
-			metric.Metrics[0].Criticality = "MustHave"
-		} else if strings.ToLower(metric.Metrics[0].Criticality) == "high" {
-			metric.Metrics[0].Criticality = "Critical"
-		} else if metric.Metrics[0].Criticality != "" {
-			errMsg := fmt.Sprintf("gitops '%s' template ConfigMap validation error: criticality field can only take values Low/Medium/High", templateName)
-			return errors.New(errMsg)
-		}
-	}
-	if m.Criticality != "" {
-		if strings.ToLower(m.Criticality) == "low" {
-			m.Criticality = "Normal"
-		} else if strings.ToLower(m.Criticality) == "medium" {
-			m.Criticality = "MustHave"
-		} else if strings.ToLower(m.Criticality) == "high" {
-			m.Criticality = "Critical"
-		} else if m.Criticality != "" {
-			errMsg := fmt.Sprintf("gitops '%s' template ConfigMap validation error: criticality field can only take values Low/Medium/High", templateName)
-			return errors.New(errMsg)
-		}
-
-		for _, metric := range m.Data.Groups {
-			if metric.Metrics[0].Criticality == "" {
-				metric.Metrics[0].Criticality = m.Criticality
-			}
-		}
-		m.Criticality = ""
 	}
 	return nil
 }
@@ -161,9 +135,7 @@ func processYamlMetrics(templateData []byte, templateName string, scopeVariables
 	metric.setMetricType(templateName)
 	metric.setMetricWeight(templateName)
 	metric.setNanStrategy(templateName)
-	if err = metric.setCriticality(templateName); err != nil {
-		return MetricISDTemplate{}, err
-	}
+	metric.setCriticality(templateName)
 
 	if err = metric.checkMetricTemplateErrors(templateName); err != nil {
 		return MetricISDTemplate{}, err
