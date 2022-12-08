@@ -471,14 +471,14 @@ func (metric *OPSMXMetric) getDataSecret(basePath string) (map[string]string, er
 		err = errors.New(errorMsg)
 		return nil, err
 	}
-	sourceNamePath := filepath.Join(basePath, "secrets/source-name")
+	sourceNamePath := filepath.Join(basePath, "secrets/sourceName")
 	secretsourcename, err := os.ReadFile(sourceNamePath)
 	if err != nil {
 		errorMsg := fmt.Sprintf("opsmx profile secret validation error: %v\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'source-name'", err)
 		err = errors.New(errorMsg)
 		return nil, err
 	}
-	cdIntegrationPath := filepath.Join(basePath, "secrets/cd-integration")
+	cdIntegrationPath := filepath.Join(basePath, "secrets/cdIntegration")
 	secretcdintegration, err := os.ReadFile(cdIntegrationPath)
 	if err != nil {
 		errorMsg := fmt.Sprintf("opsmx profile secret validation error: %v\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'cd-integration'", err)
