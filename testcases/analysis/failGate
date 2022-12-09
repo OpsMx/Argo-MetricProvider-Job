@@ -1,6 +1,6 @@
 application: final-job
 user: admin
-gateUrl: "/"
+opsmxIsdUrl: "/"
 lifetimeMinutes: 3
 passScore: 80
 serviceList:

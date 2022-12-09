@@ -68,7 +68,7 @@ func TestFuncGetAnalysisTemplateData(t *testing.T) {
 	checkMetric := OPSMXMetric{
 		Application:     "final-job",
 		User:            "admin",
-		GateUrl:         "https://isd.opsmx.net/",
+		OpsmxIsdUrl:     "https://isd.opsmx.net/",
 		LifetimeMinutes: 3,
 		IntervalTime:    3,
 		LookBackType:    "sliding",
@@ -89,11 +89,11 @@ func TestFuncGetAnalysisTemplateData(t *testing.T) {
 	assert.Equal(t, err, nil)
 	assert.Equal(t, metric, checkMetric)
 	_, err = getAnalysisTemplateData("/etc/config/")
-	assert.Equal(t, err.Error(), "open /etc/config/provider/providerConfig: no such file or directory")
+	assert.Equal(t, err.Error(), "provider ConfigMap validation error: open /etc/config/provider/providerConfig: no such file or directory\n Action Required: Provider ConfigMap has to be mounted on '/etc/config/provider' in AnalysisTemplate and must carry data element 'providerConfig'")
 	input, _ = os.ReadFile("testcases/analysis/invalid")
 	_ = os.WriteFile("testcases/provider/providerConfig", input, 0644)
 	_, err = getAnalysisTemplateData("testcases/")
-	assert.Equal(t, err.Error(), "yaml: line 8: mapping values are not allowed in this context")
+	assert.Equal(t, err.Error(), "provider ConfigMap validation error: yaml: line 8: mapping values are not allowed in this context")
 	if _, err := os.Stat("testcases/provider"); !os.IsNotExist(err) {
 		os.RemoveAll("testcases/provider")
 	}
@@ -106,7 +106,7 @@ var basicChecks = []struct {
 	//Test case for no lifetimeMinutes, Baseline/Canary start time
 	{
 		metric: OPSMXMetric{
-			GateUrl:     "https://opsmx.test.tst",
+			OpsmxIsdUrl: "https://opsmx.test.tst",
 			Application: "testapp",
 			User:        "admin",
 			Pass:        80,
@@ -119,12 +119,12 @@ var basicChecks = []struct {
 				},
 			},
 		},
-		message: "either provide lifetimeMinutes or end time",
+		message: "provider ConfigMap validation error: provide either lifetimeMinutes or end time",
 	},
 	//Test case for no lifetimeMinutes & EndTime
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			Application:       "testapp",
 			User:              "admin",
 			BaselineStartTime: "2022-08-02T13:15:00Z",
@@ -139,12 +139,12 @@ var basicChecks = []struct {
 				},
 			},
 		},
-		message: "either provide lifetimeMinutes or end time",
+		message: "provider ConfigMap validation error: provide either lifetimeMinutes or end time",
 	},
 	//Test case when end time given and baseline and canary start time not same
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			Application:       "testapp",
 			BaselineStartTime: "2022-08-02T14:15:00Z",
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
@@ -159,12 +159,12 @@ var basicChecks = []struct {
 				},
 			},
 		},
-		message: "both start time should be kept same in case of using end time argument",
+		message: "provider ConfigMap validation error: both canaryStartTime and baselineStartTime should be kept same while using endTime argument for analysis",
 	},
 	//Test case when lifetimeMinutes is less than 3 minutes
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			Application:       "testapp",
 			BaselineStartTime: "2022-08-02T14:15:00Z",
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
@@ -179,12 +179,12 @@ var basicChecks = []struct {
 				},
 			},
 		},
-		message: "lifetime minutes cannot be less than 3 minutes",
+		message: "provider ConfigMap validation error: lifetimeMinutes cannot be less than 3 minutes",
 	},
 	//Test case when intervalTime is less than 3 minutes
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			Application:       "testapp",
 			BaselineStartTime: "2022-08-02T14:15:00Z",
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
@@ -201,58 +201,7 @@ var basicChecks = []struct {
 				},
 			},
 		},
-		message: "interval time cannot be less than 3 minutes",
-	},
-	//Test case when intervalTime is given but lookBackType is not given
-	{
-		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
-			Application:       "testapp",
-			BaselineStartTime: "2022-08-02T14:15:00Z",
-			CanaryStartTime:   "2022-08-02T13:15:00Z",
-			LifetimeMinutes:   60,
-			IntervalTime:      3,
-			Pass:              80,
-			Services: []OPSMXService{
-				{
-					MetricScopeVariables: "job_name",
-					BaselineMetricScope:  "oes-sapor-br",
-					CanaryMetricScope:    "oes-sapor-cr",
-					MetricTemplateName:   "prom",
-					LogScopeVariables:    "kubernetes.container_name",
-					BaselineLogScope:     "oes-datascienece-br",
-					CanaryLogScope:       "oes-datascience-cr",
-					LogTemplateName:      "logtemp",
-				},
-			},
-		},
-		message: "interval time is given and lookbacktype is required to run interval analysis",
-	},
-
-	//Test case when intervalTime is not given but lookBackType is given
-	{
-		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
-			Application:       "testapp",
-			BaselineStartTime: "2022-08-02T14:15:00Z",
-			CanaryStartTime:   "2022-08-02T13:15:00Z",
-			LifetimeMinutes:   60,
-			LookBackType:      "growing",
-			Pass:              80,
-			Services: []OPSMXService{
-				{
-					MetricScopeVariables: "job_name",
-					BaselineMetricScope:  "oes-sapor-br",
-					CanaryMetricScope:    "oes-sapor-cr",
-					MetricTemplateName:   "prom",
-					LogScopeVariables:    "kubernetes.container_name",
-					BaselineLogScope:     "oes-datascienece-br",
-					CanaryLogScope:       "oes-datascience-cr",
-					LogTemplateName:      "logtemp",
-				},
-			},
-		},
-		message: "lookbacktype is given and interval time is required to run interval analysis",
+		message: "provider ConfigMap validation error: intervalTime cannot be less than 3 minutes",
 	},
 }
 
@@ -262,7 +211,7 @@ func TestBasicChecks(t *testing.T) {
 		assert.Equal(t, err.Error(), test.message)
 	}
 	metric := OPSMXMetric{
-		GateUrl:           "https://opsmx.test.tst",
+		OpsmxIsdUrl:       "https://opsmx.test.tst",
 		Application:       "testapp",
 		User:              "admin",
 		BaselineStartTime: "2022-08-02T13:15:00Z",
@@ -290,7 +239,7 @@ var checkTimeVariables = []struct {
 }{
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			Application:       "testapp",
 			User:              "admin",
 			BaselineStartTime: "2022-08-02T13:15:00Z",
@@ -307,12 +256,12 @@ var checkTimeVariables = []struct {
 				},
 			},
 		},
-		message: "parsing time \"2022-O8-02T13:15:00Z\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"O8-02T13:15:00Z\" as \"01\"",
+		message: "provider ConfigMap validation error: Error in parsing canaryStartTime: parsing time \"2022-O8-02T13:15:00Z\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"O8-02T13:15:00Z\" as \"01\"",
 	},
 	//Test case for inappropriate time format baseline
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			Application:       "testapp",
 			User:              "admin",
 			BaselineStartTime: "2022-O8-02T13:15:00Z",
@@ -328,12 +277,12 @@ var checkTimeVariables = []struct {
 				},
 			},
 		},
-		message: "parsing time \"2022-O8-02T13:15:00Z\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"O8-02T13:15:00Z\" as \"01\"",
+		message: "provider ConfigMap validation error: Error in parsing baselineStartTime: parsing time \"2022-O8-02T13:15:00Z\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"O8-02T13:15:00Z\" as \"01\"",
 	},
 	//Test case for inappropriate time format endTime
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			Application:       "testapp",
 			User:              "admin",
 			BaselineStartTime: "2022-08-02T13:15:00Z",
@@ -349,12 +298,12 @@ var checkTimeVariables = []struct {
 				},
 			},
 		},
-		message: "parsing time \"2022-O8-02T13:15:00Z\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"O8-02T13:15:00Z\" as \"01\"",
+		message: "provider ConfigMap validation error: Error in parsing endTime: parsing time \"2022-O8-02T13:15:00Z\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"O8-02T13:15:00Z\" as \"01\"",
 	},
 	//Test case for when end time is less than start time
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			Application:       "testapp",
 			BaselineStartTime: "2022-08-02T13:15:00Z",
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
@@ -369,7 +318,7 @@ var checkTimeVariables = []struct {
 				},
 			},
 		},
-		message: "start time cannot be greater than end time",
+		message: "provider ConfigMap validation error: canaryStartTime cannot be greater than endTime",
 	},
 }
 
@@ -379,7 +328,7 @@ func TestGetTimeVariables(t *testing.T) {
 		assert.Equal(t, err.Error(), test.message)
 	}
 	metric := OPSMXMetric{
-		GateUrl:         "https://opsmx.test.tst",
+		OpsmxIsdUrl:     "https://opsmx.test.tst",
 		Application:     "testapp",
 		User:            "admin",
 		LifetimeMinutes: 30,
@@ -397,7 +346,7 @@ func TestGetTimeVariables(t *testing.T) {
 	assert.Equal(t, err, nil)
 
 	metric = OPSMXMetric{
-		GateUrl:           "https://opsmx.test.tst",
+		OpsmxIsdUrl:       "https://opsmx.test.tst",
 		Application:       "testapp",
 		BaselineStartTime: "2022-08-02T13:15:00Z",
 		CanaryStartTime:   "2022-08-02T13:15:00Z",
@@ -438,60 +387,60 @@ func TestSecret(t *testing.T) {
 	}
 	metric.Services = append(metric.Services, services)
 	_, err := metric.getDataSecret("testcases/")
+	assert.Equal(t, err.Error(), "opsmx profile secret validation error: open testcases/secrets/user: no such file or directory\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'user'")
 	_ = os.MkdirAll("testcases/secrets", os.ModePerm)
-	assert.Equal(t, err.Error(), "open testcases/secrets/user: no such file or directory")
 	emptyFile, _ := os.Create("testcases/secrets/user")
 	emptyFile.Close()
 	input, _ := os.ReadFile("testcases/secret/user")
 	_ = os.WriteFile("testcases/secrets/user", input, 0644)
 
 	_, err = metric.getDataSecret("testcases/")
-	assert.Equal(t, err.Error(), "open testcases/secrets/gate-url: no such file or directory")
-	emptyFile, _ = os.Create("testcases/secrets/gate-url")
+	assert.Equal(t, err.Error(), "opsmx profile secret validation error: open testcases/secrets/opsmxIsdUrl: no such file or directory\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'opsmxIsdUrl'")
+	emptyFile, _ = os.Create("testcases/secrets/opsmxIsdUrl")
 	emptyFile.Close()
 	input, _ = os.ReadFile("testcases/secret/gate-url")
-	_ = os.WriteFile("testcases/secrets/gate-url", input, 0644)
+	_ = os.WriteFile("testcases/secrets/opsmxIsdUrl", input, 0644)
 
 	_, err = metric.getDataSecret("testcases/")
-	assert.Equal(t, err.Error(), "open testcases/secrets/source-name: no such file or directory")
-	emptyFile, _ = os.Create("testcases/secrets/source-name")
+	assert.Equal(t, err.Error(), "opsmx profile secret validation error: open testcases/secrets/sourceName: no such file or directory\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'sourceName'")
+	emptyFile, _ = os.Create("testcases/secrets/sourceName")
 	emptyFile.Close()
 	input, _ = os.ReadFile("testcases/secret/source-name")
-	_ = os.WriteFile("testcases/secrets/source-name", input, 0644)
+	_ = os.WriteFile("testcases/secrets/sourceName", input, 0644)
 
 	_, err = metric.getDataSecret("testcases/")
-	assert.Equal(t, err.Error(), "open testcases/secrets/cd-integration: no such file or directory")
-	emptyFile, _ = os.Create("testcases/secrets/cd-integration")
+	assert.Equal(t, err.Error(), "opsmx profile secret validation error: open testcases/secrets/cdIntegration: no such file or directory\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'cdIntegration'")
+	emptyFile, _ = os.Create("testcases/secrets/cdIntegration")
 	emptyFile.Close()
 	input, _ = os.ReadFile("testcases/secret/cd-Integration")
-	_ = os.WriteFile("testcases/secrets/cd-integration", input, 0644)
+	_ = os.WriteFile("testcases/secrets/cdIntegration", input, 0644)
 
 	secretData, err := metric.getDataSecret("testcases/")
-	assert.Equal(t, err, nil)
+	assert.Equal(t, nil, err)
 	checkSecretData := map[string]string{
 		"cdIntegration": "argocd",
 		"sourceName":    "argocd06",
-		"gateUrl":       "www.opsmx.com",
+		"opsmxIsdUrl":   "www.opsmx.com",
 		"user":          "admins",
 	}
 	assert.Equal(t, checkSecretData, secretData)
 
 	input, _ = os.ReadFile("testcases/secret/cd-Integration-False")
-	_ = os.WriteFile("testcases/secrets/cd-integration", input, 0644)
+	_ = os.WriteFile("testcases/secrets/cdIntegration", input, 0644)
 	secretData, err = metric.getDataSecret("testcases/")
 	assert.Equal(t, err, nil)
 	checkSecretData = map[string]string{
 		"cdIntegration": "argorollouts",
 		"sourceName":    "argocd06",
-		"gateUrl":       "www.opsmx.com",
+		"opsmxIsdUrl":   "www.opsmx.com",
 		"user":          "admins",
 	}
 	assert.Equal(t, checkSecretData, secretData)
 
 	input, _ = os.ReadFile("testcases/secret/cd-Integration-Invalid")
-	_ = os.WriteFile("testcases/secrets/cd-integration", input, 0644)
+	_ = os.WriteFile("testcases/secrets/cdIntegration", input, 0644)
 	_, err = metric.getDataSecret("testcases/")
-	assert.Equal(t, err.Error(), "cd-integration should be either true or false")
+	assert.Equal(t, err.Error(), "opsmx profile secret validation error: cdIntegration should be either true or false")
 	if _, err := os.Stat("testcases/secrets"); !os.IsNotExist(err) {
 		os.RemoveAll("testcases/secrets")
 	}
@@ -504,7 +453,7 @@ var successfulPayload = []struct {
 	//Test case for basic function of Single Service feature
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			User:              "admin",
 			Application:       "multiservice",
 			BaselineStartTime: "2022-08-10T13:15:00Z",
@@ -557,7 +506,7 @@ var successfulPayload = []struct {
 	//Test case for endtime function of Single Service feature
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			User:              "admin",
 			Application:       "multiservice",
 			BaselineStartTime: "2022-08-10T13:15:00Z",
@@ -604,7 +553,7 @@ var successfulPayload = []struct {
 	//Test case for only 1 time stamp given function of Single Service feature
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			User:              "admin",
 			Application:       "multiservice",
 			BaselineStartTime: "2022-08-10T13:15:00Z",
@@ -652,7 +601,7 @@ var successfulPayload = []struct {
 	{
 		metric: OPSMXMetric{
 			User:                 "admin",
-			GateUrl:              "https://opsmx.test.tst",
+			OpsmxIsdUrl:          "https://opsmx.test.tst",
 			Application:          "multiservice",
 			BaselineStartTime:    "2022-08-10T13:15:00Z",
 			CanaryStartTime:      "2022-08-10T13:15:00Z",
@@ -729,7 +678,7 @@ var successfulPayload = []struct {
 	//Test case for multi-service feature along with logs+metrics analysis
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			User:              "admin",
 			Application:       "multiservice",
 			BaselineStartTime: "2022-08-10T13:15:00Z",
@@ -830,7 +779,7 @@ var successfulPayload = []struct {
 	//Test case for 1 incorrect service and one correct
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			User:              "admin",
 			Application:       "multiservice",
 			BaselineStartTime: "2022-08-10T13:15:00Z",
@@ -922,7 +871,7 @@ var successfulPayload = []struct {
 	//Test case for Service Name given
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			User:              "admin",
 			Application:       "multiservice",
 			BaselineStartTime: "2022-08-10T13:15:00Z",
@@ -1015,7 +964,7 @@ var successfulPayload = []struct {
 	//Test case for Global log Template
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			User:              "admin",
 			Application:       "multiservice",
 			BaselineStartTime: "2022-08-10T13:15:00Z",
@@ -1109,7 +1058,7 @@ var successfulPayload = []struct {
 	//Test case for CanaryStartTime not given but baseline was given
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			User:              "admin",
 			Application:       "multiservice",
 			BaselineStartTime: "2022-08-10T13:15:00Z",
@@ -1207,7 +1156,7 @@ var failPayload = []struct {
 	//Test case for No log & Metric analysis
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			User:              "admin",
 			Application:       "multiservice",
 			BaselineStartTime: "2022-08-10T13:15:00Z",
@@ -1215,12 +1164,12 @@ var failPayload = []struct {
 			EndTime:           "2022-08-10T13:45:10Z",
 			Pass:              80,
 		},
-		message: "no services provided",
+		message: "provider ConfigMap validation error: no services provided",
 	},
 	//Test case for No log & Metric analysis
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			User:              "admin",
 			Application:       "multiservice",
 			BaselineStartTime: "2022-08-10T13:15:00Z",
@@ -1236,12 +1185,12 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "at least one of log or metric context must be included",
+		message: "provider ConfigMap validation error: at least one of log or metric context must be provided",
 	},
 	//Test case for mismatch in log scope variables and baseline/canary log scope
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			User:              "admin",
 			Application:       "multiservice",
 			BaselineStartTime: "2022-08-10T13:15:00Z",
@@ -1267,13 +1216,13 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "mismatch in number of log scope variables and baseline/canary log scope",
+		message: "provider ConfigMap validation error: mismatch in number of log scope variables and baseline/canary log scope of service 'service2'",
 	},
 
 	//Test case for mismatch in metric scope variables and baseline/canary metric scope
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			User:              "admin",
 			Application:       "multiservice",
 			BaselineStartTime: "2022-08-10T13:15:00Z",
@@ -1299,12 +1248,12 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "mismatch in number of metric scope variables and baseline/canary metric scope",
+		message: "provider ConfigMap validation error: mismatch in number of metric scope variables and baseline/canary metric scope of service 'service1'",
 	},
 	//Test case when baseline or canary logplaceholder is missing
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			Application:       "testapp",
 			BaselineStartTime: "2022-08-02T14:15:00Z",
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
@@ -1324,13 +1273,13 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "missing canary for log analysis",
+		message: "provider ConfigMap validation error: missing canary for log analysis of service 'service1'",
 	},
 
 	//Test case when baseline or canary metricplaceholder is missing
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			Application:       "testapp",
 			BaselineStartTime: "2022-08-02T14:15:00Z",
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
@@ -1350,13 +1299,13 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "missing baseline/canary for metric analysis",
+		message: "provider ConfigMap validation error: missing baseline/canary for metric analysis of service 'service1'",
 	},
 
 	//Test case when global and service specific template is missing
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			Application:       "testapp",
 			BaselineStartTime: "2022-08-02T14:15:00Z",
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
@@ -1375,13 +1324,13 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "provide either a service specific log template or global log template",
+		message: "provider ConfigMap validation error: provide either a service specific log template or global log template for service 'service1'",
 	},
 
 	//Test case when global and service specific template is missing
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			Application:       "testapp",
 			BaselineStartTime: "2022-08-02T14:15:00Z",
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
@@ -1401,13 +1350,13 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "provide either a service specific metric template or global metric template",
+		message: "provider ConfigMap validation error: provide either a service specific metric template or global metric template for service: service1",
 	},
 
 	//Test case when global and service specific template is missing
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			Application:       "testapp",
 			BaselineStartTime: "2022-08-02T14:15:00Z",
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
@@ -1426,13 +1375,13 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "missing log Scope placeholder for the provided baseline/canary",
+		message: "provider ConfigMap validation error: missing log Scope placeholder for the provided baseline/canary of service 'service1'",
 	},
 
 	//Test case when global and service specific template is missing
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			Application:       "testapp",
 			BaselineStartTime: "2022-08-02T14:15:00Z",
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
@@ -1450,13 +1399,13 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "missing log Scope placeholder for the provided baseline/canary",
+		message: "provider ConfigMap validation error: missing log Scope placeholder for the provided baseline/canary of service 'service1'",
 	},
 
 	//Test case when global and service specific template is missing
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			Application:       "testapp",
 			BaselineStartTime: "2022-08-02T14:15:00Z",
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
@@ -1474,13 +1423,13 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "missing log Scope placeholder for the provided baseline/canary",
+		message: "provider ConfigMap validation error: missing log Scope placeholder for the provided baseline/canary of service 'service1'",
 	},
 
 	//Test case when global and service specific template is missing
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			Application:       "testapp",
 			BaselineStartTime: "2022-08-02T14:15:00Z",
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
@@ -1499,12 +1448,12 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "missing metric Scope placeholder for the provided baseline/canary",
+		message: "provider ConfigMap validation error: missing metric Scope placeholder for the provided baseline/canary of service 'service1'",
 	},
 
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			Application:       "testapp",
 			BaselineStartTime: "2022-08-02T14:15:00Z",
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
@@ -1522,13 +1471,13 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "missing metric Scope placeholder for the provided baseline/canary",
+		message: "provider ConfigMap validation error: missing metric Scope placeholder for the provided baseline/canary of service 'service1'",
 	},
 
 	//Test case when global and service specific template is missing
 	{
 		metric: OPSMXMetric{
-			GateUrl:           "https://opsmx.test.tst",
+			OpsmxIsdUrl:       "https://opsmx.test.tst",
 			Application:       "testapp",
 			BaselineStartTime: "2022-08-02T14:15:00Z",
 			CanaryStartTime:   "2022-08-02T13:15:00Z",
@@ -1546,7 +1495,7 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "missing metric Scope placeholder for the provided baseline/canary",
+		message: "provider ConfigMap validation error: missing metric Scope placeholder for the provided baseline/canary of service 'service1'",
 	},
 }
 
@@ -1556,7 +1505,7 @@ func TestPayload(t *testing.T) {
 	SecretData := map[string]string{
 		"cdIntegration": "argocd",
 		"sourceName":    "sourcename",
-		"gateUrl":       "www.opsmx.com",
+		"opsmxIsdUrl":   "www.opsmx.com",
 		"user":          "admins",
 	}
 
@@ -1575,7 +1524,7 @@ func TestPayload(t *testing.T) {
 		assert.Equal(t, test.message, err.Error())
 	}
 	metric := OPSMXMetric{
-		GateUrl:           "https://opsmx.test.tst",
+		OpsmxIsdUrl:       "https://opsmx.test.tst",
 		User:              "admin",
 		Application:       "multiservice",
 		BaselineStartTime: "2022-08-10T13:15:00Z",
@@ -1601,16 +1550,16 @@ func TestPayload(t *testing.T) {
 	err := metric.getTimeVariables()
 	assert.Equal(t, nil, err)
 	_, err = metric.generatePayload(clients, SecretData, "notRequired")
-	assert.Equal(t, "environment variable STABLE_POD_HASH not set", err.Error())
+	assert.Equal(t, "analysisTemplate validation error: environment variable STABLE_POD_HASH not set", err.Error())
 	os.Setenv("STABLE_POD_HASH", "baseline")
 	_, err = metric.generatePayload(clients, SecretData, "notRequired")
-	assert.Equal(t, "environment variable LATEST_POD_HASH not set", err.Error())
+	assert.Equal(t, "analysisTemplate validation error: environment variable LATEST_POD_HASH not set", err.Error())
 	os.Setenv("LATEST_POD_HASH", "baseline")
 	_, err = metric.generatePayload(clients, SecretData, "notRequired")
-	assert.Equal(t, "environment variable STABLE_POD_METRIC_HASH not set", err.Error())
+	assert.Equal(t, "analysisTemplate validation error: environment variable STABLE_POD_METRIC_HASH not set", err.Error())
 	os.Setenv("STABLE_POD_METRIC_HASH", "baseline")
 	_, err = metric.generatePayload(clients, SecretData, "notRequired")
-	assert.Equal(t, "environment variable LATEST_POD_METRIC_HASH not set", err.Error())
+	assert.Equal(t, "analysisTemplate validation error: environment variable LATEST_POD_METRIC_HASH not set", err.Error())
 }
 
 func TestGitops(t *testing.T) {
@@ -1619,11 +1568,11 @@ func TestGitops(t *testing.T) {
 	SecretData := map[string]string{
 		"cdIntegration": "argocd",
 		"sourceName":    "sourcename",
-		"gateUrl":       "http://www.opsmx.com",
+		"opsmxIsdUrl":   "http://www.opsmx.com",
 		"user":          "admins",
 	}
 	metric := OPSMXMetric{
-		GateUrl:           "https://opsmx.test.tst",
+		OpsmxIsdUrl:       "https://opsmx.test.tst",
 		User:              "admin",
 		Application:       "multiservice",
 		BaselineStartTime: "2022-08-10T13:15:00Z",
@@ -1706,7 +1655,7 @@ func TestGitops(t *testing.T) {
 	err := metric.getTimeVariables()
 	assert.Equal(t, nil, err)
 	_, err = metric.generatePayload(clients, SecretData, "incorrect/")
-	assert.Equal(t, "open incorrect/templates/loggytemp: no such file or directory", err.Error())
+	assert.Equal(t, "gitops 'loggytemp' template ConfigMap validation error: open incorrect/templates/loggytemp: no such file or directory\n Action Required: Template has to be mounted on '/etc/config/templates' in AnalysisTemplate and must carry data element 'loggytemp'", err.Error())
 
 	_ = os.MkdirAll("testcases/templates", os.ModePerm)
 	emptyFile, _ := os.Create("testcases/templates/loggytemp")
@@ -1719,7 +1668,7 @@ func TestGitops(t *testing.T) {
 	assert.Equal(t, processedPayload, payload)
 
 	metric = OPSMXMetric{
-		GateUrl:           "https://opsmx.test.tst",
+		OpsmxIsdUrl:       "https://opsmx.test.tst",
 		User:              "admin",
 		Application:       "multiservice",
 		BaselineStartTime: "2022-08-10T13:15:00Z",
@@ -1784,14 +1733,14 @@ func TestGitops(t *testing.T) {
 	input, _ = os.ReadFile("testcases/gitops/PrometheusMetricTemplate")
 	_ = os.WriteFile("testcases/templates/PrometheusMetricTemplate", input, 0644)
 	_, err = metric.generatePayload(clients, SecretData, "gitops/nothere/")
-	assert.Equal(t, "open gitops/nothere/templates/PrometheusMetricTemplate: no such file or directory", err.Error())
+	assert.Equal(t, "gitops 'PrometheusMetricTemplate' template ConfigMap validation error: open gitops/nothere/templates/PrometheusMetricTemplate: no such file or directory\n Action Required: Template has to be mounted on '/etc/config/templates' in AnalysisTemplate and must carry data element 'PrometheusMetricTemplate'", err.Error())
 	payload, err = metric.generatePayload(clients, SecretData, "testcases/")
 	assert.Equal(t, nil, err)
 	processedPayload = strings.Replace(strings.Replace(strings.Replace(checkPayload, "\n", "", -1), "\t", "", -1), " ", "", -1)
 	assert.Equal(t, processedPayload, payload)
 
 	metric = OPSMXMetric{
-		GateUrl:           "https://opsmx.test.tst",
+		OpsmxIsdUrl:       "https://opsmx.test.tst",
 		User:              "admin",
 		Application:       "multiservice",
 		BaselineStartTime: "2022-08-10T13:15:00Z",
@@ -1843,7 +1792,7 @@ func TestGitops(t *testing.T) {
 	err = metric.getTimeVariables()
 	assert.Equal(t, nil, err)
 	_, err = getTemplateData(clientFail.client, SecretData, "loggytemp", "LOG", "testcases/", "scope")
-	assert.Equal(t, "ISD-EmptyKeyOrValueInJson-400-07 : Analytics Service - Name key or value is missing in json ! ISD-EmptyKeyOrValueInJson-400-07 : Analytics Service - Account name key or value is missing in json ! ISD-IsNotFound-404-01 : Analytics Service - Datasource account not found : ", err.Error())
+	assert.Equal(t, "gitops 'loggytemp' template ConfigMap validation error: ISD-EmptyKeyOrValueInJson-400-07 : Analytics Service - Name key or value is missing in json ! ISD-EmptyKeyOrValueInJson-400-07 : Analytics Service - Account name key or value is missing in json ! ISD-IsNotFound-404-01 : Analytics Service - Datasource account not found : ", err.Error())
 
 	invalidjsonmetric := OPSMXMetric{
 		Application:     "final-job",
@@ -1870,10 +1819,10 @@ func TestGitops(t *testing.T) {
 	input, _ = os.ReadFile("testcases/gitops/invalid/loggytemp.txt")
 	_ = os.WriteFile("testcases/templates/invalid.txt", input, 0644)
 	_, err = invalidjsonmetric.generatePayload(clients, SecretData, "testcases/")
-	assert.Equal(t, "invalid template json/yaml provided for invalid.txt template", err.Error())
+	assert.Equal(t, "gitops 'invalid.txt' template ConfigMap validation error: yaml: line 22: did not find expected ',' or '}'", err.Error())
 
 	metric = OPSMXMetric{
-		GateUrl:           "https://opsmx.test.tst",
+		OpsmxIsdUrl:       "https://opsmx.test.tst",
 		User:              "admin",
 		Application:       "multiservice",
 		BaselineStartTime: "2022-08-10T13:15:00Z",
@@ -1919,7 +1868,7 @@ func TestGitops(t *testing.T) {
 	err = metric.getTimeVariables()
 	assert.Equal(t, nil, err)
 	_, err = getTemplateData(clientInvalid.client, SecretData, "loggytemp", "LOG", "testcases/", "scope")
-	assert.Equal(t, "invalid character 'f' looking for beginning of object key string", err.Error())
+	assert.Equal(t, "analysis Error: Expected bool response from gitops verifyTemplate response  Error: invalid character 'f' looking for beginning of object key string. Action: Check endpoint given in secret/providerConfig.", err.Error())
 
 	cinv = NewTestClient(func(req *http.Request) (*http.Response, error) {
 		if req.Method == "POST" {
@@ -1953,7 +1902,7 @@ func TestGitops(t *testing.T) {
 
 func TestProcessResume(t *testing.T) {
 	metric := OPSMXMetric{
-		GateUrl:           "https://opsmx.test.tst",
+		OpsmxIsdUrl:       "https://opsmx.test.tst",
 		User:              "admin",
 		Application:       "multiservice",
 		BaselineStartTime: "2022-08-10T13:15:00Z",
@@ -2219,7 +2168,7 @@ func TestProcessResume(t *testing.T) {
 	`))
 	_, _, err = metric.processResume(input)
 
-	assert.Equal(t, "invalid character '\"' after object key:value pair", err.Error())
+	assert.Equal(t, "analysis Error: Error in post processing canary Response. Error: invalid character '\"' after object key:value pair", err.Error())
 }
 
 func TestRunAnalysis(t *testing.T) {
@@ -2262,18 +2211,18 @@ func TestRunAnalysis(t *testing.T) {
 	emptyFile.Close()
 	input, _ := os.ReadFile("testcases/secret/user")
 	_ = os.WriteFile("testcases/secrets/user", input, 0644)
-	emptyFile, _ = os.Create("testcases/secrets/gate-url")
+	emptyFile, _ = os.Create("testcases/secrets/opsmxIsdUrl")
 	emptyFile.Close()
 	input, _ = os.ReadFile("testcases/secret/gate-url")
-	_ = os.WriteFile("testcases/secrets/gate-url", input, 0644)
-	emptyFile, _ = os.Create("testcases/secrets/cd-integration")
+	_ = os.WriteFile("testcases/secrets/opsmxIsdUrl", input, 0644)
+	emptyFile, _ = os.Create("testcases/secrets/cdIntegration")
 	emptyFile.Close()
 	input, _ = os.ReadFile("testcases/secret/cd-Integration")
-	_ = os.WriteFile("testcases/secrets/cd-integration", input, 0644)
-	emptyFile, _ = os.Create("testcases/secrets/source-name")
+	_ = os.WriteFile("testcases/secrets/cdIntegration", input, 0644)
+	emptyFile, _ = os.Create("testcases/secrets/sourceName")
 	emptyFile.Close()
 	input, _ = os.ReadFile("testcases/secret/source-name")
-	_ = os.WriteFile("testcases/secrets/source-name", input, 0644)
+	_ = os.WriteFile("testcases/secrets/sourceName", input, 0644)
 	emptyFile, _ = os.Create("testcases/provider/providerConfig")
 	emptyFile.Close()
 	input, _ = os.ReadFile("testcases/analysis/providerConfig")
@@ -2327,54 +2276,54 @@ func TestRunAnalysis(t *testing.T) {
 	_ = os.MkdirAll("testcases/runanalysis/provider", os.ModePerm)
 	_ = os.MkdirAll("testcases/runanalysis/secrets", os.ModePerm)
 	_, err = runAnalysis(clientsInv, resourceNames, "testcases/")
-	assert.Equal(t, `invalid character 'c' looking for beginning of object key string`, err.Error())
+	assert.Equal(t, `analysis Error: Error in post processing canary Response: invalid character 'c' looking for beginning of object key string`, err.Error())
 
 	_, err = runAnalysis(clients, resourceNames, "testcasesy/")
-	assert.Equal(t, "open testcasesy/provider/providerConfig: no such file or directory", err.Error())
+	assert.Equal(t, "provider ConfigMap validation error: open testcasesy/provider/providerConfig: no such file or directory\n Action Required: Provider ConfigMap has to be mounted on '/etc/config/provider' in AnalysisTemplate and must carry data element 'providerConfig'", err.Error())
 
 	emptyFile, _ = os.Create("testcases/runanalysis/provider/providerConfig")
 	emptyFile.Close()
 	input, _ = os.ReadFile("testcases/analysis/providerConfig")
 	_ = os.WriteFile("testcases/runanalysis/provider/providerConfig", input, 0644)
 	_, err = runAnalysis(clients, resourceNames, "testcases/runanalysis/")
-	assert.Equal(t, "open testcases/runanalysis/secrets/user: no such file or directory", err.Error())
+	assert.Equal(t, "opsmx profile secret validation error: open testcases/runanalysis/secrets/user: no such file or directory\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'user'", err.Error())
 
 	emptyFile, _ = os.Create("testcases/runanalysis/secrets/user")
 	emptyFile.Close()
 	input, _ = os.ReadFile("testcases/secret/user")
 	_ = os.WriteFile("testcases/runanalysis/secrets/user", input, 0644)
-	emptyFile, _ = os.Create("testcases/runanalysis/secrets/gate-url")
+	emptyFile, _ = os.Create("testcases/runanalysis/secrets/opsmxIsdUrl")
 	emptyFile.Close()
 	input, _ = os.ReadFile("testcases/secret/gate-url")
-	_ = os.WriteFile("testcases/runanalysis/secrets/gate-url", input, 0644)
-	emptyFile, _ = os.Create("testcases/runanalysis/secrets/cd-integration")
+	_ = os.WriteFile("testcases/runanalysis/secrets/opsmxIsdUrl", input, 0644)
+	emptyFile, _ = os.Create("testcases/runanalysis/secrets/cdIntegration")
 	emptyFile.Close()
 	input, _ = os.ReadFile("testcases/secret/cd-Integration")
-	_ = os.WriteFile("testcases/runanalysis/secrets/cd-integration", input, 0644)
-	emptyFile, _ = os.Create("testcases/runanalysis/secrets/source-name")
+	_ = os.WriteFile("testcases/runanalysis/secrets/cdIntegration", input, 0644)
+	emptyFile, _ = os.Create("testcases/runanalysis/secrets/sourceName")
 	emptyFile.Close()
 	input, _ = os.ReadFile("testcases/secret/source-name")
-	_ = os.WriteFile("testcases/runanalysis/secrets/source-name", input, 0644)
+	_ = os.WriteFile("testcases/runanalysis/secrets/sourceName", input, 0644)
 
 	emptyFile, _ = os.Create("testcases/runanalysis/provider/providerConfig")
 	emptyFile.Close()
 	input, _ = os.ReadFile("testcases/analysis/provideConfigGitops")
 	_ = os.WriteFile("testcases/runanalysis/provider/providerConfig", input, 0644)
 	_, err = runAnalysis(clients, resourceNames, "testcases/runanalysis/")
-	assert.Equal(t, "open testcases/runanalysis/templates/loggytemp: no such file or directory", err.Error())
+	assert.Equal(t, "gitops 'loggytemp' template ConfigMap validation error: open testcases/runanalysis/templates/loggytemp: no such file or directory\n Action Required: Template has to be mounted on '/etc/config/templates' in AnalysisTemplate and must carry data element 'loggytemp'", err.Error())
 
 	emptyFile, _ = os.Create("testcases/provider/providerConfig")
 	emptyFile.Close()
 	input, _ = os.ReadFile("testcases/analysis/basicCheckFail")
 	_ = os.WriteFile("testcases/provider/providerConfig", input, 0644)
 	_, err = runAnalysis(clients, resourceNames, "testcases/")
-	assert.Equal(t, "lookbacktype is given and interval time is required to run interval analysis", err.Error())
+	assert.Equal(t, "provider ConfigMap validation error: intervalTime should be given along with lookBackType to perform interval analysis", err.Error())
 	emptyFile, _ = os.Create("testcases/provider/providerConfig")
 	emptyFile.Close()
 	input, _ = os.ReadFile("testcases/analysis/failtimevariables")
 	_ = os.WriteFile("testcases/provider/providerConfig", input, 0644)
 	_, err = runAnalysis(clients, resourceNames, "testcases/")
-	assert.Equal(t, "parsing time \"abc\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"abc\" as \"2006\"", err.Error())
+	assert.Equal(t, "provider ConfigMap validation error: Error in parsing baselineStartTime: parsing time \"abc\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"abc\" as \"2006\"", err.Error())
 
 	emptyFile, _ = os.Create("testcases/runanalysis/provider/providerConfig")
 	emptyFile.Close()
@@ -2480,7 +2429,7 @@ func TestRunAnalysis(t *testing.T) {
 	})
 	clientsHead := newClients(k8sclientCancel, cHead)
 	_, err = runAnalysis(clientsHead, resourceNames, "testcases/runanalysis/")
-	assert.Equal(t, "score url not found", err.Error())
+	assert.Equal(t, "analysis Error: score url not found", err.Error())
 
 	cError := NewTestClient(func(req *http.Request) (*http.Response, error) {
 		return &http.Response{
@@ -2499,7 +2448,7 @@ func TestRunAnalysis(t *testing.T) {
 	})
 	clientsError := newClients(k8sclientCancel, cError)
 	_, err = runAnalysis(clientsError, resourceNames, "testcases/runanalysis/")
-	assert.Equal(t, "Error: Here is Error\nMessage: Error is Here", err.Error())
+	assert.Equal(t, "analysis Error: Here is Error\nMessage: Error is Here", err.Error())
 
 	resourceNames = ResourceNames{
 		podName: "pod",
@@ -2517,7 +2466,7 @@ func TestRunAnalysis(t *testing.T) {
 	})
 	clientsUrlError := newClients(k8sclientS, cUrlEroor)
 	_, err = runAnalysis(clientsUrlError, resourceNames, "testcases/runanalysis/")
-	assert.Equal(t, "Post \"https://isd.opsmx.net/autopilot/api/v5/registerCanary\": Post \"https://opsmx.invalidurl.tst\": dial tcp: lookup https://opsmx.invalidurl.tst: no such host", err.Error())
+	assert.Equal(t, "provider ConfigMap validation error: incorrect opsmxIsdUrl", err.Error())
 	if _, err := os.Stat("testcases/secrets"); !os.IsNotExist(err) {
 		os.RemoveAll("testcases/secrets")
 	}
@@ -2536,7 +2485,7 @@ func TestRunner(t *testing.T) {
 	httpclient := NewHttpClient()
 	clients := newClients(getFakeClient(map[string][]byte{}), httpclient)
 	err := runner(clients)
-	assert.Equal(t, "environment variable my_pod name not set", err.Error())
+	assert.Equal(t, "analysisTemplate validation error: environment variable MY_POD_NAME is not set", err.Error())
 
 	cd := CanaryDetails{
 		jobName:   "jobname-123",

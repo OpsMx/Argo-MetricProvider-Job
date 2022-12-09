@@ -444,10 +444,10 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 			return "", err
 		}
 		log.Debugf("the value of templateCheckSave var is %v", templateCheckSave)
-		errorss := fmt.Sprintf("gitops '%s' template ConfigMap validation error: %v", template, templateCheckSave["errorMessage"])
+		errorss := fmt.Sprintf("%v", templateCheckSave["errorMessage"])
 		errorss = strings.Replace(strings.Replace(errorss, "[", "", -1), "]", "", -1)
 		if templateCheckSave["errorMessage"] != "" && templateCheckSave["errorMessage"] != nil && len(errorss) > 1 && templateCheckSave["status"] != "CREATED" {
-			err = errors.New(errorss)
+			err = fmt.Errorf("gitops '%s' template ConfigMap validation error: %s", template, errorss)
 			return "", err
 		}
 	}
@@ -474,14 +474,14 @@ func (metric *OPSMXMetric) getDataSecret(basePath string) (map[string]string, er
 	sourceNamePath := filepath.Join(basePath, "secrets/sourceName")
 	secretsourcename, err := os.ReadFile(sourceNamePath)
 	if err != nil {
-		errorMsg := fmt.Sprintf("opsmx profile secret validation error: %v\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'source-name'", err)
+		errorMsg := fmt.Sprintf("opsmx profile secret validation error: %v\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'sourceName'", err)
 		err = errors.New(errorMsg)
 		return nil, err
 	}
 	cdIntegrationPath := filepath.Join(basePath, "secrets/cdIntegration")
 	secretcdintegration, err := os.ReadFile(cdIntegrationPath)
 	if err != nil {
-		errorMsg := fmt.Sprintf("opsmx profile secret validation error: %v\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'cd-integration'", err)
+		errorMsg := fmt.Sprintf("opsmx profile secret validation error: %v\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'cdIntegration'", err)
 		err = errors.New(errorMsg)
 		return nil, err
 	}
@@ -504,7 +504,7 @@ func (metric *OPSMXMetric) getDataSecret(basePath string) (map[string]string, er
 	} else if string(secretcdintegration) == "false" {
 		cdIntegration = cdIntegrationArgoRollouts
 	} else {
-		err := errors.New("opsmx profile secret validation error: cd-integration should be either true or false")
+		err := errors.New("opsmx profile secret validation error: cdIntegration should be either true or false")
 		return nil, err
 	}
 	secretData["cdIntegration"] = cdIntegration

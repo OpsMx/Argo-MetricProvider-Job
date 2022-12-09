@@ -1,6 +1,6 @@
 application: final-job
 user: admin
-gateUrl: 'https://isd.opsmx.net/'
+opsmxIsdUrl: 'https://isd.opsmx.net/'
 lifetimeMinutes: 3
 lookBackType: sliding
 passScore: 80
