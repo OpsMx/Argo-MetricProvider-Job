@@ -35,8 +35,8 @@ type MetricISDTemplate struct {
 	FilterKey        string   `yaml:"filterKey" json:"filterKey,omitempty"`
 	AccountName      string   `yaml:"accountName" json:"accountName,omitempty"`
 	Data             Data     `yaml:"metricTemplateSetup" json:"data"`
-	TemplateName     string   `yaml:"templateName" json:"templateName"`
-	AdvancedProvider string   `yaml:"advancedProvider" json:"advancedProvider"`
+	TemplateName     string   `yaml:"templateName" json:"templateName,omitempty"`
+	AdvancedProvider string   `yaml:"advancedProvider" json:"advancedProvider,omitempty"`
 	MetricType       string   `yaml:"metricType" json:"metricType,omitempty"`
 	MetricWeight     *float64 `yaml:"metricWeight" json:"metricWeight,omitempty"`
 	NanStrategy      string   `yaml:"nanStrategy" json:"nanStrategy,omitempty"`
