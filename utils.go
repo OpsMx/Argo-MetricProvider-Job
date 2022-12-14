@@ -212,7 +212,6 @@ func makeRequest(client http.Client, requestType string, url string, body string
 		return []byte{}, "", err
 	}
 	defer res.Body.Close()
-
 	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		return []byte{}, "", err
@@ -446,7 +445,7 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 		log.Debugf("the value of templateCheckSave var is %v", templateCheckSave)
 		errorss := fmt.Sprintf("%v", templateCheckSave["errorMessage"])
 		errorss = strings.Replace(strings.Replace(errorss, "[", "", -1), "]", "", -1)
-		if templateCheckSave["errorMessage"] != "" && templateCheckSave["errorMessage"] != nil && len(errorss) > 1 && templateCheckSave["status"] != "CREATED" {
+		if templateCheckSave["errorMessage"] != "" || templateCheckSave["errorMessage"] != nil || len(errorss) > 1 || templateCheckSave["status"] != "CREATED" || templateCheckSave["error"] != "" {
 			err = fmt.Errorf("gitops '%s' template ConfigMap validation error: %s", template, errorss)
 			return "", err
 		}
