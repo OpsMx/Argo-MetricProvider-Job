@@ -27,9 +27,9 @@ type Groups struct {
 }
 
 type Data struct {
-	PercentDiffThreshold string   `yaml:"percentDiffThreshold" json:"percentDiffThreshold,omitempty"`
-	IsNormalize          bool     `yaml:"isNormalize" json:"isNormalize"`
-	Groups               []Groups `yaml:"groups" json:"groups"`
+	//PercentDiffThreshold string   `yaml:"percentDiffThreshold" json:"percentDiffThreshold,omitempty"`
+	IsNormalize bool     `yaml:"isNormalize" json:"isNormalize"`
+	Groups      []Groups `yaml:"groups" json:"groups"`
 }
 type MetricISDTemplate struct {
 	FilterKey        string   `yaml:"filterKey" json:"filterKey,omitempty"`
