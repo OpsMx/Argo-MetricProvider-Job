@@ -447,7 +447,7 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 		if templateCheckSave["errorMessage"] != nil || templateCheckSave["errorMessage"] != "" {
 			errorss = fmt.Sprintf("%v", templateCheckSave["errorMessage"])
 		} else {
-			errorss = fmt.Sprintf("%v", templateCheckSave["error"])
+			errorss = fmt.Sprintf("%v", templateCheckSave)
 		}
 		errorss = strings.Replace(strings.Replace(errorss, "[", "", -1), "]", "", -1)
 		if templateCheckSave["status"] != "CREATED" {
