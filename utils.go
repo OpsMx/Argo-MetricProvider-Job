@@ -443,7 +443,7 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 			return "", err
 		}
 		log.Debugf("the value of templateCheckSave var is %v", templateCheckSave)
-		errorss := fmt.Sprintf("%v", templateCheckSave["errorMessage"])
+		errorss := fmt.Sprintf("%s %s", templateCheckSave["errorMessage"], templateCheckSave["error"])
 		errorss = strings.Replace(strings.Replace(errorss, "[", "", -1), "]", "", -1)
 		if templateCheckSave["errorMessage"] != "" || templateCheckSave["errorMessage"] != nil || len(errorss) > 1 || templateCheckSave["status"] != "CREATED" || templateCheckSave["error"] != "" {
 			err = fmt.Errorf("gitops '%s' template ConfigMap validation error: %s", template, errorss)
