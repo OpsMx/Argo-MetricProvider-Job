@@ -50,8 +50,10 @@ func (m *MetricISDTemplate) setMetricType(templateName string) {
 		return
 	}
 	for _, metric := range m.Data.Groups {
-		if metric.Metrics[0].MetricType == "" {
-			metric.Metrics[0].MetricType = m.MetricType
+		for i := range metric.Metrics {
+			if metric.Metrics[i].MetricType == "" {
+				metric.Metrics[i].MetricType = m.MetricType
+			}
 		}
 	}
 	m.MetricType = ""
@@ -64,8 +66,10 @@ func (m *MetricISDTemplate) setMetricWeight(templateName string) {
 		return
 	}
 	for _, metric := range m.Data.Groups {
-		if metric.Metrics[0].MetricWeight == nil {
-			metric.Metrics[0].MetricWeight = m.MetricWeight
+		for i := range metric.Metrics {
+			if metric.Metrics[i].MetricWeight == nil {
+				metric.Metrics[i].MetricWeight = m.MetricWeight
+			}
 		}
 	}
 	m.MetricWeight = nil
@@ -78,8 +82,10 @@ func (m *MetricISDTemplate) setNanStrategy(templateName string) {
 		return
 	}
 	for _, metric := range m.Data.Groups {
-		if metric.Metrics[0].NanStrategy == "" {
-			metric.Metrics[0].NanStrategy = m.NanStrategy
+		for i := range metric.Metrics {
+			if metric.Metrics[i].NanStrategy == "" {
+				metric.Metrics[i].NanStrategy = m.NanStrategy
+			}
 		}
 	}
 	m.NanStrategy = ""
@@ -106,8 +112,10 @@ func (m *MetricISDTemplate) setCriticality(templateName string) {
 		return
 	}
 	for _, metric := range m.Data.Groups {
-		if metric.Metrics[0].Criticality == "" {
-			metric.Metrics[0].Criticality = m.Criticality
+		for i := range metric.Metrics {
+			if metric.Metrics[i].Criticality == "" {
+				metric.Metrics[i].Criticality = m.Criticality
+			}
 		}
 	}
 	m.Criticality = ""
