@@ -130,7 +130,7 @@ type LogTemplateYaml struct {
 	DefaultsErrorTopics  bool          `yaml:"disableDefaultErrorTopics" json:"-"`
 	TemplateName         string        `yaml:"templateName" json:"templateName"`
 	FilterKey            string        `yaml:"filterKey" json:"filterKey"`
-	TagEnabled           bool          `yaml:"tagEnabled" json:"tagEnabled"`
+	TagEnabled           bool          `yaml:"-" json:"tagEnabled"`
 	MonitoringProvider   string        `yaml:"monitoringProvider" json:"monitoringProvider"`
 	AccountName          string        `yaml:"accountName" json:"accountName"`
 	ScoringAlgorithm     string        `yaml:"scoringAlgorithm" json:"scoringAlgorithm"`
@@ -151,11 +151,10 @@ type LogTemplateYaml struct {
 type customTags struct {
 	ErrorStrings string `yaml:"errorString" json:"string"`
 	Tag          string `yaml:"tag" json:"tag"`
-	Id           string `yaml:"id"  json:"id"`
 }
 
 type errorTopics struct {
 	ErrorStrings string `yaml:"errorString" json:"string"`
 	Topic        string `yaml:"topic" json:"topic"`
-	Type         string `yaml:"type" json:"type"`
+	Type         string `yaml:"-" json:"type"`
 }

@@ -353,17 +353,15 @@ func getTemplateDataYaml(templateFileData []byte, template string, templateType 
 		}
 		logdata.TemplateName = template
 		logdata.FilterKey = ScopeVariables
-		if logdata.TagEnabled && len(logdata.Tags) == 0 {
-			errorMessage := fmt.Sprintf("gitops '%s' template ConfigMap validation error: tags not provided while tagEnabled field is kept True", template)
-			return nil, errors.New(errorMessage)
-		}
-		if !logdata.TagEnabled && len(logdata.Tags) >= 1 {
-			errorMessage := fmt.Sprintf("gitops '%s' template ConfigMap validation error: tagEnabled field has to be kept True when tags are provided", template)
-			return nil, errors.New(errorMessage)
+		if len(logdata.Tags) >= 1 {
+			logdata.TagEnabled = true
 		}
 		var errorStringsAvailable []string
 		for _, items := range logdata.ErrorTopics {
 			errorStringsAvailable = append(errorStringsAvailable, items.ErrorStrings)
+		}
+		for i := range logdata.ErrorTopics {
+			logdata.ErrorTopics[i].Type = "custom"
 		}
 		var defaults LogTemplateYaml
 		if !logdata.DefaultsErrorTopics {
