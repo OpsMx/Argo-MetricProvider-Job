@@ -196,7 +196,7 @@ func roundFloat(val float64, precision uint) float64 {
 	return math.Round(val*ratio) / ratio
 }
 
-func makeRequest(client http.Client, requestType string, url string, body string, user string) ([]byte, string, error) {
+func makeRequest(client http.Client, requestType string, url string, body string, user string) ([]byte, string, string, error) {
 	reqBody := strings.NewReader(body)
 	req, _ := http.NewRequest(
 		requestType,
@@ -209,18 +209,20 @@ func makeRequest(client http.Client, requestType string, url string, body string
 
 	res, err := client.Do(req)
 	if err != nil {
-		return []byte{}, "", err
+		return []byte{}, "", "", err
 	}
 	defer res.Body.Close()
 	data, err := io.ReadAll(res.Body)
 	if err != nil {
-		return []byte{}, "", err
+		return []byte{}, "", "", err
 	}
 	var urlScore string
+	var urlToken string
 	if strings.Contains(url, "registerCanary") {
 		urlScore = res.Header.Get("Location")
+		urlToken = res.Header.Get("x-opsmx-report-token")
 	}
-	return data, urlScore, err
+	return data, urlScore, urlToken, err
 }
 
 func (metric *OPSMXMetric) checkISDUrl(c *Clients, opsmxIsdUrl string) error {
@@ -425,7 +427,7 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 	templateUrl := strings.Join(s, "")
 
 	log.Debug("sending a GET request to gitops API")
-	data, _, err := makeRequest(client, "GET", templateUrl, "", secretData["user"])
+	data, _, _, err := makeRequest(client, "GET", templateUrl, "", secretData["user"])
 	if err != nil {
 		return "", err
 	}
@@ -439,7 +441,7 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 	var templateCheckSave map[string]interface{}
 	if !templateVerification {
 		log.Debug("sending a POST request to gitops API")
-		data, _, err = makeRequest(client, "POST", templateUrl, string(templateFileData), secretData["user"])
+		data, _, _, err = makeRequest(client, "POST", templateUrl, string(templateFileData), secretData["user"])
 		if err != nil {
 			return "", err
 		}

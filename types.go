@@ -56,6 +56,7 @@ type CanaryDetails struct {
 	canaryId  string
 	reportUrl string
 	value     string
+	ReportId  string
 }
 
 type OPSMXMetric struct {

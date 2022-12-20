@@ -64,7 +64,7 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 	}
 	log.Info(payload)
 	log.Info("sending a POST request to registerCanary with the payload")
-	data, scoreURL, err := makeRequest(c.client, "POST", canaryurl, payload, secretData["user"])
+	data, scoreURL, urlToken, err := makeRequest(c.client, "POST", canaryurl, payload, secretData["user"])
 	if err != nil {
 		return ReturnCodeError, err
 	}
@@ -91,7 +91,7 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 	if scoreURL == "" {
 		return ReturnCodeError, errors.New("analysis Error: score url not found")
 	}
-	data, _, err = makeRequest(c.client, "GET", scoreURL, "", secretData["user"])
+	data, _, _, err = makeRequest(c.client, "GET", scoreURL, "", secretData["user"])
 	if err != nil {
 		return ReturnCodeError, err
 	}
@@ -118,6 +118,7 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 		jobName:   r.jobName,
 		canaryId:  canary.CanaryId.String(),
 		reportUrl: fmt.Sprintf("%s", reportUrl),
+		ReportId:  urlToken,
 	}
 	log.Info("starting the patching operation of the canary details to the Job")
 	err = patchJobCanaryDetails(ctx, c.kubeclientset, cd)
@@ -144,7 +145,7 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 			process = "COMPLETED"
 		} else {
 			time.Sleep(resumeAfter)
-			data, _, err = makeRequest(c.client, "GET", scoreURL, "", secretData["user"])
+			data, _, _, err = makeRequest(c.client, "GET", scoreURL, "", secretData["user"])
 			if err != nil && retryScorePool == 0 {
 				errorMessage := fmt.Sprintf("analysis Error: Error in getting canary Response: %v", err)
 				return ReturnCodeError, errors.New(errorMessage)
@@ -175,6 +176,7 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 			canaryId:  canary.CanaryId.String(),
 			reportUrl: fmt.Sprintf("%s", reportUrl),
 			value:     Score,
+			ReportId:  urlToken,
 		}
 		log.Infof("starting the patching operation for a %s operation", AnalysisPhaseSuccessful)
 		err = patchJobSuccessful(ctx, c.kubeclientset, fs)
@@ -189,6 +191,7 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 			canaryId:  canary.CanaryId.String(),
 			reportUrl: fmt.Sprintf("%s", reportUrl),
 			value:     Score,
+			ReportId:  urlToken,
 		}
 		log.Infof("starting the patching operation for a %s operation", AnalysisPhaseFailed)
 		err = patchJobFailedInconclusive(ctx, c.kubeclientset, Phase, fs)

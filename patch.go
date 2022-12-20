@@ -21,7 +21,7 @@ func patchJobCanaryDetails(ctx context.Context, kubeclient kubernetes.Interface,
 	jobStatus := JobStatus{
 		Status: Status{
 			Conditions: &[]Conditions{{
-				Message:       fmt.Sprintf("analysisDetails\n user: %s\n canaryID: %s\n reportURL: %s", cd.user, cd.canaryId, cd.reportUrl),
+				Message:       fmt.Sprintf("analysisDetails\n user: %s\n canaryID: %s\n reportURL: %s\n reportId: %s", cd.user, cd.canaryId, cd.reportUrl, cd.ReportId),
 				Type:          "OpsmxAnalysis",
 				LastProbeTime: metav1.NewTime(time.Now()),
 				Status:        "True",
@@ -43,7 +43,7 @@ func patchJobSuccessful(ctx context.Context, kubeclient kubernetes.Interface, cd
 	jobStatus := JobStatus{
 		Status: Status{
 			Conditions: &[]Conditions{{
-				Message:       fmt.Sprintf("analysisDetails\n user: %s\n canaryID: %s\n reportURL: %s\n score: %s", cd.user, cd.canaryId, cd.reportUrl, cd.value),
+				Message:       fmt.Sprintf("analysisDetails\n user: %s\n canaryID: %s\n reportURL: %s\n reportId: %s\n score: %s", cd.user, cd.canaryId, cd.reportUrl, cd.ReportId, cd.value),
 				Type:          "OpsmxAnalysis",
 				LastProbeTime: metav1.NewTime(time.Now()),
 				Status:        "True",
@@ -63,7 +63,7 @@ func patchJobFailedInconclusive(ctx context.Context, kubeclient kubernetes.Inter
 	jobStatus := JobStatus{
 		Status: Status{
 			Conditions: &[]Conditions{{
-				Message:       fmt.Sprintf("analysisDetails\n user: %s\n canaryID: %s\n reportURL: %s\n score: %s", cd.user, cd.canaryId, cd.reportUrl, cd.value),
+				Message:       fmt.Sprintf("analysisDetails\n user: %s\n canaryID: %s\n reportURL: %s\n reportId: %s\n score: %s", cd.user, cd.canaryId, cd.reportUrl, cd.ReportId, cd.value),
 				Type:          "OpsmxAnalysis",
 				LastProbeTime: metav1.NewTime(time.Now()),
 				Status:        "True",
