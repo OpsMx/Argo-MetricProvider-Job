@@ -378,6 +378,9 @@ func getTemplateDataYaml(templateFileData []byte, template string, templateType 
 				}
 			}
 		}
+		if logdata.ErrorTopics == nil {
+			logdata.ErrorTopics = make([]errorTopics, 0)
+		}
 		log.Info("processed template and converting to json", logdata)
 		return json.Marshal(logdata)
 	}
