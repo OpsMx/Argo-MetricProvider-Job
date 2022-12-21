@@ -145,6 +145,7 @@ type LogTemplateYaml struct {
 	RegularExpression    string        `yaml:"regularExpression,omitempty" json:"regularExpression,omitempty"`
 	AutoBaseline         bool          `yaml:"autoBaseline,omitempty" json:"autoBaseline,omitempty"`
 	Sensitivity          string        `yaml:"sensitivity,omitempty" json:"sensitivity,omitempty"`
+	StreamID             string        `yaml:"streamID,omitempty" json:"streamID,omitempty"`
 	Tags                 []customTags  `yaml:"tags" json:"tags,omitempty"`
 	ErrorTopics          []errorTopics `yaml:"errorTopics" json:"errorTopics"`
 }
