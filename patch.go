@@ -115,7 +115,7 @@ func patchForcefulFail(ctx context.Context, kubeclient kubernetes.Interface, job
 	jobStatus := JobStatus{
 		Status: Status{
 			Conditions: &[]Conditions{{
-				Message:       fmt.Sprintf("The analysis was %s", reason),
+				Message:       fmt.Sprintf("The analysis has %s", reason),
 				Type:          "Failed",
 				LastProbeTime: metav1.NewTime(time.Now()),
 				Status:        "True",

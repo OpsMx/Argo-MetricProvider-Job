@@ -146,7 +146,7 @@ type LogTemplateYaml struct {
 	AutoBaseline         bool          `yaml:"autoBaseline,omitempty" json:"autoBaseline,omitempty"`
 	Sensitivity          string        `yaml:"sensitivity,omitempty" json:"sensitivity,omitempty"`
 	Tags                 []customTags  `yaml:"tags" json:"tags,omitempty"`
-	ErrorTopics          []errorTopics `yaml:"errorTopics" json:"errorTopics,omitempty"`
+	ErrorTopics          []errorTopics `yaml:"errorTopics" json:"errorTopics"`
 }
 
 type customTags struct {

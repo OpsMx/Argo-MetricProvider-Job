@@ -471,29 +471,25 @@ func (metric *OPSMXMetric) getDataSecret(basePath string) (map[string]string, er
 	userPath := filepath.Join(basePath, "secrets/user")
 	secretUser, err := os.ReadFile(userPath)
 	if err != nil {
-		errorMsg := fmt.Sprintf("opsmx profile secret validation error: %v\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'user'", err)
-		err = errors.New(errorMsg)
+		err = errors.New("opsmx profile secret validation error: `user` key not present in the secret file\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'user'")
 		return nil, err
 	}
 	opsmxIsdUrlPath := filepath.Join(basePath, "secrets/opsmxIsdUrl")
 	opsmxIsdUrl, err := os.ReadFile(opsmxIsdUrlPath)
 	if err != nil {
-		errorMsg := fmt.Sprintf("opsmx profile secret validation error: %v\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'opsmxIsdUrl'", err)
-		err = errors.New(errorMsg)
+		err = errors.New("opsmx profile secret validation error: `opsmxIsdUrl` key not present in the secret file\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'opsmxIsdUrl'")
 		return nil, err
 	}
 	sourceNamePath := filepath.Join(basePath, "secrets/sourceName")
 	secretsourcename, err := os.ReadFile(sourceNamePath)
 	if err != nil {
-		errorMsg := fmt.Sprintf("opsmx profile secret validation error: %v\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'sourceName'", err)
-		err = errors.New(errorMsg)
+		err = errors.New("opsmx profile secret validation error: `sourceName` key not present in the secret file\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'sourceName'")
 		return nil, err
 	}
 	cdIntegrationPath := filepath.Join(basePath, "secrets/cdIntegration")
 	secretcdintegration, err := os.ReadFile(cdIntegrationPath)
 	if err != nil {
-		errorMsg := fmt.Sprintf("opsmx profile secret validation error: %v\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'cdIntegration'", err)
-		err = errors.New(errorMsg)
+		err = errors.New("opsmx profile secret validation error: `cdIntegration` key not present in the secret file\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'cdIntegration'")
 		return nil, err
 	}
 
