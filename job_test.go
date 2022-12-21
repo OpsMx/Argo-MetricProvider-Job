@@ -89,11 +89,11 @@ func TestFuncGetAnalysisTemplateData(t *testing.T) {
 	assert.Equal(t, err, nil)
 	assert.Equal(t, metric, checkMetric)
 	_, err = getAnalysisTemplateData("/etc/config/")
-	assert.Equal(t, err.Error(), "provider ConfigMap validation error: open /etc/config/provider/providerConfig: no such file or directory\n Action Required: Provider ConfigMap has to be mounted on '/etc/config/provider' in AnalysisTemplate and must carry data element 'providerConfig'")
+	assert.Equal(t, err.Error(), "provider config map validation error: open /etc/config/provider/providerConfig: no such file or directory\n Action Required: Provider config map has to be mounted on '/etc/config/provider' in AnalysisTemplate and must carry data element 'providerConfig'")
 	input, _ = os.ReadFile("testcases/analysis/invalid")
 	_ = os.WriteFile("testcases/provider/providerConfig", input, 0644)
 	_, err = getAnalysisTemplateData("testcases/")
-	assert.Equal(t, err.Error(), "provider ConfigMap validation error: yaml: line 8: mapping values are not allowed in this context")
+	assert.Equal(t, err.Error(), "provider config map validation error: yaml: line 8: mapping values are not allowed in this context")
 	if _, err := os.Stat("testcases/provider"); !os.IsNotExist(err) {
 		os.RemoveAll("testcases/provider")
 	}
@@ -119,7 +119,7 @@ var basicChecks = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: provide either lifetimeMinutes or end time",
+		message: "provider config map validation error: provide either lifetimeMinutes or end time",
 	},
 	//Test case for no lifetimeMinutes & EndTime
 	{
@@ -139,7 +139,7 @@ var basicChecks = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: provide either lifetimeMinutes or end time",
+		message: "provider config map validation error: provide either lifetimeMinutes or end time",
 	},
 	//Test case when end time given and baseline and canary start time not same
 	{
@@ -159,7 +159,7 @@ var basicChecks = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: both canaryStartTime and baselineStartTime should be kept same while using endTime argument for analysis",
+		message: "provider config map validation error: both canaryStartTime and baselineStartTime should be kept same while using endTime argument for analysis",
 	},
 	//Test case when lifetimeMinutes is less than 3 minutes
 	{
@@ -179,7 +179,7 @@ var basicChecks = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: lifetimeMinutes cannot be less than 3 minutes",
+		message: "provider config map validation error: lifetimeMinutes cannot be less than 3 minutes",
 	},
 	//Test case when intervalTime is less than 3 minutes
 	{
@@ -201,7 +201,7 @@ var basicChecks = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: intervalTime cannot be less than 3 minutes",
+		message: "provider config map validation error: intervalTime cannot be less than 3 minutes",
 	},
 }
 
@@ -256,7 +256,7 @@ var checkTimeVariables = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: Error in parsing canaryStartTime: parsing time \"2022-O8-02T13:15:00Z\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"O8-02T13:15:00Z\" as \"01\"",
+		message: "provider config map validation error: Error in parsing canaryStartTime: parsing time \"2022-O8-02T13:15:00Z\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"O8-02T13:15:00Z\" as \"01\"",
 	},
 	//Test case for inappropriate time format baseline
 	{
@@ -277,7 +277,7 @@ var checkTimeVariables = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: Error in parsing baselineStartTime: parsing time \"2022-O8-02T13:15:00Z\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"O8-02T13:15:00Z\" as \"01\"",
+		message: "provider config map validation error: Error in parsing baselineStartTime: parsing time \"2022-O8-02T13:15:00Z\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"O8-02T13:15:00Z\" as \"01\"",
 	},
 	//Test case for inappropriate time format endTime
 	{
@@ -298,7 +298,7 @@ var checkTimeVariables = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: Error in parsing endTime: parsing time \"2022-O8-02T13:15:00Z\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"O8-02T13:15:00Z\" as \"01\"",
+		message: "provider config map validation error: Error in parsing endTime: parsing time \"2022-O8-02T13:15:00Z\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"O8-02T13:15:00Z\" as \"01\"",
 	},
 	//Test case for when end time is less than start time
 	{
@@ -318,7 +318,7 @@ var checkTimeVariables = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: canaryStartTime cannot be greater than endTime",
+		message: "provider config map validation error: canaryStartTime cannot be greater than endTime",
 	},
 }
 
@@ -1164,7 +1164,7 @@ var failPayload = []struct {
 			EndTime:           "2022-08-10T13:45:10Z",
 			Pass:              80,
 		},
-		message: "provider ConfigMap validation error: no services provided",
+		message: "provider config map validation error: no services provided",
 	},
 	//Test case for No log & Metric analysis
 	{
@@ -1185,7 +1185,7 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: at least one of log or metric context must be provided",
+		message: "provider config map validation error: at least one of log or metric context must be provided",
 	},
 	//Test case for mismatch in log scope variables and baseline/canary log scope
 	{
@@ -1216,7 +1216,7 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: mismatch in number of log scope variables and baseline/canary log scope of service 'service2'",
+		message: "provider config map validation error: mismatch in number of log scope variables and baseline/canary log scope of service 'service2'",
 	},
 
 	//Test case for mismatch in metric scope variables and baseline/canary metric scope
@@ -1248,7 +1248,7 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: mismatch in number of metric scope variables and baseline/canary metric scope of service 'service1'",
+		message: "provider config map validation error: mismatch in number of metric scope variables and baseline/canary metric scope of service 'service1'",
 	},
 	//Test case when baseline or canary logplaceholder is missing
 	{
@@ -1273,7 +1273,7 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: missing canary for log analysis of service 'service1'",
+		message: "provider config map validation error: missing canary for log analysis of service 'service1'",
 	},
 
 	//Test case when baseline or canary metricplaceholder is missing
@@ -1299,7 +1299,7 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: missing baseline/canary for metric analysis of service 'service1'",
+		message: "provider config map validation error: missing baseline/canary for metric analysis of service 'service1'",
 	},
 
 	//Test case when global and service specific template is missing
@@ -1324,7 +1324,7 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: provide either a service specific log template or global log template for service 'service1'",
+		message: "provider config map validation error: provide either a service specific log template or global log template for service 'service1'",
 	},
 
 	//Test case when global and service specific template is missing
@@ -1350,7 +1350,7 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: provide either a service specific metric template or global metric template for service: service1",
+		message: "provider config map validation error: provide either a service specific metric template or global metric template for service: service1",
 	},
 
 	//Test case when global and service specific template is missing
@@ -1375,7 +1375,7 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: missing log Scope placeholder for the provided baseline/canary of service 'service1'",
+		message: "provider config map validation error: missing log Scope placeholder for the provided baseline/canary of service 'service1'",
 	},
 
 	//Test case when global and service specific template is missing
@@ -1399,7 +1399,7 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: missing log Scope placeholder for the provided baseline/canary of service 'service1'",
+		message: "provider config map validation error: missing log Scope placeholder for the provided baseline/canary of service 'service1'",
 	},
 
 	//Test case when global and service specific template is missing
@@ -1423,7 +1423,7 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: missing log Scope placeholder for the provided baseline/canary of service 'service1'",
+		message: "provider config map validation error: missing log Scope placeholder for the provided baseline/canary of service 'service1'",
 	},
 
 	//Test case when global and service specific template is missing
@@ -1448,7 +1448,7 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: missing metric Scope placeholder for the provided baseline/canary of service 'service1'",
+		message: "provider config map validation error: missing metric Scope placeholder for the provided baseline/canary of service 'service1'",
 	},
 
 	{
@@ -1471,7 +1471,7 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: missing metric Scope placeholder for the provided baseline/canary of service 'service1'",
+		message: "provider config map validation error: missing metric Scope placeholder for the provided baseline/canary of service 'service1'",
 	},
 
 	//Test case when global and service specific template is missing
@@ -1495,7 +1495,7 @@ var failPayload = []struct {
 				},
 			},
 		},
-		message: "provider ConfigMap validation error: missing metric Scope placeholder for the provided baseline/canary of service 'service1'",
+		message: "provider config map validation error: missing metric Scope placeholder for the provided baseline/canary of service 'service1'",
 	},
 }
 
@@ -1655,7 +1655,7 @@ func TestGitops(t *testing.T) {
 	err := metric.getTimeVariables()
 	assert.Equal(t, nil, err)
 	_, err = metric.generatePayload(clients, SecretData, "incorrect/")
-	assert.Equal(t, "gitops 'loggytemp' template ConfigMap validation error: open incorrect/templates/loggytemp: no such file or directory\n Action Required: Template has to be mounted on '/etc/config/templates' in AnalysisTemplate and must carry data element 'loggytemp'", err.Error())
+	assert.Equal(t, "gitops 'loggytemp' template config map validation error: open incorrect/templates/loggytemp: no such file or directory\n Action Required: Template has to be mounted on '/etc/config/templates' in AnalysisTemplate and must carry data element 'loggytemp'", err.Error())
 
 	_ = os.MkdirAll("testcases/templates", os.ModePerm)
 	emptyFile, _ := os.Create("testcases/templates/loggytemp")
@@ -1733,7 +1733,7 @@ func TestGitops(t *testing.T) {
 	input, _ = os.ReadFile("testcases/gitops/PrometheusMetricTemplate")
 	_ = os.WriteFile("testcases/templates/PrometheusMetricTemplate", input, 0644)
 	_, err = metric.generatePayload(clients, SecretData, "gitops/nothere/")
-	assert.Equal(t, "gitops 'PrometheusMetricTemplate' template ConfigMap validation error: open gitops/nothere/templates/PrometheusMetricTemplate: no such file or directory\n Action Required: Template has to be mounted on '/etc/config/templates' in AnalysisTemplate and must carry data element 'PrometheusMetricTemplate'", err.Error())
+	assert.Equal(t, "gitops 'PrometheusMetricTemplate' template config map validation error: open gitops/nothere/templates/PrometheusMetricTemplate: no such file or directory\n Action Required: Template has to be mounted on '/etc/config/templates' in AnalysisTemplate and must carry data element 'PrometheusMetricTemplate'", err.Error())
 	payload, err = metric.generatePayload(clients, SecretData, "testcases/")
 	assert.Equal(t, nil, err)
 	processedPayload = strings.Replace(strings.Replace(strings.Replace(checkPayload, "\n", "", -1), "\t", "", -1), " ", "", -1)
@@ -1792,7 +1792,7 @@ func TestGitops(t *testing.T) {
 	err = metric.getTimeVariables()
 	assert.Equal(t, nil, err)
 	_, err = getTemplateData(clientFail.client, SecretData, "loggytemp", "LOG", "testcases/", "scope")
-	assert.Equal(t, "gitops 'loggytemp' template ConfigMap validation error: ISD-EmptyKeyOrValueInJson-400-07 : Analytics Service - Name key or value is missing in json ! ISD-EmptyKeyOrValueInJson-400-07 : Analytics Service - Account name key or value is missing in json ! ISD-IsNotFound-404-01 : Analytics Service - Datasource account not found : ", err.Error())
+	assert.Equal(t, "gitops 'loggytemp' template config map validation error: ISD-EmptyKeyOrValueInJson-400-07 : Analytics Service - Name key or value is missing in json ! ISD-EmptyKeyOrValueInJson-400-07 : Analytics Service - Account name key or value is missing in json ! ISD-IsNotFound-404-01 : Analytics Service - Datasource account not found : ", err.Error())
 
 	invalidjsonmetric := OPSMXMetric{
 		Application:     "final-job",
@@ -1819,7 +1819,7 @@ func TestGitops(t *testing.T) {
 	input, _ = os.ReadFile("testcases/gitops/invalid/loggytemp.txt")
 	_ = os.WriteFile("testcases/templates/invalid.txt", input, 0644)
 	_, err = invalidjsonmetric.generatePayload(clients, SecretData, "testcases/")
-	assert.Equal(t, "gitops 'invalid.txt' template ConfigMap validation error: yaml: line 22: did not find expected ',' or '}'", err.Error())
+	assert.Equal(t, "gitops 'invalid.txt' template config map validation error: yaml: line 22: did not find expected ',' or '}'", err.Error())
 
 	metric = OPSMXMetric{
 		OpsmxIsdUrl:       "https://opsmx.test.tst",
@@ -2279,7 +2279,7 @@ func TestRunAnalysis(t *testing.T) {
 	assert.Equal(t, `analysis Error: Error in post processing canary Response: invalid character 'c' looking for beginning of object key string`, err.Error())
 
 	_, err = runAnalysis(clients, resourceNames, "testcasesy/")
-	assert.Equal(t, "provider ConfigMap validation error: open testcasesy/provider/providerConfig: no such file or directory\n Action Required: Provider ConfigMap has to be mounted on '/etc/config/provider' in AnalysisTemplate and must carry data element 'providerConfig'", err.Error())
+	assert.Equal(t, "provider config map validation error: open testcasesy/provider/providerConfig: no such file or directory\n Action Required: Provider config map has to be mounted on '/etc/config/provider' in AnalysisTemplate and must carry data element 'providerConfig'", err.Error())
 
 	emptyFile, _ = os.Create("testcases/runanalysis/provider/providerConfig")
 	emptyFile.Close()
@@ -2310,20 +2310,20 @@ func TestRunAnalysis(t *testing.T) {
 	input, _ = os.ReadFile("testcases/analysis/provideConfigGitops")
 	_ = os.WriteFile("testcases/runanalysis/provider/providerConfig", input, 0644)
 	_, err = runAnalysis(clients, resourceNames, "testcases/runanalysis/")
-	assert.Equal(t, "gitops 'loggytemp' template ConfigMap validation error: open testcases/runanalysis/templates/loggytemp: no such file or directory\n Action Required: Template has to be mounted on '/etc/config/templates' in AnalysisTemplate and must carry data element 'loggytemp'", err.Error())
+	assert.Equal(t, "gitops 'loggytemp' template config map validation error: open testcases/runanalysis/templates/loggytemp: no such file or directory\n Action Required: Template has to be mounted on '/etc/config/templates' in AnalysisTemplate and must carry data element 'loggytemp'", err.Error())
 
 	emptyFile, _ = os.Create("testcases/provider/providerConfig")
 	emptyFile.Close()
 	input, _ = os.ReadFile("testcases/analysis/basicCheckFail")
 	_ = os.WriteFile("testcases/provider/providerConfig", input, 0644)
 	_, err = runAnalysis(clients, resourceNames, "testcases/")
-	assert.Equal(t, "provider ConfigMap validation error: intervalTime should be given along with lookBackType to perform interval analysis", err.Error())
+	assert.Equal(t, "provider config map validation error: intervalTime should be given along with lookBackType to perform interval analysis", err.Error())
 	emptyFile, _ = os.Create("testcases/provider/providerConfig")
 	emptyFile.Close()
 	input, _ = os.ReadFile("testcases/analysis/failtimevariables")
 	_ = os.WriteFile("testcases/provider/providerConfig", input, 0644)
 	_, err = runAnalysis(clients, resourceNames, "testcases/")
-	assert.Equal(t, "provider ConfigMap validation error: Error in parsing baselineStartTime: parsing time \"abc\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"abc\" as \"2006\"", err.Error())
+	assert.Equal(t, "provider config map validation error: Error in parsing baselineStartTime: parsing time \"abc\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"abc\" as \"2006\"", err.Error())
 
 	emptyFile, _ = os.Create("testcases/runanalysis/provider/providerConfig")
 	emptyFile.Close()
@@ -2466,7 +2466,7 @@ func TestRunAnalysis(t *testing.T) {
 	})
 	clientsUrlError := newClients(k8sclientS, cUrlEroor)
 	_, err = runAnalysis(clientsUrlError, resourceNames, "testcases/runanalysis/")
-	assert.Equal(t, "provider ConfigMap validation error: incorrect opsmxIsdUrl", err.Error())
+	assert.Equal(t, "provider config map validation error: incorrect opsmxIsdUrl", err.Error())
 	if _, err := os.Stat("testcases/secrets"); !os.IsNotExist(err) {
 		os.RemoveAll("testcases/secrets")
 	}

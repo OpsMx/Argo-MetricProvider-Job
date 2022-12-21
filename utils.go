@@ -228,7 +228,7 @@ func makeRequest(client http.Client, requestType string, url string, body string
 func (metric *OPSMXMetric) checkISDUrl(c *Clients, opsmxIsdUrl string) error {
 	resp, err := c.client.Get(opsmxIsdUrl)
 	if err != nil && metric.OpsmxIsdUrl != "" && !strings.Contains(err.Error(), "timeout") {
-		return errors.New("provider ConfigMap validation error: incorrect opsmxIsdUrl")
+		return errors.New("provider config map validation error: incorrect opsmxIsdUrl")
 	} else if err != nil && metric.OpsmxIsdUrl == "" && !strings.Contains(err.Error(), "timeout") {
 		return errors.New("opsmx profile secret validation error: incorrect opsmxIsdUrl")
 	} else if err != nil {
@@ -242,19 +242,19 @@ func (metric *OPSMXMetric) checkISDUrl(c *Clients, opsmxIsdUrl string) error {
 // Check few conditions pre-analysis
 func (metric *OPSMXMetric) basicChecks() error {
 	if metric.LifetimeMinutes == 0 && metric.EndTime == "" {
-		return errors.New("provider ConfigMap validation error: provide either lifetimeMinutes or end time")
+		return errors.New("provider config map validation error: provide either lifetimeMinutes or end time")
 	}
 	if metric.CanaryStartTime != metric.BaselineStartTime && metric.LifetimeMinutes == 0 {
-		return errors.New("provider ConfigMap validation error: both canaryStartTime and baselineStartTime should be kept same while using endTime argument for analysis")
+		return errors.New("provider config map validation error: both canaryStartTime and baselineStartTime should be kept same while using endTime argument for analysis")
 	}
 	if metric.LifetimeMinutes != 0 && metric.LifetimeMinutes < 3 {
-		return errors.New("provider ConfigMap validation error: lifetimeMinutes cannot be less than 3 minutes")
+		return errors.New("provider config map validation error: lifetimeMinutes cannot be less than 3 minutes")
 	}
 	if metric.IntervalTime != 0 && metric.IntervalTime < 3 {
-		return errors.New("provider ConfigMap validation error: intervalTime cannot be less than 3 minutes")
+		return errors.New("provider config map validation error: intervalTime cannot be less than 3 minutes")
 	}
 	if metric.LookBackType != "" && metric.IntervalTime == 0 {
-		return errors.New("provider ConfigMap validation error: intervalTime should be given along with lookBackType to perform interval analysis")
+		return errors.New("provider config map validation error: intervalTime should be given along with lookBackType to perform interval analysis")
 	}
 	return nil
 }
@@ -271,7 +271,7 @@ func (metric *OPSMXMetric) getTimeVariables() error {
 	} else {
 		tsStart, err := time.Parse(time.RFC3339, metric.CanaryStartTime)
 		if err != nil {
-			errorMsg := fmt.Sprintf("provider ConfigMap validation error: Error in parsing canaryStartTime: %v", err)
+			errorMsg := fmt.Sprintf("provider config map validation error: Error in parsing canaryStartTime: %v", err)
 			return errors.New(errorMsg)
 		}
 		canaryStartTime = fmt.Sprintf("%d", tsStart.UnixNano()/int64(time.Millisecond))
@@ -282,7 +282,7 @@ func (metric *OPSMXMetric) getTimeVariables() error {
 	} else {
 		tsStart, err := time.Parse(time.RFC3339, metric.BaselineStartTime)
 		if err != nil {
-			errorMsg := fmt.Sprintf("provider ConfigMap validation error: Error in parsing baselineStartTime: %v", err)
+			errorMsg := fmt.Sprintf("provider config map validation error: Error in parsing baselineStartTime: %v", err)
 			return errors.New(errorMsg)
 		}
 		baselineStartTime = fmt.Sprintf("%d", tsStart.UnixNano()/int64(time.Millisecond))
@@ -292,11 +292,11 @@ func (metric *OPSMXMetric) getTimeVariables() error {
 	if metric.LifetimeMinutes == 0 {
 		tsEnd, err := time.Parse(time.RFC3339, metric.EndTime)
 		if err != nil {
-			errorMsg := fmt.Sprintf("provider ConfigMap validation error: Error in parsing endTime: %v", err)
+			errorMsg := fmt.Sprintf("provider config map validation error: Error in parsing endTime: %v", err)
 			return errors.New(errorMsg)
 		}
 		if metric.CanaryStartTime != "" && metric.CanaryStartTime > metric.EndTime {
-			err := errors.New("provider ConfigMap validation error: canaryStartTime cannot be greater than endTime")
+			err := errors.New("provider config map validation error: canaryStartTime cannot be greater than endTime")
 			return err
 		}
 		tsStart := tm
@@ -316,14 +316,14 @@ func getAnalysisTemplateData(basePath string) (OPSMXMetric, error) {
 	path := filepath.Join(basePath, "provider/providerConfig")
 	data, err := os.ReadFile(path)
 	if err != nil {
-		errorMsg := fmt.Sprintf("provider ConfigMap validation error: %v\n Action Required: Provider ConfigMap has to be mounted on '/etc/config/provider' in AnalysisTemplate and must carry data element 'providerConfig'", err)
+		errorMsg := fmt.Sprintf("provider config map validation error: %v\n Action Required: Provider config map has to be mounted on '/etc/config/provider' in AnalysisTemplate and must carry data element 'providerConfig'", err)
 		err = errors.New(errorMsg)
 		return OPSMXMetric{}, err
 	}
 
 	var opsmx OPSMXMetric
 	if err := yaml.Unmarshal(data, &opsmx); err != nil {
-		errorMsg := fmt.Sprintf("provider ConfigMap validation error: %v", err)
+		errorMsg := fmt.Sprintf("provider config map validation error: %v", err)
 		err = errors.New(errorMsg)
 		return OPSMXMetric{}, err
 	}
@@ -350,7 +350,7 @@ func getTemplateDataYaml(templateFileData []byte, template string, templateType 
 	if templateType == "LOG" {
 		var logdata LogTemplateYaml
 		if err := yaml.Unmarshal([]byte(templateFileData), &logdata); err != nil {
-			errorMessage := fmt.Sprintf("gitops '%s' template ConfigMap validation error: %v", template, err)
+			errorMessage := fmt.Sprintf("gitops '%s' template config map validation error: %v", template, err)
 			return nil, errors.New(errorMessage)
 		}
 		logdata.TemplateName = template
@@ -400,7 +400,7 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 	path := filepath.Join(templatePath, template)
 	templateFileData, err := os.ReadFile(path)
 	if err != nil {
-		errorMsg := fmt.Sprintf("gitops '%s' template ConfigMap validation error: %v\n Action Required: Template has to be mounted on '/etc/config/templates' in AnalysisTemplate and must carry data element '%s'", template, err, template)
+		errorMsg := fmt.Sprintf("gitops '%s' template config map validation error: %v\n Action Required: Template has to be mounted on '/etc/config/templates' in AnalysisTemplate and must carry data element '%s'", template, err, template)
 		err = errors.New(errorMsg)
 		return "", err
 	}
@@ -415,11 +415,11 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 	} else {
 		checktemplateName := gjson.Get(string(templateFileData), "templateName")
 		if checktemplateName.String() == "" {
-			errmessage := fmt.Sprintf("gitops '%s' template ConfigMap validation error: template name not provided inside json", template)
+			errmessage := fmt.Sprintf("gitops '%s' template config map validation error: template name not provided inside json", template)
 			return "", errors.New(errmessage)
 		}
 		if template != checktemplateName.String() {
-			errmessage := fmt.Sprintf("gitops '%s' template ConfigMap validation error: Mismatch between templateName and data.%s key", template, template)
+			errmessage := fmt.Sprintf("gitops '%s' template config map validation error: Mismatch between templateName and data.%s key", template, template)
 			return "", errors.New(errmessage)
 		}
 	}
@@ -461,7 +461,7 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 		}
 		errorss = strings.Replace(strings.Replace(errorss, "[", "", -1), "]", "", -1)
 		if templateCheckSave["status"] != "CREATED" {
-			err = fmt.Errorf("gitops '%s' template ConfigMap validation error: %s", template, errorss)
+			err = fmt.Errorf("gitops '%s' template config map validation error: %s", template, errorss)
 			return "", err
 		}
 	}
@@ -594,13 +594,13 @@ func (metric *OPSMXMetric) generatePayload(c *Clients, secretData map[string]str
 				serviceName = item.ServiceName
 			}
 			if isExists(services, serviceName) {
-				errorMsg := fmt.Sprintf("provider ConfigMap validation error: serviceName '%s' mentioned in provider Config exists more than once", serviceName)
+				errorMsg := fmt.Sprintf("provider config map validation error: serviceName '%s' mentioned in provider Config exists more than once", serviceName)
 				return "", errors.New(errorMsg)
 			}
 			services = append(services, serviceName)
 			gateName := fmt.Sprintf("gate%d", i+1)
 			if item.LogScopeVariables == "" && item.BaselineLogScope != "" || item.LogScopeVariables == "" && item.CanaryLogScope != "" {
-				errorMsg := fmt.Sprintf("provider ConfigMap validation error: missing log Scope placeholder for the provided baseline/canary of service '%s'", serviceName)
+				errorMsg := fmt.Sprintf("provider config map validation error: missing log Scope placeholder for the provided baseline/canary of service '%s'", serviceName)
 				err := errors.New(errorMsg)
 				if err != nil {
 					return "", err
@@ -610,7 +610,7 @@ func (metric *OPSMXMetric) generatePayload(c *Clients, secretData map[string]str
 			if item.LogScopeVariables != "" {
 				//Check if no baseline or canary
 				if item.BaselineLogScope != "" && item.CanaryLogScope == "" {
-					errorMsg := fmt.Sprintf("provider ConfigMap validation error: missing canary for log analysis of service '%s'", serviceName)
+					errorMsg := fmt.Sprintf("provider config map validation error: missing canary for log analysis of service '%s'", serviceName)
 					err := errors.New(errorMsg)
 					if err != nil {
 						return "", err
@@ -618,14 +618,14 @@ func (metric *OPSMXMetric) generatePayload(c *Clients, secretData map[string]str
 				}
 				//Check if the number of placeholders provided dont match
 				if len(strings.Split(item.LogScopeVariables, ",")) != len(strings.Split(item.BaselineLogScope, ",")) || len(strings.Split(item.LogScopeVariables, ",")) != len(strings.Split(item.CanaryLogScope, ",")) {
-					errorMsg := fmt.Sprintf("provider ConfigMap validation error: mismatch in number of log scope variables and baseline/canary log scope of service '%s'", serviceName)
+					errorMsg := fmt.Sprintf("provider config map validation error: mismatch in number of log scope variables and baseline/canary log scope of service '%s'", serviceName)
 					err := errors.New(errorMsg)
 					if err != nil {
 						return "", err
 					}
 				}
 				if item.LogTemplateName == "" && metric.GlobalLogTemplate == "" {
-					errorMsg := fmt.Sprintf("provider ConfigMap validation error: provide either a service specific log template or global log template for service '%s'", serviceName)
+					errorMsg := fmt.Sprintf("provider config map validation error: provide either a service specific log template or global log template for service '%s'", serviceName)
 					err := errors.New(errorMsg)
 					if err != nil {
 						return "", err
@@ -684,7 +684,7 @@ func (metric *OPSMXMetric) generatePayload(c *Clients, secretData map[string]str
 			}
 
 			if item.MetricScopeVariables == "" && item.BaselineMetricScope != "" || item.MetricScopeVariables == "" && item.CanaryMetricScope != "" {
-				errorMsg := fmt.Sprintf("provider ConfigMap validation error: missing metric Scope placeholder for the provided baseline/canary of service '%s'", serviceName)
+				errorMsg := fmt.Sprintf("provider config map validation error: missing metric Scope placeholder for the provided baseline/canary of service '%s'", serviceName)
 				err := errors.New(errorMsg)
 				if err != nil {
 					return "", err
@@ -694,7 +694,7 @@ func (metric *OPSMXMetric) generatePayload(c *Clients, secretData map[string]str
 			if item.MetricScopeVariables != "" {
 				//Check if no baseline or canary
 				if item.BaselineMetricScope == "" || item.CanaryMetricScope == "" {
-					errorMsg := fmt.Sprintf("provider ConfigMap validation error: missing baseline/canary for metric analysis of service '%s'", serviceName)
+					errorMsg := fmt.Sprintf("provider config map validation error: missing baseline/canary for metric analysis of service '%s'", serviceName)
 					err := errors.New(errorMsg)
 					if err != nil {
 						return "", err
@@ -702,14 +702,14 @@ func (metric *OPSMXMetric) generatePayload(c *Clients, secretData map[string]str
 				}
 				//Check if the number of placeholders provided dont match
 				if len(strings.Split(item.MetricScopeVariables, ",")) != len(strings.Split(item.BaselineMetricScope, ",")) || len(strings.Split(item.MetricScopeVariables, ",")) != len(strings.Split(item.CanaryMetricScope, ",")) {
-					errorMsg := fmt.Sprintf("provider ConfigMap validation error: mismatch in number of metric scope variables and baseline/canary metric scope of service '%s'", serviceName)
+					errorMsg := fmt.Sprintf("provider config map validation error: mismatch in number of metric scope variables and baseline/canary metric scope of service '%s'", serviceName)
 					err := errors.New(errorMsg)
 					if err != nil {
 						return "", err
 					}
 				}
 				if item.MetricTemplateName == "" && metric.GlobalMetricTemplate == "" {
-					errorMsg := fmt.Sprintf("provider ConfigMap validation error: provide either a service specific metric template or global metric template for service: %s", serviceName)
+					errorMsg := fmt.Sprintf("provider config map validation error: provide either a service specific metric template or global metric template for service: %s", serviceName)
 					err := errors.New(errorMsg)
 					if err != nil {
 						return "", err
@@ -770,7 +770,7 @@ func (metric *OPSMXMetric) generatePayload(c *Clients, secretData map[string]str
 			}
 			//Check if no logs or metrics were provided
 			if !valid {
-				err := errors.New("provider ConfigMap validation error: at least one of log or metric context must be provided")
+				err := errors.New("provider config map validation error: at least one of log or metric context must be provided")
 				if err != nil {
 					return "", err
 				}
@@ -779,7 +779,7 @@ func (metric *OPSMXMetric) generatePayload(c *Clients, secretData map[string]str
 		payload.CanaryDeployments = append(payload.CanaryDeployments, deployment)
 	} else {
 		//Check if no services were provided
-		err := errors.New("provider ConfigMap validation error: no services provided")
+		err := errors.New("provider config map validation error: no services provided")
 		return "", err
 	}
 	buffer, err := json.Marshal(payload)
