@@ -28,107 +28,107 @@ const DefaultsErrorTopicsJson = `{
 	"errorTopics": [
 	  {
 		"string": "OnOutOfMemoryError",
-		"topic": "CRITICAL",
+		"topic": "critical",
 		"type": "default"
 	  },
 	  {
 		"string": "StackOverflowError",
-		"topic": "CRITICAL",
+		"topic": "critical",
 		"type": "default"
 	  },
 	  {
 		"string": "ClassNotFoundException",
-		"topic": "CRITICAL",
+		"topic": "critical",
 		"type": "default"
 	  },
 	  {
 		"string": "FileNotFoundException",
-		"topic": "CRITICAL",
+		"topic": "critical",
 		"type": "default"
 	  },
 	  {
 		"string": "ArrayIndexOutOfBounds",
-		"topic": "CRITICAL",
+		"topic": "critical",
 		"type": "default"
 	  },
 	  {
 		"string": "NullPointerException",
-		"topic": "CRITICAL",
+		"topic": "critical",
 		"type": "default"
 	  },
 	  {
 		"string": "StringIndexOutOfBoundsException",
-		"topic": "CRITICAL",
+		"topic": "critical",
 		"type": "default"
 	  },
 	  {
 		"string": "FATAL",
-		"topic": "CRITICAL",
+		"topic": "critical",
 		"type": "default"
 	  },
 	  {
 		"string": "SEVERE",
-		"topic": "CRITICAL",
+		"topic": "critical",
 		"type": "default"
 	  },
 	  {
 		"string": "NoClassDefFoundError",
-		"topic": "ERROR",
+		"topic": "error",
 		"type": "default"
 	  },
 	  {
 		"string": "NoSuchMethodFoundError",
-		"topic": "ERROR",
+		"topic": "error",
 		"type": "default"
 	  },
 	  {
 		"string": "NumberFormatException",
-		"topic": "ERROR",
+		"topic": "error",
 		"type": "default"
 	  },
 	  {
 		"string": "IllegalArgumentException",
-		"topic": "ERROR",
+		"topic": "error",
 		"type": "default"
 	  },
 	  {
 		"string": "ParseException",
-		"topic": "ERROR",
+		"topic": "error",
 		"type": "default"
 	  },
 	  {
 		"string": "SQLException",
-		"topic": "ERROR",
+		"topic": "error",
 		"type": "default"
 	  },
 	  {
 		"string": "ArithmeticException",
-		"topic": "ERROR",
+		"topic": "error",
 		"type": "default"
 	  },
 	  {
 		"string": "status=404",
-		"topic": "ERROR",
+		"topic": "error",
 		"type": "default"
 	  },
 	  {
 		"string": "status=500",
-		"topic": "ERROR",
+		"topic": "error",
 		"type": "default"
 	  },
 	  {
 		"string": "EXCEPTION",
-		"topic": "ERROR",
+		"topic": "error",
 		"type": "default"
 	  },
 	  {
 		"string": "ERROR",
-		"topic": "ERROR",
+		"topic": "error",
 		"type": "default"
 	  },
 	  {
 		"string": "WARN",
-		"topic": "WARN",
+		"topic": "warn",
 		"type": "default"
 	  }
 	]
