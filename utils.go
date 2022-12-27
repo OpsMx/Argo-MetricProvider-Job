@@ -228,9 +228,11 @@ func makeRequest(client http.Client, requestType string, url string, body string
 func (metric *OPSMXMetric) checkISDUrl(c *Clients, opsmxIsdUrl string) error {
 	resp, err := c.client.Get(opsmxIsdUrl)
 	if err != nil && metric.OpsmxIsdUrl != "" && !strings.Contains(err.Error(), "timeout") {
-		return errors.New("provider config map validation error: incorrect opsmxIsdUrl")
+		errorMsg := fmt.Sprintf("provider config map validation error: incorrect opsmxIsdUrl: %v", opsmxIsdUrl)
+		return errors.New(errorMsg)
 	} else if err != nil && metric.OpsmxIsdUrl == "" && !strings.Contains(err.Error(), "timeout") {
-		return errors.New("opsmx profile secret validation error: incorrect opsmxIsdUrl")
+		errorMsg := fmt.Sprintf("opsmx profile secret validation error: incorrect opsmxIsdUrl: %v", opsmxIsdUrl)
+		return errors.New(errorMsg)
 	} else if err != nil {
 		return errors.New(err.Error())
 	} else if resp.StatusCode != 200 {
