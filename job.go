@@ -48,16 +48,16 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 	if err := metric.checkISDUrl(c, secretData["opsmxIsdUrl"]); err != nil {
 		return ReturnCodeError, err
 	}
-	canaryurl, err := url.JoinPath(secretData["opsmxIsdUrl"], v5configIdLookupURLFormat)
-	if err != nil {
-		return ReturnCodeError, err
-	}
 	//Get the epochs for Time variables and the lifetimeMinutes
 	err = metric.getTimeVariables()
 	if err != nil {
 		return ReturnCodeError, err
 	}
 	log.Info("generating the payload")
+	canaryurl, err := url.JoinPath(secretData["opsmxIsdUrl"], v5configIdLookupURLFormat)
+	if err != nil {
+		return ReturnCodeError, err
+	}
 	payload, err := metric.generatePayload(c, secretData, basePath)
 	if err != nil {
 		return ReturnCodeError, err
