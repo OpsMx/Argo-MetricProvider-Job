@@ -16,6 +16,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/adrg/strutil"
+	"github.com/adrg/strutil/metrics"
 	"github.com/argoproj/argo-rollouts/utils/defaults"
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
@@ -23,6 +25,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
+
+var approvedOpsmxKeys = []string{"user", "opsmxIsdUrl", "application", "baselineStartTime", "canaryStartTime", "lifetimeMinutes",
+	"endTime", "globalLogTemplate", "globalMetricTemplate", "passScore", "intervalTime", "lookBackType",
+	"delay", "gitops", "serviceList"}
+var approvedServiceListKeys = []string{"logTemplateName", "logTemplateVersion", "metricTemplateName", "metricTemplateVersion", "logScopeVariables",
+	"baselineLogScope", "canaryLogScope", "metricScopeVariables", "baselineMetricScope", "canaryMetricScope", "serviceName"}
+
+const threshold = 0.75
 
 const DefaultsErrorTopicsJson = `{
 	"errorTopics": [
@@ -314,6 +324,57 @@ func (metric *OPSMXMetric) getTimeVariables() error {
 	return nil
 }
 
+func keyExists(list []string, item string) (bool, []string) {
+	similarKeys := []string{}
+	for _, v := range list {
+		if item == v {
+			return true, []string{}
+		} else if similar := checkSimilarity(item, v); similar >= threshold {
+			if item == "metricTemplateNameS" {
+				fmt.Println(similar, v, item)
+			}
+			similarKeys = append(similarKeys, v)
+		}
+	}
+	return false, similarKeys
+}
+
+func checkSimilarity(pair1 string, pair2 string) float64 {
+	sim := strutil.Similarity(pair1, pair2, metrics.NewJaroWinkler())
+	return sim
+}
+
+func verifyAnalysisTemplateData(data []byte) ([]string, bool) {
+	var actual map[string]interface{}
+	var checkKeyErrors []string
+	if err := yaml.Unmarshal(data, &actual); err != nil {
+		checkKeyErrors = append(checkKeyErrors, fmt.Sprintf("provider config map validation error: %v", err))
+		return checkKeyErrors, true
+	}
+
+	for key := range actual {
+		check, similar := keyExists(approvedOpsmxKeys, key)
+		if !check && len(similar) > 0 {
+			checkKeyErrors = append(checkKeyErrors, fmt.Sprintf("provider config map validation error: Unrecognized Key:%s. Did yo perhaps meant: %v?\n", key, strings.Trim(fmt.Sprint(similar), "[]")))
+		} else if !check {
+			checkKeyErrors = append(checkKeyErrors, fmt.Sprintf("provider config map validation error: Unrecognized Key:%s\n", key))
+		}
+	}
+	serviceOpsmx, _ := yaml.Marshal(actual["serviceList"])
+	var actualservice []map[string]string
+	yaml.Unmarshal(serviceOpsmx, &actualservice)
+	for _, item := range actualservice {
+		for key := range item {
+			check, similar := keyExists(approvedServiceListKeys, key)
+			if !check && len(similar) > 0 {
+				checkKeyErrors = append(checkKeyErrors, fmt.Sprintf("provider config map validation error: Unrecognized Key:%s. Did yo perhaps meant: %v?\n", key, strings.Trim(fmt.Sprint(similar), "[]")))
+			} else if !check {
+				checkKeyErrors = append(checkKeyErrors, fmt.Sprintf("provider config map validation error: Unrecognized Key:%s\n", key))
+			}
+		}
+	}
+	return checkKeyErrors, true
+}
 func getAnalysisTemplateData(basePath string) (OPSMXMetric, error) {
 	path := filepath.Join(basePath, "provider/providerConfig")
 	data, err := os.ReadFile(path)
@@ -327,6 +388,10 @@ func getAnalysisTemplateData(basePath string) (OPSMXMetric, error) {
 	if err := yaml.Unmarshal(data, &opsmx); err != nil {
 		errorMsg := fmt.Sprintf("provider config map validation error: %v", err)
 		err = errors.New(errorMsg)
+		return OPSMXMetric{}, err
+	}
+	if errorList, check := verifyAnalysisTemplateData(data); check {
+		err = errors.New(strings.Trim(fmt.Sprint(errorList), "[]"))
 		return OPSMXMetric{}, err
 	}
 	return opsmx, nil

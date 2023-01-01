@@ -34,6 +34,8 @@ dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
+github.com/adrg/strutil v0.3.0 h1:bi/HB2zQbDihC8lxvATDTDzkT4bG7PATtVnDYp5rvq4=
+github.com/adrg/strutil v0.3.0/go.mod h1:Jz0wzBVE6Uiy9wxo62YEqEY1Nwto3QlLl1Il5gkLKWU=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/argoproj/argo-rollouts v1.3.1 h1:rZC5+se0KaCRGpRNnRi8QmDklW+zLntiOBbGVmM0Atg=
 github.com/argoproj/argo-rollouts v1.3.1/go.mod h1:8TE2sZmfd2eGcDhj32wc7ZhnZD4qbOwX6r/3hGcL5dU=

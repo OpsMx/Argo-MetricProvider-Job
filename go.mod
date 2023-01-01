@@ -3,6 +3,7 @@ module github.com/opsmx/argo-metricprovider-job
 go 1.19
 
 require (
+	github.com/adrg/strutil v0.3.0
 	github.com/argoproj/argo-rollouts v1.3.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.0
