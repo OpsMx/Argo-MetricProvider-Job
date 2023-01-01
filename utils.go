@@ -367,13 +367,16 @@ func verifyAnalysisTemplateData(data []byte) ([]string, bool) {
 		for key := range item {
 			check, similar := keyExists(approvedServiceListKeys, key)
 			if !check && len(similar) > 0 {
-				checkKeyErrors = append(checkKeyErrors, fmt.Sprintf("provider config map validation error: Unrecognized Key:%s. Did yo perhaps meant: %v?\n", key, strings.Trim(fmt.Sprint(similar), "[]")))
+				checkKeyErrors = append(checkKeyErrors, fmt.Sprintf("provider config map validation error: Unrecognized Key:%s. Did you perhaps meant: %v?\n", key, strings.Trim(fmt.Sprint(similar), "[]")))
 			} else if !check {
 				checkKeyErrors = append(checkKeyErrors, fmt.Sprintf("provider config map validation error: Unrecognized Key:%s\n", key))
 			}
 		}
 	}
-	return checkKeyErrors, true
+	if len(checkKeyErrors) > 0 {
+		return checkKeyErrors, true
+	}
+	return []string{}, false
 }
 func getAnalysisTemplateData(basePath string) (OPSMXMetric, error) {
 	path := filepath.Join(basePath, "provider/providerConfig")
@@ -390,8 +393,10 @@ func getAnalysisTemplateData(basePath string) (OPSMXMetric, error) {
 		err = errors.New(errorMsg)
 		return OPSMXMetric{}, err
 	}
+	//following algorithm helped in building the verifyAnalysisTemplateData checker: https://github.com/adrg/strutil/blob/master/example_test.go
 	if errorList, check := verifyAnalysisTemplateData(data); check {
 		err = errors.New(strings.Trim(fmt.Sprint(errorList), "[]"))
+		log.Infof("errorList: %v", strings.Trim(fmt.Sprint(errorList), "[]"))
 		return OPSMXMetric{}, err
 	}
 	return opsmx, nil
