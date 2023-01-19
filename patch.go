@@ -13,9 +13,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-//TODO -Retrieve the previous state?
-//TODO - Rethink error
-
 func patchJobCanaryDetails(ctx context.Context, kubeclient kubernetes.Interface, cd CanaryDetails) error {
 
 	jobStatus := JobStatus{
@@ -97,6 +94,25 @@ func patchJobError(ctx context.Context, kubeclient kubernetes.Interface, jobName
 		Status: Status{
 			Conditions: &[]Conditions{{
 				Message:       errMsg,
+				Type:          "OpsmxAnalysis",
+				LastProbeTime: metav1.NewTime(time.Now()),
+				Status:        "True",
+			},
+			},
+		},
+	}
+	err := patchToJob(ctx, kubeclient, jobStatus, jobName)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func patchDryRun(ctx context.Context, kubeclient kubernetes.Interface, jobName string) error {
+	jobStatus := JobStatus{
+		Status: Status{
+			Conditions: &[]Conditions{{
+				Message:       "dryRunDetails\n The Dry Run was successful",
 				Type:          "OpsmxAnalysis",
 				LastProbeTime: metav1.NewTime(time.Now()),
 				Status:        "True",

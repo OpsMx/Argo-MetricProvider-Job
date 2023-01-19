@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
@@ -37,10 +38,21 @@ func runner(c *Clients) error {
 	if err != nil {
 		return err
 	}
+	isDryRun, err := dryRunMode()
+	if err != nil {
+		return err
+	}
+	if isDryRun {
+		log.Info("starting the dry-run")
+	}
+
 	log.Info("starting the runAnalysis function")
-	errcode, errrun := runAnalysis(c, resourceNames, basePath)
+	errcode, errrun := runAnalysis(c, resourceNames, basePath, isDryRun)
 	if errrun != nil {
 		errMsg := errrun.Error()
+		if isDryRun {
+			errMsg = fmt.Sprintf("dryRunDetails\n Error: %s", errMsg)
+		}
 		err := patchJobError(context.TODO(), c.kubeclientset, resourceNames.jobName, errMsg)
 		if err != nil {
 			log.Error("an error occurred while patching the error from run analysis")
@@ -66,7 +78,6 @@ func main() {
 
 	clients := newClients(clientset, httpclient)
 
-	log.Info("starting the runner function")
 	err = runner(clients)
 	checkError(err)
 }

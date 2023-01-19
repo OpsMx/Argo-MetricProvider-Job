@@ -26,7 +26,8 @@ const (
 	cdIntegrationArgoCD                     = "argocd"
 )
 
-func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error) {
+func runAnalysis(c *Clients, r ResourceNames, basePath string, isDryRun bool) (ExitCode, error) {
+	ctx := context.TODO()
 	log.Info("starting the getAnalysisTemplateData function")
 	metric, err := getAnalysisTemplateData(basePath)
 	if err != nil {
@@ -63,6 +64,18 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 		return ReturnCodeError, err
 	}
 	log.Info(payload)
+	if isDryRun {
+		err = performISDChecks()
+		if err != nil {
+			return ReturnCodeError, err
+		}
+		err = patchDryRun(ctx, c.kubeclientset, r.jobName)
+		if err != nil {
+			return ReturnCodeError, err
+		}
+		return ReturnCodeSuccess, nil
+	}
+
 	log.Info("sending a POST request to registerCanary with the payload")
 	data, scoreURL, urlToken, err := makeRequest(c.client, "POST", canaryurl, payload, secretData["user"])
 	if err != nil {
@@ -110,8 +123,6 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 		return ReturnCodeError, err
 	}
 	reportUrl := reportUrlJson["canaryReportURL"]
-
-	ctx := context.TODO()
 
 	cd := CanaryDetails{
 		user:      secretData["user"],

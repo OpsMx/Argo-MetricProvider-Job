@@ -183,6 +183,20 @@ func checkPatchabilityReturnResources(c *Clients) (ResourceNames, error) {
 	return resourceNames, nil
 }
 
+func dryRunMode() (bool, error) {
+	checkConfig, ok := os.LookupEnv("CHECK_CONFIG")
+	if ok {
+		if strings.ToUpper(checkConfig) == "ENABLED" {
+			return true, nil
+		}
+		if strings.ToUpper(checkConfig) == "DISABLED" {
+			return false, nil
+		}
+		return false, errors.New("CHECK_CONFIG flag specified in the spec of the Job should either be enabled or disabled")
+	}
+	return false, nil
+}
+
 func isJSON(s string) bool {
 	var j map[string]interface{}
 	if err := json.Unmarshal([]byte(s), &j); err != nil {
@@ -840,4 +854,9 @@ func (metric *OPSMXMetric) processResume(data []byte) (string, string, error) {
 
 	Phase := evaluateResult(score, int(metric.Pass))
 	return Phase, fmt.Sprintf("%v", score), nil
+}
+
+// TODO: Implement
+func performISDChecks() error {
+	return nil
 }
