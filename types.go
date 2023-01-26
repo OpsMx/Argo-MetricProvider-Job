@@ -60,21 +60,22 @@ type CanaryDetails struct {
 }
 
 type OPSMXMetric struct {
-	User                 string         `yaml:"user,omitempty"`
-	OpsmxIsdUrl          string         `yaml:"opsmxIsdUrl,omitempty"`
-	Application          string         `yaml:"application"`
-	BaselineStartTime    string         `yaml:"baselineStartTime,omitempty"`
-	CanaryStartTime      string         `yaml:"canaryStartTime,omitempty"`
-	LifetimeMinutes      int            `yaml:"lifetimeMinutes,omitempty"`
-	EndTime              string         `yaml:"endTime,omitempty"`
-	GlobalLogTemplate    string         `yaml:"globalLogTemplate,omitempty"`
-	GlobalMetricTemplate string         `yaml:"globalMetricTemplate,omitempty"`
-	Pass                 int            `yaml:"passScore"`
-	Services             []OPSMXService `yaml:"serviceList,omitempty"`
-	IntervalTime         int            `yaml:"intervalTime,omitempty"`
-	LookBackType         string         `yaml:"lookBackType,omitempty"`
-	Delay                int            `yaml:"delay,omitempty"`
-	GitOPS               bool           `yaml:"gitops,omitempty"`
+	SelfRepair           bool           `json:"selfRepair,omitempty" yaml:"selfRepair,omitempty"`
+	User                 string         `yaml:"user,omitempty" json:"user,omitempty"`
+	OpsmxIsdUrl          string         `yaml:"opsmxIsdUrl,omitempty" json:"opsmxIsdUrl,omitempty"`
+	Application          string         `yaml:"application" json:"application,omitempty"`
+	BaselineStartTime    string         `yaml:"baselineStartTime,omitempty" json:"baselineStartTime,omitempty"`
+	CanaryStartTime      string         `yaml:"canaryStartTime,omitempty" json:"canaryStartTime,omitempty"`
+	LifetimeMinutes      int            `yaml:"lifetimeMinutes,omitempty" json:"lifetimeMinutes,omitempty"`
+	EndTime              string         `yaml:"endTime,omitempty" json:"endTime,omitempty"`
+	GlobalLogTemplate    string         `yaml:"globalLogTemplate,omitempty" json:"globalLogTemplate,omitempty"`
+	GlobalMetricTemplate string         `yaml:"globalMetricTemplate,omitempty" json:"globalMetricTemplate,omitempty"`
+	Pass                 int            `yaml:"passScore" json:"pass,omitempty"`
+	Services             []OPSMXService `yaml:"serviceList,omitempty" json:"services,omitempty"`
+	IntervalTime         int            `yaml:"intervalTime,omitempty" json:"intervalTime,omitempty"`
+	LookBackType         string         `yaml:"lookBackType,omitempty" json:"lookBackType,omitempty"`
+	Delay                int            `yaml:"delay,omitempty" json:"delay,omitempty"`
+	GitOPS               bool           `yaml:"gitops,omitempty" json:"gitOPS,omitempty"`
 }
 
 type OPSMXService struct {
