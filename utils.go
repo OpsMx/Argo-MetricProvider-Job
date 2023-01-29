@@ -32,6 +32,12 @@ var approvedOpsmxKeys = []string{"user", "opsmxIsdUrl", "application", "baseline
 var approvedServiceListKeys = []string{"logTemplateName", "logTemplateVersion", "metricTemplateName", "metricTemplateVersion", "logScopeVariables",
 	"baselineLogScope", "canaryLogScope", "metricScopeVariables", "baselineMetricScope", "canaryMetricScope", "serviceName"}
 
+var approvedLogKeys = []string{"disableDefaultErrorTopics", "templateName", "filterKey", "tagEnabled", "monitoringProvider", "accountName",
+	"scoringAlgorithm", "index", "responseKeywords", "contextualCluster", "contextualWindowSize", "infoScoring", "regExFilter",
+	"regExResponseKey", "regularExpression", "autoBaseline", "sensitivity", "streamId", "tags", "errorTopics", "errorString", "tag", "topic"}
+
+var approvedLogTopicTagKeys = []string{"errorString", "tag", "topic"}
+
 const threshold = 0.75
 
 const DefaultsErrorTopicsJson = `{
@@ -389,6 +395,74 @@ func verifyAnalysisTemplateData(data []byte, selfRepair bool) ([]string, bool, [
 	}
 	return []string{}, false, []byte(repairedFile), repaired
 }
+
+func verifyLogTemplateData(data []byte, selfRepair bool, template string) ([]string, bool, []byte, bool) {
+	var actual map[string]interface{}
+	var checkKeyErrors []string
+	var repaired bool
+	if err := yaml.Unmarshal(data, &actual); err != nil {
+		checkKeyErrors = append(checkKeyErrors, fmt.Sprintf("gitops '%s' template config map validation error: %v", template, err))
+		return checkKeyErrors, true, []byte{}, repaired
+	}
+	repairedFile := string(data)
+	for key := range actual {
+		check, similar := keyExists(approvedLogKeys, key)
+		if !check && selfRepair {
+			repairedFile = strings.ReplaceAll(repairedFile, key, similar[0])
+			repaired = true
+			continue
+		}
+		if !check && len(similar) > 0 {
+			checkKeyErrors = append(checkKeyErrors, fmt.Sprintf("gitops '%s' template config map validation error: Unrecognized Key:%s. Did yo perhaps meant: %v?\n", template, key, strings.Trim(fmt.Sprint(similar), "[]")))
+		} else if !check {
+			checkKeyErrors = append(checkKeyErrors, fmt.Sprintf("gitops '%s' template config map validation error: Unrecognized Key:%s\n", template, key))
+		}
+	}
+
+	tagLogs, _ := yaml.Marshal(actual["tags"])
+	var actualTags []map[string]string
+	yaml.Unmarshal(tagLogs, &actualTags)
+	for _, item := range actualTags {
+		for key := range item {
+			check, similar := keyExists(approvedLogTopicTagKeys, key)
+			if !check && selfRepair {
+				repairedFile = strings.ReplaceAll(repairedFile, key, similar[0])
+				repaired = true
+				continue
+			}
+			if !check && len(similar) > 0 {
+				checkKeyErrors = append(checkKeyErrors, fmt.Sprintf("gitops '%s' template config map validation error: Unrecognized Key:%s. Did yo perhaps meant: %v?\n", template, key, strings.Trim(fmt.Sprint(similar), "[]")))
+			} else if !check {
+				checkKeyErrors = append(checkKeyErrors, fmt.Sprintf("gitops '%s' template config map validation error: Unrecognized Key:%s\n", template, key))
+			}
+		}
+	}
+
+	topicLogs, _ := yaml.Marshal(actual["errorTopics"])
+	var actualTopics []map[string]string
+	yaml.Unmarshal(topicLogs, &actualTopics)
+	for _, item := range actualTags {
+		for key := range item {
+			check, similar := keyExists(approvedLogTopicTagKeys, key)
+			if !check && selfRepair {
+				repairedFile = strings.ReplaceAll(repairedFile, key, similar[0])
+				repaired = true
+				continue
+			}
+			if !check && len(similar) > 0 {
+				checkKeyErrors = append(checkKeyErrors, fmt.Sprintf("gitops '%s' template config map validation error: Unrecognized Key:%s. Did yo perhaps meant: %v?\n", template, key, strings.Trim(fmt.Sprint(similar), "[]")))
+			} else if !check {
+				checkKeyErrors = append(checkKeyErrors, fmt.Sprintf("gitops '%s' template config map validation error: Unrecognized Key:%s\n", template, key))
+			}
+		}
+	}
+
+	if len(checkKeyErrors) > 0 {
+		return checkKeyErrors, true, []byte{}, false
+	}
+	return []string{}, false, []byte(repairedFile), repaired
+}
+
 func getAnalysisTemplateData(basePath string) (OPSMXMetric, error) {
 	path := filepath.Join(basePath, "provider/providerConfig")
 	data, err := os.ReadFile(path)
@@ -440,7 +514,7 @@ func isExists(list []string, item string) bool {
 	return false
 }
 
-func getTemplateDataYaml(templateFileData []byte, template string, templateType string, ScopeVariables string) ([]byte, error) {
+func getTemplateDataYaml(templateFileData []byte, template string, templateType string, ScopeVariables string, SelfRepair bool) ([]byte, error) {
 	if templateType == "LOG" {
 		var logdata LogTemplateYaml
 		if err := yaml.Unmarshal([]byte(templateFileData), &logdata); err != nil {
@@ -452,6 +526,9 @@ func getTemplateDataYaml(templateFileData []byte, template string, templateType 
 		if len(logdata.Tags) >= 1 {
 			logdata.TagEnabled = true
 		}
+
+		verifyLogTemplateData(templateFileData, SelfRepair, template)
+
 		var errorStringsAvailable []string
 		for _, items := range logdata.ErrorTopics {
 			errorStringsAvailable = append(errorStringsAvailable, items.ErrorStrings)
@@ -487,7 +564,7 @@ func getTemplateDataYaml(templateFileData []byte, template string, templateType 
 
 }
 
-func getTemplateData(client http.Client, secretData map[string]string, template string, templateType string, basePath string, ScopeVariables string) (string, error) {
+func getTemplateData(client http.Client, secretData map[string]string, template string, templateType string, basePath string, ScopeVariables string, SelfRepair bool) (string, error) {
 	log.Info("processing gitops template", template)
 	var templateData string
 	templatePath := filepath.Join(basePath, "templates/")
@@ -501,7 +578,7 @@ func getTemplateData(client http.Client, secretData map[string]string, template 
 	log.Info("checking if json or yaml for template ", template)
 	if !isJSON(string(templateFileData)) {
 		log.Info("template not recognized in json format")
-		templateFileData, err = getTemplateDataYaml(templateFileData, template, templateType, ScopeVariables)
+		templateFileData, err = getTemplateDataYaml(templateFileData, template, templateType, ScopeVariables, SelfRepair)
 		log.Info("json for template ", template, string(templateFileData))
 		if err != nil {
 			return "", err
@@ -759,7 +836,7 @@ func (metric *OPSMXMetric) generatePayload(c *Clients, secretData map[string]str
 				var templateData string
 				var err error
 				if metric.GitOPS && item.LogTemplateVersion == "" {
-					templateData, err = getTemplateData(c.client, secretData, tempName, "LOG", basePath, item.LogScopeVariables)
+					templateData, err = getTemplateData(c.client, secretData, tempName, "LOG", basePath, item.LogScopeVariables, metric.SelfRepair)
 					if err != nil {
 						return "", err
 					}
@@ -843,7 +920,7 @@ func (metric *OPSMXMetric) generatePayload(c *Clients, secretData map[string]str
 				var templateData string
 				var err error
 				if metric.GitOPS && item.MetricTemplateVersion == "" {
-					templateData, err = getTemplateData(c.client, secretData, tempName, "METRIC", basePath, item.MetricScopeVariables)
+					templateData, err = getTemplateData(c.client, secretData, tempName, "METRIC", basePath, item.MetricScopeVariables, metric.SelfRepair)
 					if err != nil {
 						return "", err
 					}
