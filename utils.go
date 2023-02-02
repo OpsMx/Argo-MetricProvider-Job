@@ -364,9 +364,6 @@ func getTemplateDataYaml(templateFileData []byte, template string, templateType 
 		for _, items := range logdata.ErrorTopics {
 			errorStringsAvailable = append(errorStringsAvailable, items.ErrorStrings)
 		}
-		for i := range logdata.ErrorTopics {
-			logdata.ErrorTopics[i].Type = "custom"
-		}
 		var defaults LogTemplateYaml
 		if !logdata.DefaultsErrorTopics {
 			log.Info("loading defaults tags for log template")

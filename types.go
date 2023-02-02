@@ -158,5 +158,5 @@ type customTags struct {
 type errorTopics struct {
 	ErrorStrings string `yaml:"errorString" json:"string"`
 	Topic        string `yaml:"topic" json:"topic"`
-	Type         string `yaml:"-" json:"type"`
+	Type         string `yaml:"type" json:"type"`
 }
