@@ -360,17 +360,36 @@ func getTemplateDataYaml(templateFileData []byte, template string, templateType 
 		if len(logdata.Tags) >= 1 {
 			logdata.TagEnabled = true
 		}
-		var errorStringsAvailable []string
-		for _, items := range logdata.ErrorTopics {
-			errorStringsAvailable = append(errorStringsAvailable, items.ErrorStrings)
-		}
+
 		var defaults LogTemplateYaml
-		if !logdata.DefaultsErrorTopics {
-			log.Info("loading defaults tags for log template")
-			err := json.Unmarshal([]byte(DefaultsErrorTopicsJson), &defaults)
-			if err != nil {
-				return nil, err
+		err := json.Unmarshal([]byte(DefaultsErrorTopicsJson), &defaults)
+		if err != nil {
+			return nil, err
+		}
+
+		var defaultErrorString []string
+		defaultErrorStringMapType := make(map[string]string)
+		for _, items := range defaults.ErrorTopics {
+			defaultErrorStringMapType[items.ErrorStrings] = items.Topic
+			defaultErrorString = append(defaultErrorString, items.ErrorStrings)
+		}
+
+		var errorStringsAvailable []string
+
+		for i, items := range logdata.ErrorTopics {
+			errorStringsAvailable = append(errorStringsAvailable, items.ErrorStrings)
+
+			if isExists(defaultErrorString, items.ErrorStrings) {
+				if items.Topic == defaultErrorStringMapType[items.ErrorStrings] {
+					logdata.ErrorTopics[i].Type = "default"
+				} else {
+					logdata.ErrorTopics[i].Type = "custom"
+				}
 			}
+		}
+
+		if !logdata.DisableDefaultsErrorTopics {
+			log.Info("loading defaults tags for log template")
 			for _, items := range defaults.ErrorTopics {
 				if !isExists(errorStringsAvailable, items.ErrorStrings) {
 					logdata.ErrorTopics = append(logdata.ErrorTopics, items)
