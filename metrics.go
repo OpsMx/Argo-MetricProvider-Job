@@ -36,8 +36,8 @@ type MetricISDTemplate struct {
 	AccountName      string   `yaml:"accountName" json:"accountName,omitempty"`
 	Data             Data     `yaml:"metricTemplateSetup" json:"data"`
 	TemplateName     string   `yaml:"templateName" json:"templateName,omitempty"`
-	AdvancedProvider string   `yaml:"advancedProvider" json:"advancedProvider,omitempty"`
-	MetricType       string   `yaml:"metricType" json:"metricType,omitempty"`
+	AdvancedProvider string   `yaml:"metricProvider" json:"advancedProvider,omitempty"`
+	MetricType       string   `yaml:"-" json:"metricType,omitempty"`
 	MetricWeight     *float64 `yaml:"metricWeight" json:"metricWeight,omitempty"`
 	NanStrategy      string   `yaml:"nanStrategy" json:"nanStrategy,omitempty"`
 	Criticality      string   `yaml:"criticality" json:"criticality,omitempty"`
@@ -45,10 +45,7 @@ type MetricISDTemplate struct {
 
 func (m *MetricISDTemplate) setMetricType(templateName string) {
 	//metricType
-	if m.MetricType == "" {
-		log.Infof("the metricType field is not defined at the global level for metric template %s, values at the metric level will be used", templateName)
-		return
-	}
+	m.MetricType = "ADVANCED"
 	for _, metric := range m.Data.Groups {
 		for i := range metric.Metrics {
 			if metric.Metrics[i].MetricType == "" {
