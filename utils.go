@@ -329,6 +329,13 @@ func getAnalysisTemplateData(basePath string) (OPSMXMetric, error) {
 		err = errors.New(errorMsg)
 		return OPSMXMetric{}, err
 	}
+
+	if opsmx.Application == "" {
+		opsmx.Application, err = getScopeValues("{{env.APPName}}")
+		if err != nil {
+			return OPSMXMetric{}, errors.New("provider config map validation error: unset environment variable APPName and missing application parameter in the provider config map. Please ensure that at least one of these two requirements is fulfilled")
+		}
+	}
 	return opsmx, nil
 }
 
