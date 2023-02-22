@@ -7,7 +7,6 @@
       {
         "metrics": [
           {
-            "metricType": "ADVANCED",
             "accountName": "isd312-saas-prom",
             "riskDirection": "HigherOrLower",
             "customThresholdHigher": 100,
@@ -20,5 +19,5 @@
     ]
   },
   "templateName": "PrometheusMetricTemplate",
-  "advancedProvider": "PROMETHEUS"
+  "metricProvider": "PROMETHEUS"
   }
