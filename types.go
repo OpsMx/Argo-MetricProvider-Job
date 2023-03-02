@@ -94,6 +94,7 @@ type OPSMXService struct {
 type jobPayload struct {
 	Application       string              `json:"application"`
 	SourceName        string              `json:"sourceName"`
+	AgentName         string              `json:"agentName,omitempty"`
 	SourceType        string              `json:"sourceType"`
 	CanaryConfig      canaryConfig        `json:"canaryConfig"`
 	CanaryDeployments []canaryDeployments `json:"canaryDeployments"`

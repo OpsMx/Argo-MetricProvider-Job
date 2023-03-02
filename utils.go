@@ -521,6 +521,13 @@ func (metric *OPSMXMetric) getDataSecret(basePath string) (map[string]string, er
 		return nil, err
 	}
 
+	agentNamePath := filepath.Join(basePath, "secrets/agentName")
+	secretagentname, err := os.ReadFile(agentNamePath)
+	if err != nil && string(secretcdintegration) == "true" {
+		err = errors.New("opsmx profile secret validation error: `agentName` key not present in the secret file\n Action Required: secret file has to be mounted on '/etc/config/secrets' in AnalysisTemplate and must carry data element 'agentName' for 'cdIntegration' as 'true'")
+		return nil, err
+	}
+
 	opsmxIsdURL := metric.OpsmxIsdUrl
 	if opsmxIsdURL == "" {
 		opsmxIsdURL = string(opsmxIsdUrl)
@@ -545,6 +552,8 @@ func (metric *OPSMXMetric) getDataSecret(basePath string) (map[string]string, er
 	secretData["cdIntegration"] = cdIntegration
 
 	secretData["sourceName"] = string(secretsourcename)
+
+	secretData["agentName"] = string(secretagentname)
 
 	return secretData, nil
 }
@@ -585,6 +594,7 @@ func (metric *OPSMXMetric) generatePayload(c *Clients, secretData map[string]str
 		Application: metric.Application,
 		SourceName:  secretData["sourceName"],
 		SourceType:  secretData["cdIntegration"],
+		AgentName:   secretData["agentName"],
 		CanaryConfig: canaryConfig{
 			LifetimeMinutes: fmt.Sprintf("%d", metric.LifetimeMinutes),
 			LookBackType:    metric.LookBackType,
