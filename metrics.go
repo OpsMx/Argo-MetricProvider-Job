@@ -31,14 +31,14 @@ type Data struct {
 	Groups      []Groups `yaml:"groups" json:"groups"`
 }
 type MetricISDTemplate struct {
-	FilterKey      string   `yaml:"filterKey" json:"filterKey,omitempty"`
-	AccountName    string   `yaml:"accountName" json:"accountName,omitempty"`
-	Data           Data     `yaml:"metricTemplateSetup" json:"data"`
-	TemplateName   string   `yaml:"templateName" json:"templateName,omitempty"`
-	MetricProvider string   `yaml:"metricProvider" json:"metricProvider,omitempty"`
-	MetricWeight   *float64 `yaml:"metricWeight" json:"metricWeight,omitempty"`
-	NanStrategy    string   `yaml:"nanStrategy" json:"nanStrategy,omitempty"`
-	Criticality    string   `yaml:"criticality" json:"criticality,omitempty"`
+	FilterKey          string   `yaml:"filterKey" json:"filterKey,omitempty"`
+	AccountName        string   `yaml:"accountName" json:"accountName,omitempty"`
+	Data               Data     `yaml:"metricTemplateSetup" json:"data"`
+	TemplateName       string   `yaml:"templateName" json:"templateName,omitempty"`
+	MonitoringProvider string   `yaml:"monitoringProvider" json:"monitoringProvider,omitempty"`
+	MetricWeight       *float64 `yaml:"metricWeight" json:"metricWeight,omitempty"`
+	NanStrategy        string   `yaml:"nanStrategy" json:"nanStrategy,omitempty"`
+	Criticality        string   `yaml:"criticality" json:"criticality,omitempty"`
 }
 
 func (m *MetricISDTemplate) setMetricWeight(templateName string) {
