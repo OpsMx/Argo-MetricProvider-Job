@@ -1,2 +1,2 @@
-OPSMX Argo-MetricProvider-Job
-https://goreportcard.com/report/github.com/opsmx/argo-metricprovider-job
+# OPSMX Argo-MetricProvider-Job
+[![Go Report Card](https://goreportcard.com/badge/github.com/opsmx/argo-metricprovider-job)](https://goreportcard.com/report/github.com/opsmx/argo-metricprovider-job)
