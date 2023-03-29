@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	argo "github.com/argoproj/argo-rollouts/pkg/client/clientset/versioned/typed/rollouts/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -26,6 +27,7 @@ const (
 )
 
 type Clients struct {
+	RolloutClient argo.ArgoprojV1alpha1Client
 	kubeclientset kubernetes.Interface
 	client        http.Client
 }

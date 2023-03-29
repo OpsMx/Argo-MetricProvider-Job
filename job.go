@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"strings"
 
 	"net/url"
 
@@ -32,6 +34,33 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 	if err != nil {
 		return ReturnCodeError, err
 	}
+
+	if metric.Application == "" {
+
+		podName, ok := os.LookupEnv("MY_POD_NAME")
+		if !ok {
+			return ReturnCodeError, errors.New("analysisTemplate validation error: environment variable MY_POD_NAME is not set")
+		}
+
+		jobName, err := getJobNameFromPod(c, podName)
+		if err != nil {
+			return ReturnCodeError, err
+		}
+
+		analysisRunName, err := getAnalysisRunNameFromJob(c, jobName)
+		if err != nil {
+			return ReturnCodeError, err
+		}
+
+		appName, err := getAppNameFromRolloutName(c, strings.Split(analysisRunName, "-")[0])
+		if err != nil {
+			return ReturnCodeError, err
+		}
+		metric.Application = appName
+
+		log.Info("application name retrieved successfully:", appName)
+	}
+
 	log.Info("provider config data retrieved successfully")
 	log.Info("performing basic checks")
 	err = metric.basicChecks()

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	argo "github.com/argoproj/argo-rollouts/pkg/client/clientset/versioned/typed/rollouts/v1alpha1"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	rest "k8s.io/client-go/rest"
@@ -17,8 +18,9 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 }
 
-func newClients(kubeclientset kubernetes.Interface, client http.Client) *Clients {
+func newClients(rolloutClient argo.ArgoprojV1alpha1Client, kubeclientset kubernetes.Interface, client http.Client) *Clients {
 	return &Clients{
+		RolloutClient: rolloutClient,
 		kubeclientset: kubeclientset,
 		client:        client,
 	}
@@ -64,7 +66,11 @@ func main() {
 
 	httpclient := NewHttpClient()
 
-	clients := newClients(clientset, httpclient)
+	// Create an Argo Rollouts clientset
+	rolloutsClientset, err := argo.NewForConfig(config)
+	checkError(err)
+
+	clients := newClients(*rolloutsClientset, clientset, httpclient)
 
 	log.Info("starting the runner function")
 	err = runner(clients)

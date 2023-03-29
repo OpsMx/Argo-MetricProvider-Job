@@ -159,6 +159,35 @@ func getJobNameFromPod(p *Clients, podName string) (string, error) {
 	return podOwner.Name, nil
 }
 
+func getAnalysisRunNameFromJob(p *Clients, jobName string) (string, error) {
+	ns := defaults.Namespace()
+	ctx := context.TODO()
+	job, err := p.kubeclientset.BatchV1().Jobs(ns).Get(ctx, jobName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	parent := job.OwnerReferences[0]
+	var analysisRunName string
+	if parent.Kind == "AnalysisRun" {
+		analysisRunName = parent.Name
+	}
+
+	return analysisRunName, nil
+}
+
+func getAppNameFromRolloutName(p *Clients, rolloutName string) (string, error) {
+	ns := defaults.Namespace()
+	ctx := context.TODO()
+
+	// Get the rollout manifest for a rollout named "my-rollout" in namespace "my-namespace"
+	rollout, err := p.RolloutClient.Rollouts(ns).Get(ctx, rolloutName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	return rollout.ObjectMeta.Labels["argocd.argoproj.io/instance"], nil
+}
+
 func checkPatchabilityReturnResources(c *Clients) (ResourceNames, error) {
 
 	podName, ok := os.LookupEnv("MY_POD_NAME")
@@ -333,7 +362,7 @@ func getAnalysisTemplateData(basePath string) (OPSMXMetric, error) {
 	if opsmx.Application == "" {
 		opsmx.Application, err = getScopeValues("{{env.APP_NAME}}")
 		if err != nil {
-			return OPSMXMetric{}, errors.New("provider config map validation error: unset environment variable APPName and missing application parameter in the provider config map. Please ensure that at least one of these two requirements is fulfilled")
+			log.Warn("provider config map validation warning: unset environment variable APPName and missing application parameter in the provider config map. Using default application name as `No-Name`. To avoid this ensure that application Name is set either as an environment variable APPName or as an application parameter in the provider config map")
 		}
 	}
 	return opsmx, nil

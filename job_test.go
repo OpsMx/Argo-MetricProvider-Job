@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/argoproj/argo-rollouts/pkg/client/clientset/versioned/typed/rollouts/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -1501,7 +1502,10 @@ var failPayload = []struct {
 
 func TestPayload(t *testing.T) {
 	httpclient := NewHttpClient()
-	clients := newClients(nil, httpclient)
+	// Create an empty client by setting its fields to empty values.
+	emptyClient := &v1alpha1.ArgoprojV1alpha1Client{}
+
+	clients := newClients(*emptyClient, nil, httpclient)
 	SecretData := map[string]string{
 		"cdIntegration": "argocd",
 		"sourceName":    "sourcename",
@@ -1650,7 +1654,10 @@ func TestGitops(t *testing.T) {
 			}, nil
 		}
 	})
-	clients := newClients(nil, c)
+	// Create an empty client by setting its fields to empty values.
+	emptyClient := &v1alpha1.ArgoprojV1alpha1Client{}
+
+	clients := newClients(*emptyClient, nil, c)
 	metric.Services = append(metric.Services, services)
 	err := metric.getTimeVariables()
 	assert.Equal(t, nil, err)
@@ -1787,7 +1794,7 @@ func TestGitops(t *testing.T) {
 			}, nil
 		}
 	})
-	clientFail := newClients(nil, c)
+	clientFail := newClients(*emptyClient, nil, c)
 	metric.Services = append(metric.Services, services)
 	err = metric.getTimeVariables()
 	assert.Equal(t, nil, err)
@@ -1863,7 +1870,7 @@ func TestGitops(t *testing.T) {
 			}, nil
 		}
 	})
-	clientInvalid := newClients(nil, cinv)
+	clientInvalid := newClients(*emptyClient, nil, cinv)
 	metric.Services = append(metric.Services, services)
 	err = metric.getTimeVariables()
 	assert.Equal(t, nil, err)
@@ -1891,7 +1898,7 @@ func TestGitops(t *testing.T) {
 			}, nil
 		}
 	})
-	clientInvalid = newClients(nil, cinv)
+	clientInvalid = newClients(*emptyClient, nil, cinv)
 	_, err = getTemplateData(clientInvalid.client, SecretData, "loggytemp", "LOG", "testcases/", "scope")
 	assert.Equal(t, "invalid character '2' after object key", err.Error())
 	if _, err := os.Stat("testcases/templates"); !os.IsNotExist(err) {
@@ -2204,7 +2211,10 @@ func TestRunAnalysis(t *testing.T) {
 		Status:  "True",
 	}
 	k8sclient := jobFakeClient(cond)
-	clients := newClients(k8sclient, c)
+	// Create an empty client by setting its fields to empty values.
+	emptyClient := &v1alpha1.ArgoprojV1alpha1Client{}
+
+	clients := newClients(*emptyClient, k8sclient, c)
 	_ = os.MkdirAll("testcases/secrets", os.ModePerm)
 	_ = os.MkdirAll("testcases/provider", os.ModePerm)
 	emptyFile, _ := os.Create("testcases/secrets/user")
@@ -2242,7 +2252,7 @@ func TestRunAnalysis(t *testing.T) {
 			Header: Head,
 		}, nil
 	})
-	clientsInv := newClients(k8sclient, cInv)
+	clientsInv := newClients(*emptyClient, k8sclient, cInv)
 	_, err = runAnalysis(clientsInv, resourceNames, "testcases/")
 	assert.Equal(t, `invalid character 'c' looking for beginning of object key string`, err.Error())
 
@@ -2271,7 +2281,7 @@ func TestRunAnalysis(t *testing.T) {
 			}, nil
 		}
 	})
-	clientsInv = newClients(k8sclient, cInv)
+	clientsInv = newClients(*emptyClient, k8sclient, cInv)
 	_ = os.MkdirAll("testcases/runanalysis/templates", os.ModePerm)
 	_ = os.MkdirAll("testcases/runanalysis/provider", os.ModePerm)
 	_ = os.MkdirAll("testcases/runanalysis/secrets", os.ModePerm)
@@ -2368,7 +2378,7 @@ func TestRunAnalysis(t *testing.T) {
 		}, nil
 	})
 	k8sclientS := jobFakeClient(cond)
-	clientsS := newClients(k8sclientS, cS)
+	clientsS := newClients(*emptyClient, k8sclientS, cS)
 	_, err = runAnalysis(clientsS, resourceNames, "testcases/runanalysis/")
 	assert.Equal(t, nil, err)
 
@@ -2411,7 +2421,7 @@ func TestRunAnalysis(t *testing.T) {
 		}, nil
 	})
 	k8sclientCancel := jobFakeClient(cond)
-	clientsCancel := newClients(k8sclientCancel, cCancel)
+	clientsCancel := newClients(*emptyClient, k8sclientCancel, cCancel)
 	_, err = runAnalysis(clientsCancel, resourceNames, "testcases/runanalysis/")
 	assert.Equal(t, nil, err)
 
@@ -2427,7 +2437,7 @@ func TestRunAnalysis(t *testing.T) {
 			Header: make(http.Header),
 		}, nil
 	})
-	clientsHead := newClients(k8sclientCancel, cHead)
+	clientsHead := newClients(*emptyClient, k8sclientCancel, cHead)
 	_, err = runAnalysis(clientsHead, resourceNames, "testcases/runanalysis/")
 	assert.Equal(t, "analysis Error: score url not found", err.Error())
 
@@ -2446,7 +2456,7 @@ func TestRunAnalysis(t *testing.T) {
 			Header: Head,
 		}, nil
 	})
-	clientsError := newClients(k8sclientCancel, cError)
+	clientsError := newClients(*emptyClient, k8sclientCancel, cError)
 	_, err = runAnalysis(clientsError, resourceNames, "testcases/runanalysis/")
 	assert.Equal(t, "analysis Error: Here is Error\nMessage: Error is Here", err.Error())
 
@@ -2454,7 +2464,7 @@ func TestRunAnalysis(t *testing.T) {
 		podName: "pod",
 		jobName: "job",
 	}
-	clientsPatchError := newClients(getFakeClient(map[string][]byte{}), c)
+	clientsPatchError := newClients(*emptyClient, getFakeClient(map[string][]byte{}), c)
 	_, err = runAnalysis(clientsPatchError, resourceNames, "testcases/runanalysis/")
 	assert.Equal(t, "jobs.batch \"job\" not found", err.Error())
 
@@ -2464,7 +2474,7 @@ func TestRunAnalysis(t *testing.T) {
 			Header:     make(http.Header),
 		}, errors.New("Post \"https://opsmx.invalidurl.tst\": dial tcp: lookup https://opsmx.invalidurl.tst: no such host")
 	})
-	clientsUrlError := newClients(k8sclientS, cUrlEroor)
+	clientsUrlError := newClients(*emptyClient, k8sclientS, cUrlEroor)
 	_, err = runAnalysis(clientsUrlError, resourceNames, "testcases/runanalysis/")
 	assert.Equal(t, "provider config map validation error: incorrect opsmxIsdUrl", err.Error())
 	if _, err := os.Stat("testcases/secrets"); !os.IsNotExist(err) {
@@ -2483,7 +2493,10 @@ func TestRunAnalysis(t *testing.T) {
 
 func TestRunner(t *testing.T) {
 	httpclient := NewHttpClient()
-	clients := newClients(getFakeClient(map[string][]byte{}), httpclient)
+	// Create an empty client by setting its fields to empty values.
+	emptyClient := &v1alpha1.ArgoprojV1alpha1Client{}
+
+	clients := newClients(*emptyClient, getFakeClient(map[string][]byte{}), httpclient)
 	err := runner(clients)
 	assert.Equal(t, "analysisTemplate validation error: environment variable MY_POD_NAME is not set", err.Error())
 
@@ -2498,7 +2511,7 @@ func TestRunner(t *testing.T) {
 		Status:  "True",
 	}
 	k8sclient := jobFakeClient(cond)
-	clients = newClients(k8sclient, httpclient)
+	clients = newClients(*emptyClient, k8sclient, httpclient)
 	os.Setenv("MY_POD_NAME", "pod")
 	err = runner(clients)
 	assert.Equal(t, "pods \"pod\" not found", err.Error())
