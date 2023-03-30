@@ -32,6 +32,15 @@ func runAnalysis(c *Clients, r ResourceNames, basePath string) (ExitCode, error)
 	if err != nil {
 		return ReturnCodeError, err
 	}
+
+	if metric.Application == "" {
+		metric.Application, err = getProviderConfigNameFromJob(c, r)
+		if err != nil {
+			return ReturnCodeError, err
+		}
+		log.Infof("App Name Retrieved %s", metric.Application)
+	}
+
 	log.Info("provider config data retrieved successfully")
 	log.Info("performing basic checks")
 	err = metric.basicChecks()

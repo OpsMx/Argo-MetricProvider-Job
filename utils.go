@@ -171,6 +171,7 @@ func checkPatchabilityReturnResources(c *Clients) (ResourceNames, error) {
 		return ResourceNames{}, err
 	}
 
+	log.Println("jobname earlier ", jobName)
 	_, err = c.kubeclientset.BatchV1().Jobs(defaults.Namespace()).Patch(context.TODO(), jobName, types.StrategicMergePatchType, []byte(`{}`), metav1.PatchOptions{}, "status")
 	if err != nil {
 		log.Error("cannot patch to Job")
@@ -333,10 +334,30 @@ func getAnalysisTemplateData(basePath string) (OPSMXMetric, error) {
 	if opsmx.Application == "" {
 		opsmx.Application, err = getScopeValues("{{env.APP_NAME}}")
 		if err != nil {
-			return OPSMXMetric{}, errors.New("provider config map validation error: unset environment variable APPName and missing application parameter in the provider config map. Please ensure that at least one of these two requirements is fulfilled")
+			log.Warn("provider config map validation warning: unset environment variable APPName and missing application parameter in the provider config map.")
+			log.Info("attempting to retrieve App Name via labels of provider ConfigMap")
 		}
 	}
 	return opsmx, nil
+}
+
+func getProviderConfigNameFromJob(c *Clients, r ResourceNames) (string, error) {
+	jobValue, err := c.kubeclientset.BatchV1().Jobs(defaults.Namespace()).Get(context.TODO(), r.jobName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	var analysisTemplateName string
+	for i := range jobValue.Spec.Template.Spec.Volumes {
+		if jobValue.Spec.Template.Spec.Volumes[i].ConfigMap.LocalObjectReference.Name != "" {
+			analysisTemplateName = jobValue.Spec.Template.Spec.Volumes[i].ConfigMap.LocalObjectReference.Name
+			break
+		}
+	}
+	analysisTemplate, err := c.kubeclientset.CoreV1().ConfigMaps(defaults.Namespace()).Get(context.TODO(), analysisTemplateName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	return analysisTemplate.ObjectMeta.Labels["argocd.argoproj.io/instance"], nil
 }
 
 func generateSHA1(s string) string {
